@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "Plan": {
+      "title": "Plan",
+      "description": "A scheduled task or plan for a specific day and time",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string", "format": "date-time" },
+        "color": { "type": "string" },
+        "notes": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "startTime": { "type": "string" },
+        "endTime": { "type": "string" }
+      },
+      "required": ["id", "title", "date"]
+    },
+    "WeekMeta": {
+      "title": "Week Metadata",
+      "description": "Metadata for a specific week (notes, colors)",
+      "type": "object",
+      "properties": {
+        "note": { "type": "string" },
+        "color": { "type": "string" }
+      }
+    },
+    "AppSettings": {
+      "title": "App Settings",
+      "description": "User specific application settings",
+      "type": "object",
+      "properties": {
+        "language": { "type": "string" },
+        "theme": { "type": "string" },
+        "musicEnabled": { "type": "boolean" },
+        "musicVolume": { "type": "number" },
+        "musicTrackId": { "type": "string" },
+        "notificationsEnabled": { "type": "boolean" },
+        "notificationSound": { "type": "string" },
+        "startHour": { "type": "number" },
+        "endHour": { "type": "number" }
+      }
+    }
+  },
+  "firestore": {
+    "/users/{userId}/plans/{planId}": {
+      "schema": "Plan",
+      "description": "Individual user plans"
+    },
+    "/users/{userId}/meta/weekMetas": {
+      "schema": {
+        "type": "object",
+        "additionalProperties": { "$ref": "#/entities/WeekMeta" }
+      },
+      "description": "Week metadata (indexed by week start date string)"
+    },
+    "/users/{userId}/meta/settings": {
+      "schema": "AppSettings",
+      "description": "User specific settings"
+    }
+  }
+}

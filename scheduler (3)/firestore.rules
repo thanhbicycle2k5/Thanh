@@ -1,0 +1,70 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Global Safety Net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helper Functions ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    // Only allow verified emails for better security
+    function isVerified() {
+      return isSignedIn() && (request.auth.token.email_verified == true || request.auth.token.firebase.sign_in_provider == 'anonymous');
+    }
+
+    function isOwner(userId) {
+      return isVerified() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // Validation Blueprint for Plan
+    function isValidPlan(data, isCreate) {
+      let requiredFields = ['id', 'title', 'date', 'startHour', 'duration', 'color'];
+      let allAllowedFields = ['id', 'title', 'date', 'startHour', 'duration', 'color', 'notes'];
+      
+      return data.keys().hasAll(requiredFields)
+        && (isCreate ? data.keys().size() <= allAllowedFields.size() : true)
+        && data.id is string && data.id.size() <= 128
+        && data.title is string && data.title.size() <= 500
+        && data.date is string && data.date.size() <= 100
+        && data.startHour is number
+        && data.duration is number
+        && data.color is string
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 5000));
+    }
+
+    match /users/{userId} {
+      allow get: if isSignedIn() && request.auth.uid == userId;
+
+      match /plans/{planId} {
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn() && request.auth.uid == userId && isValidPlan(incoming(), true);
+        allow update: if isSignedIn() && request.auth.uid == userId && isValidPlan(incoming(), false);
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      match /meta/weekMetas {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+
+      match /meta/settings {
+        allow read, write: if isSignedIn() && request.auth.uid == userId;
+      }
+    }
+  }
+}
