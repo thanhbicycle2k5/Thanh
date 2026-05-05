@@ -21,11 +21,18 @@ import {
   onSnapshot,
 } from "firebase/firestore";
 import { Plan, AppSettings } from "../types";
-import firebaseConfig from "../../firebase-applet-config.json";
+const firebaseConfig = {
+  apiKey: "AIzaSyAI2wBxUR9V5OHr1fVNHJbNv0ReUqxjOww",
+  authDomain: "wadebicycle.firebaseapp.com",
+  projectId: "wadebicycle",
+  storageBucket: "wadebicycle.firebasestorage.app",
+  messagingSenderId: "365678601546",
+  appId: "1:365678601546:web:40c042ab0961b693ec0db3",
+  measurementId: "G-66ZD4J6QX3"
+};
 
 const isNewApp = getApps().length === 0;
 const app = isNewApp ? initializeApp(firebaseConfig) : getApp();
-
 
 export const auth = getAuth(app);
 
