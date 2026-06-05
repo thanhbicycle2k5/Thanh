@@ -12,6 +12,7 @@ interface DynamicCatProps {
   mood: CatMood;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  onClick?: () => void;
 }
 
 const CatPoses: Record<CatMood, { body: string; ears: string; eyes: string; mouth: string; accessories?: string }> = {
@@ -88,16 +89,43 @@ const viewBoxMap = {
 export const DynamicCat: React.FC<DynamicCatProps> = ({ 
   mood, 
   size = 'md',
-  className 
+  className,
+  onClick
 }) => {
+  const [isClicked, setIsClicked] = React.useState(false);
   const pose = CatPoses[mood];
   const isAnimating = mood === 'gym' || mood === 'celebrating';
 
+  const handleClick = () => {
+    setIsClicked(true);
+    setTimeout(() => setIsClicked(false), 600);
+    onClick?.();
+  };
+
   return (
     <motion.div
-      animate={isAnimating ? { y: [0, -8, 0] } : { y: 0 }}
-      transition={isAnimating ? { duration: 0.6, repeat: Infinity, type: 'easeInOut' } : undefined}
-      className={cn(sizeMap[size], className)}
+      animate={
+        isClicked
+          ? { 
+              y: [0, -20, -15, 0],
+              rotate: [0, 5, -5, 0],
+              scale: [1, 1.05, 1]
+            }
+          : isAnimating 
+            ? { y: [0, -8, 0] }
+            : { y: 0 }
+      }
+      transition={
+        isClicked
+          ? { duration: 0.6, type: 'spring', stiffness: 200 }
+          : isAnimating 
+            ? { duration: 0.6, repeat: Infinity, type: 'easeInOut' }
+            : undefined
+      }
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={handleClick}
+      className={cn(sizeMap[size], className, "cursor-pointer")}
     >
       <svg
         viewBox={viewBoxMap[size]}

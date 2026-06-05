@@ -62,6 +62,7 @@ import { AppSettings, Language, Theme, CatMood, BackgroundConfig } from './types
 import { motion, AnimatePresence } from 'motion/react';
 import { DynamicCat } from './components/DynamicCat';
 import { BackgroundCustomizer } from './components/BackgroundCustomizer';
+import { CelebrationEffect } from './components/CelebrationEffect';
 
 import { 
   Dialog,
@@ -82,6 +83,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import {
   DropdownMenu,
@@ -273,6 +275,7 @@ export default function App() {
   const [pomodoroSecondsLeft, setPomodoroSecondsLeft] = React.useState(POMODORO_DURATIONS.work);
   const [pomodoroRunning, setPomodoroRunning] = React.useState(false);
   const [pomodoroSessions, setPomodoroSessions] = React.useState(0);
+  const [showCelebration, setShowCelebration] = React.useState(false);
 
   React.useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -469,6 +472,7 @@ export default function App() {
         icon: <Trophy className="w-4 h-4 text-yellow-500" />,
         duration: 3000 
       });
+      setShowCelebration(true);
     }
     if (user) {
       cloudStorage.savePlan(user.uid, p);
@@ -833,8 +837,15 @@ export default function App() {
         
         {/* Dynamic Cat */}
         {settings.catEnabled !== false && (
-          <div className="pointer-events-auto hover:scale-110 transition-transform cursor-pointer" onClick={() => playMusicalNote()}>
-            <DynamicCat mood={catMood} size="md" />
+          <div className="pointer-events-auto">
+            <DynamicCat 
+              mood={catMood} 
+              size="md"
+              onClick={() => {
+                playMusicalNote();
+                setShowCelebration(true);
+              }}
+            />
           </div>
         )}
         <div className="relative inline-block pointer-events-auto">
@@ -931,129 +942,111 @@ export default function App() {
         </div>
       </div>
 
+      <CelebrationEffect trigger={showCelebration} count={25} />
       <Toaster />
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-         <DialogContent className="max-w-md">
+         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{t('settings')}</DialogTitle></DialogHeader>
-            <div className="space-y-4">
-               <div className="flex justify-between items-center">
-                  <Label>{t('language')}</Label>
-                  <Select value={settings.language} onValueChange={(v: Language) => handleUpdateSettings({language:v})}>
-                    <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                    <SelectContent><SelectItem value="en">English</SelectItem><SelectItem value="vi">Tiếng Việt</SelectItem></SelectContent>
-                  </Select>
-               </div>
-               <div className="flex justify-between items-center">
-                  <Label>{t('theme')}</Label>
-                  <div className="flex justify-between items-center bg-muted p-1 rounded-lg">
-                    <Button variant={settings.theme === 'light' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({theme:'light'})}><Sun className="w-3 h-3"/></Button>
-                    <Button variant={settings.theme === 'dark' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({theme:'dark'})}><Moon className="w-3 h-3"/></Button>
-                  </div>
-               </div>
+            <Tabs defaultValue="general" className="w-full">
+               <TabsList className="grid w-full grid-cols-4 lg:grid-cols-5">
+                  <TabsTrigger value="general" className="text-[10px]">Chung</TabsTrigger>
+                  <TabsTrigger value="schedule" className="text-[10px]">Lịch</TabsTrigger>
+                  <TabsTrigger value="sound" className="text-[10px]">Âm thanh</TabsTrigger>
+                  <TabsTrigger value="appearance" className="text-[10px]">Giao diện</TabsTrigger>
+                  <TabsTrigger value="account" className="text-[10px] hidden lg:flex">Tài khoản</TabsTrigger>
+               </TabsList>
 
-               <div className="space-y-4 border-t pt-4">
-                  <Label className="text-[10px] font-bold uppercase tracking-wider opacity-50">{t('hours')}</Label>
-                  <div className="space-y-6 px-1">
-                    <div className="space-y-4">
-                       <div className="flex justify-between items-center text-xs">
-                          <span className="opacity-70">{t('startHour')}</span>
-                          <div className="flex items-center gap-3">
-                             <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 rounded-lg bg-muted"
-                                onClick={() => {
-                                   if (settings.startHour > 0) handleUpdateSettings({startHour: settings.startHour - 1});
-                                }}
-                             >
-                                <Minus className="w-3 h-3" />
-                             </Button>
-                             <span className="font-black text-[#107C41] w-8 text-center">{settings.startHour}h</span>
-                             <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 rounded-lg bg-muted"
-                                onClick={() => {
-                                   if (settings.startHour < settings.endHour - 1) handleUpdateSettings({startHour: settings.startHour + 1});
-                                }}
-                             >
-                                <Plus className="w-3 h-3" />
-                             </Button>
-                          </div>
-                       </div>
-                    </div>
-                    <div className="space-y-4">
-                       <div className="flex justify-between items-center text-xs">
-                          <span className="opacity-70">{t('endHour')}</span>
-                          <div className="flex items-center gap-3">
-                             <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 rounded-lg bg-muted"
-                                onClick={() => {
-                                   if (settings.endHour > settings.startHour + 1) handleUpdateSettings({endHour: settings.endHour - 1});
-                                }}
-                             >
-                                <Minus className="w-3 h-3" />
-                             </Button>
-                             <span className="font-black text-[#107C41] w-8 text-center">{settings.endHour}h</span>
-                             <Button 
-                                variant="ghost" 
-                                size="icon" 
-                                className="h-7 w-7 rounded-lg bg-muted"
-                                onClick={() => {
-                                   if (settings.endHour < 23) handleUpdateSettings({endHour: settings.endHour + 1});
-                                }}
-                             >
-                                <Plus className="w-3 h-3" />
-                             </Button>
-                          </div>
-                       </div>
-                    </div>
+               {/* General Tab */}
+               <TabsContent value="general" className="space-y-4 mt-4">
+                  <div className="flex justify-between items-center">
+                     <Label>{t('language')}</Label>
+                     <Select value={settings.language} onValueChange={(v: Language) => handleUpdateSettings({language:v})}>
+                       <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                       <SelectContent><SelectItem value="en">English</SelectItem><SelectItem value="vi">Tiếng Việt</SelectItem></SelectContent>
+                     </Select>
                   </div>
-               </div>
+                  <div className="flex justify-between items-center">
+                     <Label>{t('theme')}</Label>
+                     <div className="flex justify-between items-center bg-muted p-1 rounded-lg">
+                       <Button variant={settings.theme === 'light' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({theme:'light'})}><Sun className="w-3 h-3"/></Button>
+                       <Button variant={settings.theme === 'dark' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({theme:'dark'})}><Moon className="w-3 h-3"/></Button>
+                     </div>
+                  </div>
+                  <div className="flex justify-between items-center gap-4 pt-2">
+                     <Label>{t('cat')}</Label>
+                     <Switch
+                       checked={settings.catEnabled !== false}
+                       onCheckedChange={(checked) => handleUpdateSettings({ catEnabled: checked })}
+                     />
+                  </div>
+               </TabsContent>
 
-               <div className="flex justify-between items-center gap-4 border-t pt-4">
-                  <Label className="flex-1">{t('notificationSound')}</Label>
-                  <div className="flex items-center gap-2">
-                    <Select value={settings.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({notificationSound:v})}>
-                      <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="bird">{t('bird')}</SelectItem>
-                        <SelectItem value="wind">{t('wind')}</SelectItem>
-                        <SelectItem value="bell">{t('bell')}</SelectItem>
-                        <SelectItem value="chime">{t('chime')}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => playNotificationSound(settings.notificationSound)}>
-                       <Volume2 className="w-3.5 h-3.5" />
-                    </Button>
+               {/* Schedule Tab */}
+               <TabsContent value="schedule" className="space-y-6 mt-4">
+                  <div className="space-y-4">
+                     <div className="flex justify-between items-center text-xs">
+                        <span className="opacity-70">{t('startHour')}</span>
+                        <div className="flex items-center gap-3">
+                           <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg bg-muted" onClick={() => { if (settings.startHour > 0) handleUpdateSettings({startHour: settings.startHour - 1}); }}>
+                              <Minus className="w-3 h-3" />
+                           </Button>
+                           <span className="font-black text-[#107C41] w-8 text-center">{settings.startHour}h</span>
+                           <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg bg-muted" onClick={() => { if (settings.startHour < settings.endHour - 1) handleUpdateSettings({startHour: settings.startHour + 1}); }}>
+                              <Plus className="w-3 h-3" />
+                           </Button>
+                        </div>
+                     </div>
                   </div>
-               </div>
-               
-               {/* Background Customizer */}
-               <div className="border-t pt-4">
+                  <div className="space-y-4">
+                     <div className="flex justify-between items-center text-xs">
+                        <span className="opacity-70">{t('endHour')}</span>
+                        <div className="flex items-center gap-3">
+                           <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg bg-muted" onClick={() => { if (settings.endHour > settings.startHour + 1) handleUpdateSettings({endHour: settings.endHour - 1}); }}>
+                              <Minus className="w-3 h-3" />
+                           </Button>
+                           <span className="font-black text-[#107C41] w-8 text-center">{settings.endHour}h</span>
+                           <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg bg-muted" onClick={() => { if (settings.endHour < 23) handleUpdateSettings({endHour: settings.endHour + 1}); }}>
+                              <Plus className="w-3 h-3" />
+                           </Button>
+                        </div>
+                     </div>
+                  </div>
+               </TabsContent>
+
+               {/* Sound Tab */}
+               <TabsContent value="sound" className="space-y-4 mt-4">
+                  <div className="flex justify-between items-center gap-4">
+                     <Label className="flex-1">{t('notificationSound')}</Label>
+                     <div className="flex items-center gap-2">
+                       <Select value={settings.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({notificationSound:v})}>
+                         <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="bird">{t('bird')}</SelectItem>
+                           <SelectItem value="wind">{t('wind')}</SelectItem>
+                           <SelectItem value="bell">{t('bell')}</SelectItem>
+                           <SelectItem value="chime">{t('chime')}</SelectItem>
+                         </SelectContent>
+                       </Select>
+                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => playNotificationSound(settings.notificationSound)}>
+                          <Volume2 className="w-3.5 h-3.5" />
+                       </Button>
+                     </div>
+                  </div>
+               </TabsContent>
+
+               {/* Appearance Tab */}
+               <TabsContent value="appearance" className="space-y-4 mt-4 max-h-[50vh] overflow-y-auto">
                   <BackgroundCustomizer
                     config={settings.backgroundConfig}
                     onChange={(config) => handleUpdateSettings({ backgroundConfig: config })}
                     t={t}
                     theme={settings.theme}
                   />
-               </div>
+               </TabsContent>
 
-               {/* Cat Toggle */}
-               <div className="flex justify-between items-center gap-4 border-t pt-4">
-                  <Label>{t('cat')}</Label>
-                  <div className="flex items-center gap-2">
-                    <Switch
-                      checked={settings.catEnabled !== false}
-                      onCheckedChange={(checked) => handleUpdateSettings({ catEnabled: checked })}
-                    />
-                  </div>
-               </div>
-
-               <div className="border-t pt-4">
+               {/* Account Tab */}
+               <TabsContent value="account" className="space-y-4 mt-4">
                  {user ? (
                     <div className="flex items-center gap-3">
                       <img src={user.photoURL || ''} className="w-8 h-8 rounded-full" />
@@ -1082,14 +1075,14 @@ export default function App() {
                       {t('signIn')}
                     </Button>
                  )}
-                 <div className="mt-8 pt-4 border-t border-border flex justify-center">
+                 <div className="pt-4 border-t border-border flex justify-center">
                    <p className="text-[10px] opacity-30 flex items-center gap-1.5 font-medium">
                      <span className="w-1 h-1 bg-[#107C41] rounded-full"></span>
                      {t('inspiredBy')}
                    </p>
                  </div>
-               </div>
-            </div>
+               </TabsContent>
+            </Tabs>
          </DialogContent>
       </Dialog>
 
