@@ -1272,8 +1272,8 @@ export default function App() {
                       <p className="text-[10px] opacity-30">{t('inspiredBy')}</p>
                     </div>
                   </TabsContent>
-                </Tabs>
-              </section>
+                </section>
+              </Tabs>
             </div>
          </DialogContent>
       </Dialog>
