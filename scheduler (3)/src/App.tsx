@@ -464,6 +464,14 @@ export default function App() {
     return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
 
+  const settingsTabs = [
+    { value: 'general', label: t('general'), icon: <Settings className="w-4 h-4" /> },
+    { value: 'schedule', label: t('schedule'), icon: <CalendarIcon className="w-4 h-4" /> },
+    { value: 'sound', label: t('sound'), icon: <Volume2 className="w-4 h-4" /> },
+    { value: 'appearance', label: t('appearance'), icon: <Sun className="w-4 h-4" /> },
+    { value: 'account', label: t('account'), icon: <CloudIcon className="w-4 h-4" /> },
+  ];
+
   const startGymRest = () => {
     const duration = settings.gymRestDurationSeconds ?? 60;
     setGymRestEndAt(Date.now() + duration * 1000);
@@ -1091,196 +1099,182 @@ export default function App() {
       <Toaster />
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-         <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>{t('settings')}</DialogTitle></DialogHeader>
-            <Tabs defaultValue="general" className="w-full">
-               <TabsList className="grid w-full grid-cols-4 lg:grid-cols-5">
-                  <TabsTrigger value="general" className="text-[10px]">Chung</TabsTrigger>
-                  <TabsTrigger value="schedule" className="text-[10px]">Lịch</TabsTrigger>
-                  <TabsTrigger value="sound" className="text-[10px]">Âm thanh</TabsTrigger>
-                  <TabsTrigger value="appearance" className="text-[10px]">Giao diện</TabsTrigger>
-                  <TabsTrigger value="account" className="text-[10px] hidden lg:flex">Tài khoản</TabsTrigger>
-               </TabsList>
+         <DialogContent className="w-[min(100vw-1.5rem,650px)] max-h-[90vh] overflow-hidden rounded-[32px] bg-popover p-0">
+            <div className="flex h-full min-h-[28rem] flex-col overflow-hidden rounded-[32px] bg-card shadow-xl sm:flex-row">
+              <Tabs defaultValue="general" orientation="vertical" className="w-full">
+                <aside className="border-b border-border/70 bg-muted/50 p-4 sm:w-52 sm:border-b-0 sm:border-r">
+                  <div className="mb-4">
+                    <DialogHeader className="p-0">
+                      <DialogTitle className="text-base">{t('settings')}</DialogTitle>
+                    </DialogHeader>
+                    <p className="mt-1 text-xs text-muted-foreground">{t('appDescription')}</p>
+                  </div>
+                  <TabsList className="grid gap-2">
+                    {settingsTabs.map((tab) => (
+                      <TabsTrigger
+                        key={tab.value}
+                        value={tab.value}
+                        className="group flex h-14 items-center justify-between rounded-2xl border border-transparent bg-background px-4 text-sm font-medium text-foreground transition hover:border-border hover:bg-muted sm:justify-start"
+                      >
+                        <span className="flex items-center gap-3">
+                          {tab.icon}
+                          <span>{tab.label}</span>
+                        </span>
+                        <ChevronRight className="w-4 h-4 text-muted-foreground sm:hidden" />
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </aside>
 
-               {/* General Tab */}
-               <TabsContent value="general" className="space-y-4 mt-4">
-                  <div className="flex justify-between items-center">
-                     <Label>{t('language')}</Label>
-                     <Select value={settings.language} onValueChange={(v: Language) => handleUpdateSettings({language:v})}>
-                       <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
-                       <SelectContent><SelectItem value="en">English</SelectItem><SelectItem value="vi">Tiếng Việt</SelectItem></SelectContent>
-                     </Select>
-                  </div>
-                  <div className="flex justify-between items-center">
-                     <Label>{t('theme')}</Label>
-                     <div className="flex justify-between items-center bg-muted p-1 rounded-lg">
-                       <Button variant={settings.theme === 'light' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({theme:'light'})}><Sun className="w-3 h-3"/></Button>
-                       <Button variant={settings.theme === 'dark' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({theme:'dark'})}><Moon className="w-3 h-3"/></Button>
-                     </div>
-                  </div>
-                  <div className="flex justify-between items-center gap-4 pt-2">
-                     <Label>{t('cat')}</Label>
-                     <Switch
-                       checked={settings.catEnabled !== false}
-                       onCheckedChange={(checked) => handleUpdateSettings({ catEnabled: checked })}
-                     />
-                  </div>
-                  <div className="border-t border-border pt-4 space-y-3">
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold">{t('gymRestTimer')}</p>
-                        <p className="text-xs opacity-70">{t('gymRestTimerDescription')}</p>
+                <section className="flex-1 overflow-y-auto p-4">
+                  <TabsContent value="general" className="space-y-4">
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-border bg-muted/60 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold">{t('language')}</p>
+                            <p className="text-xs text-muted-foreground">{t('language')}</p>
+                          </div>
+                          <Select value={settings.language} onValueChange={(v: Language) => handleUpdateSettings({ language: v })}>
+                            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="en">English</SelectItem>
+                              <SelectItem value="vi">Tiếng Việt</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                      <Switch
-                        checked={settings.gymRestEnabled ?? false}
-                        onCheckedChange={(checked) => handleUpdateSettings({ gymRestEnabled: checked })}
+                      <div className="rounded-2xl border border-border bg-muted/60 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold">{t('theme')}</p>
+                            <p className="text-xs text-muted-foreground">{t('theme')}</p>
+                          </div>
+                          <div className="flex items-center gap-2 rounded-full bg-background p-1">
+                            <Button variant={settings.theme === 'light' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'light' })}>
+                              <Sun className="w-3 h-3" />
+                            </Button>
+                            <Button variant={settings.theme === 'dark' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'dark' })}>
+                              <Moon className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-border bg-muted/60 p-4">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div>
+                            <p className="text-sm font-semibold">{t('cat')}</p>
+                            <p className="text-xs text-muted-foreground">{t('enableCat')}</p>
+                          </div>
+                          <Switch
+                            checked={settings.catEnabled !== false}
+                            onCheckedChange={(checked) => handleUpdateSettings({ catEnabled: checked })}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="schedule" className="space-y-4">
+                    <div className="rounded-2xl border border-border bg-muted/60 p-4 space-y-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="text-sm text-foreground">{t('startHour')}</span>
+                        <div className="flex items-center gap-3">
+                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settings.startHour > 0) handleUpdateSettings({ startHour: settings.startHour - 1 }); }}>
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                          <span className="w-12 text-center font-black text-[#107C41]">{settings.startHour}h</span>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settings.startHour < settings.endHour - 1) handleUpdateSettings({ startHour: settings.startHour + 1 }); }}>
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <span className="text-sm text-foreground">{t('endHour')}</span>
+                        <div className="flex items-center gap-3">
+                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settings.endHour > settings.startHour + 1) handleUpdateSettings({ endHour: settings.endHour - 1 }); }}>
+                            <Minus className="w-3 h-3" />
+                          </Button>
+                          <span className="w-12 text-center font-black text-[#107C41]">{settings.endHour}h</span>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settings.endHour < 23) handleUpdateSettings({ endHour: settings.endHour + 1 }); }}>
+                            <Plus className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="sound" className="space-y-4">
+                    <div className="rounded-2xl border border-border bg-muted/60 p-4 flex flex-col gap-4">
+                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                        <Label>{t('notificationSound')}</Label>
+                        <div className="flex items-center gap-2">
+                          <Select value={settings.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({ notificationSound: v })}>
+                            <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="bird">{t('bird')}</SelectItem>
+                              <SelectItem value="wind">{t('wind')}</SelectItem>
+                              <SelectItem value="bell">{t('bell')}</SelectItem>
+                              <SelectItem value="chime">{t('chime')}</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => playNotificationSound(settings.notificationSound)}>
+                            <Volume2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="appearance" className="space-y-4">
+                    <div className="rounded-2xl border border-border bg-muted/60 p-4 max-h-[50vh] overflow-y-auto">
+                      <BackgroundCustomizer
+                        config={settings.backgroundConfig}
+                        onChange={(config) => handleUpdateSettings({ backgroundConfig: config })}
+                        t={t}
+                        theme={settings.theme}
                       />
                     </div>
-                    {settings.gymRestEnabled && (
-                      <div className="space-y-3">
-                        <div className="grid grid-cols-3 gap-2">
-                          {[30, 45, 60, 90, 120].map((sec) => (
-                            <Button
-                              key={sec}
-                              variant={settings.gymRestDurationSeconds === sec ? 'secondary' : 'outline'}
-                              size="sm"
-                              className="h-9"
-                              onClick={() => handleUpdateSettings({ gymRestDurationSeconds: sec })}
-                            >
-                              {sec}s
-                            </Button>
-                          ))}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Input
-                            type="number"
-                            min={10}
-                            max={300}
-                            className="w-24"
-                            value={(settings.gymRestDurationSeconds ?? 60).toString()}
-                            onChange={(e) => {
-                              const value = Number(e.target.value);
-                              if (!Number.isNaN(value) && value > 0) {
-                                handleUpdateSettings({ gymRestDurationSeconds: value });
-                              }
-                            }}
-                          />
-                          <span className="text-sm opacity-70">s</span>
-                          <span className="text-xs opacity-70">{t('gymRestDuration')}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm">{t('gymRestSound')}</span>
-                          <Switch
-                            checked={settings.gymRestSoundEnabled ?? true}
-                            onCheckedChange={(checked) => handleUpdateSettings({ gymRestSoundEnabled: checked })}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-               </TabsContent>
+                  </TabsContent>
 
-               {/* Schedule Tab */}
-               <TabsContent value="schedule" className="space-y-6 mt-4">
-                  <div className="space-y-4">
-                     <div className="flex justify-between items-center text-xs">
-                        <span className="opacity-70">{t('startHour')}</span>
+                  <TabsContent value="account" className="space-y-4">
+                    <div className="rounded-2xl border border-border bg-muted/60 p-4">
+                      {user ? (
                         <div className="flex items-center gap-3">
-                           <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg bg-muted" onClick={() => { if (settings.startHour > 0) handleUpdateSettings({startHour: settings.startHour - 1}); }}>
-                              <Minus className="w-3 h-3" />
-                           </Button>
-                           <span className="font-black text-[#107C41] w-8 text-center">{settings.startHour}h</span>
-                           <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg bg-muted" onClick={() => { if (settings.startHour < settings.endHour - 1) handleUpdateSettings({startHour: settings.startHour + 1}); }}>
-                              <Plus className="w-3 h-3" />
-                           </Button>
+                          <img src={user.photoURL || ''} className="w-10 h-10 rounded-full" />
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold">{user.displayName}</p>
+                            <p className="text-xs opacity-70">{user.email}</p>
+                          </div>
+                          <Button variant="outline" size="sm" onClick={() => signOutUser()}>{t('signOut')}</Button>
                         </div>
-                     </div>
-                  </div>
-                  <div className="space-y-4">
-                     <div className="flex justify-between items-center text-xs">
-                        <span className="opacity-70">{t('endHour')}</span>
-                        <div className="flex items-center gap-3">
-                           <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg bg-muted" onClick={() => { if (settings.endHour > settings.startHour + 1) handleUpdateSettings({endHour: settings.endHour - 1}); }}>
-                              <Minus className="w-3 h-3" />
-                           </Button>
-                           <span className="font-black text-[#107C41] w-8 text-center">{settings.endHour}h</span>
-                           <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg bg-muted" onClick={() => { if (settings.endHour < 23) handleUpdateSettings({endHour: settings.endHour + 1}); }}>
-                              <Plus className="w-3 h-3" />
-                           </Button>
-                        </div>
-                     </div>
-                  </div>
-               </TabsContent>
-
-               {/* Sound Tab */}
-               <TabsContent value="sound" className="space-y-4 mt-4">
-                  <div className="flex justify-between items-center gap-4">
-                     <Label className="flex-1">{t('notificationSound')}</Label>
-                     <div className="flex items-center gap-2">
-                       <Select value={settings.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({notificationSound:v})}>
-                         <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
-                         <SelectContent>
-                           <SelectItem value="bird">{t('bird')}</SelectItem>
-                           <SelectItem value="wind">{t('wind')}</SelectItem>
-                           <SelectItem value="bell">{t('bell')}</SelectItem>
-                           <SelectItem value="chime">{t('chime')}</SelectItem>
-                         </SelectContent>
-                       </Select>
-                       <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => playNotificationSound(settings.notificationSound)}>
-                          <Volume2 className="w-3.5 h-3.5" />
-                       </Button>
-                     </div>
-                  </div>
-               </TabsContent>
-
-               {/* Appearance Tab */}
-               <TabsContent value="appearance" className="space-y-4 mt-4 max-h-[50vh] overflow-y-auto">
-                  <BackgroundCustomizer
-                    config={settings.backgroundConfig}
-                    onChange={(config) => handleUpdateSettings({ backgroundConfig: config })}
-                    t={t}
-                    theme={settings.theme}
-                  />
-               </TabsContent>
-
-               {/* Account Tab */}
-               <TabsContent value="account" className="space-y-4 mt-4">
-                 {user ? (
-                    <div className="flex items-center gap-3">
-                      <img src={user.photoURL || ''} className="w-8 h-8 rounded-full" />
-                      <div className="flex-1">
-                        <p className="text-sm font-bold">{user.displayName}</p>
-                        <p className="text-xs opacity-60">{user.email}</p>
-                      </div>
-                      <Button variant="ghost" size="sm" onClick={() => signOutUser()} className="text-red-500">{t('signOut')}</Button>
+                      ) : (
+                        <Button
+                          disabled={loginLoading}
+                          onClick={async () => {
+                            setLoginLoading(true);
+                            try {
+                              await signInWithGoogle();
+                            } catch (err: any) {
+                              toast.error(err.message || "Đăng nhập thất bại");
+                            } finally {
+                              setLoginLoading(false);
+                            }
+                          }}
+                          className="w-full bg-[#107C41] hover:bg-[#0d6435] text-white"
+                        >
+                          {loginLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                          {t('signIn')}
+                        </Button>
+                      )}
                     </div>
-                 ) : (
-                    <Button 
-                      disabled={loginLoading}
-                      onClick={async () => {
-                        setLoginLoading(true);
-                        try {
-                          await signInWithGoogle();
-                        } catch (err: any) {
-                          toast.error(err.message || "Đăng nhập thất bại");
-                        } finally {
-                          setLoginLoading(false);
-                        }
-                      }} 
-                      className="w-full bg-[#107C41] hover:bg-[#0d6435] text-white"
-                    >
-                      {loginLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                      {t('signIn')}
-                    </Button>
-                 )}
-                 <div className="pt-4 border-t border-border flex justify-center">
-                   <p className="text-[10px] opacity-30 flex items-center gap-1.5 font-medium">
-                     <span className="w-1 h-1 bg-[#107C41] rounded-full"></span>
-                     {t('inspiredBy')}
-                   </p>
-                 </div>
-               </TabsContent>
-            </Tabs>
+                    <div className="pt-4 border-t border-border text-center">
+                      <p className="text-[10px] opacity-30">{t('inspiredBy')}</p>
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </section>
+            </div>
          </DialogContent>
       </Dialog>
 
