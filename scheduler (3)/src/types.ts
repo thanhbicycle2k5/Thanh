@@ -20,7 +20,7 @@ export interface WeekMetadata {
 export type Language = 'en' | 'vi';
 export type Theme = 'light' | 'dark';
 export type NotificationSound = 'bird' | 'wind' | 'bell' | 'chime';
-export type CatMood = 'idle' | 'work' | 'gym' | 'shortBreak' | 'longBreak' | 'celebrating' | 'tired' | 'happy';
+export type CatMood = 'idle' | 'work' | 'gym' | 'medical' | 'shortBreak' | 'longBreak' | 'celebrating' | 'tired' | 'happy';
 export type BackgroundType = 'color' | 'gradient' | 'image';
 
 export interface MusicTrack {

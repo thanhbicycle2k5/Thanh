@@ -37,6 +37,13 @@ const CatPoses: Record<CatMood, { body: string; ears: string; eyes: string; mout
     mouth: 'M50,50 Q45,53 40,50',
     accessories: '<ellipse cx="20" cy="55" rx="4" ry="8" fill="#DEB887"/><ellipse cx="80" cy="55" rx="4" ry="8" fill="#DEB887"/><path d="M15 50 L10 40" stroke="#DEB887" stroke-width="2" fill="none"/><path d="M85 50 L90 40" stroke="#DEB887" stroke-width="2" fill="none"/>'
   },
+  medical: {
+    body: 'translate(0, 0)',
+    ears: 'rotate(0)',
+    eyes: 'M30,35 C30,32 32,30 35,30 C38,30 40,32 40,35 M60,35 C60,32 62,30 65,30 C68,30 70,32 70,35',
+    mouth: 'M50,50 Q45,54 40,50',
+    accessories: '<rect x="-6" y="-2" width="12" height="3" fill="#FFFFFF" transform="rotate(20)" /><path d="M-2,-5 L-2,2" stroke="#BBBBBB" stroke-width="1"/><path d="M2,-5 L2,2" stroke="#BBBBBB" stroke-width="1"/>'
+  },
   shortBreak: {
     body: 'translate(0, 0)',
     ears: 'rotate(-8)',

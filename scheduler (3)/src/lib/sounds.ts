@@ -184,3 +184,28 @@ export async function playMusicalNote() {
     console.error('Failed to play musical note', e);
   }
 }
+
+export async function playMeow() {
+  try {
+    const ctx = await getAudioContext();
+    const now = ctx.currentTime;
+    const gain = ctx.createGain();
+    gain.connect(ctx.destination);
+
+    // two-note meow gliss
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.exponentialRampToValueAtTime(660, now + 0.25);
+
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.18, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+    osc.connect(gain);
+    osc.start(now);
+    osc.stop(now + 0.5);
+  } catch (e) {
+    console.error('Failed to play meow', e);
+  }
+}

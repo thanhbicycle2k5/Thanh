@@ -17,7 +17,7 @@ import { storage } from './lib/storage';
 import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, settleRedirectAuth } from './lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
-import { playNotificationSound, playMusicalNote } from './lib/sounds';
+import { playNotificationSound, playMusicalNote, playMeow } from './lib/sounds';
 import { healthTipsManager } from './lib/healthTips';
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
@@ -133,7 +133,7 @@ function WeekNoteEditor({ weekStart, initialNote, theme, placeholder, onSave, bt
   );
 }
 
-function HealthTipPanel({ theme, isSettingsOpen, t, lang }: { theme: Theme; isSettingsOpen: boolean; t: (k: TranslationKey) => string; lang: Language }) {
+function HealthTipPanel({ theme, isSettingsOpen, t, lang, onActivate }: { theme: Theme; isSettingsOpen: boolean; t: (k: TranslationKey) => string; lang: Language; onActivate?: (m: CatMood) => void }) {
   const [open, setOpen] = React.useState(false);
   const [tip, setTip] = React.useState('');
   const [allTips, setAllTips] = React.useState<string[]>([]);
@@ -166,7 +166,7 @@ function HealthTipPanel({ theme, isSettingsOpen, t, lang }: { theme: Theme; isSe
         onPointerDown={(e) => e.stopPropagation()}
         onClick={() => {
           playMusicalNote();
-          setOpen((v) => !v);
+          setOpen((v) => { const next = !v; if (next && onActivate) onActivate('medical'); return next; });
         }}
         className="h-12 w-12 rounded-full shadow-2xl flex items-center justify-center border transition-all hover:scale-110 active:scale-95 group bg-background text-foreground border-border"
         title={t('healthTips')}
@@ -294,6 +294,8 @@ export default function App() {
   const [pomodoroRunning, setPomodoroRunning] = React.useState(false);
   const [pomodoroSessions, setPomodoroSessions] = React.useState(0);
   const [showCelebration, setShowCelebration] = React.useState(false);
+  const [catMoodOverride, setCatMoodOverride] = React.useState<CatMood | null>(null);
+  const [catPosition, setCatPosition] = React.useState<{ left: number; top: number } | null>(null);
 
   React.useEffect(() => {
     let interval: NodeJS.Timeout;
@@ -480,6 +482,14 @@ export default function App() {
 
   const startGymRest = () => {
     const duration = settings.gymRestDurationSeconds ?? 60;
+    // Resume from paused remaining if available
+    if (!gymRestRunning && gymRestEndAt === null && gymRestRemaining && gymRestRemaining < duration) {
+      setGymRestEndAt(Date.now() + gymRestRemaining * 1000);
+      setGymRestRunning(true);
+      setGymRestMessage(t('gymRestNextRound', { nextRound: String(Math.min(gymRestRound + 1, gymRestSets)) }));
+      return;
+    }
+    // Fresh start
     setGymRestRound(1);
     setGymRestEndAt(Date.now() + duration * 1000);
     setGymRestRemaining(duration);
@@ -538,6 +548,32 @@ export default function App() {
   const currentWeekPlans = React.useMemo(() => {
     return plans.filter(p => isSameWeek(new Date(p.date), selectedWeekStart, { weekStartsOn: 1 }));
   }, [plans, selectedWeekStart]);
+
+  // Cat auto-move: find empty schedule cells and teleport the cat there periodically
+  React.useEffect(() => {
+    let running = true;
+    const moveCatToRandomEmptyCell = () => {
+      try {
+        const tds = Array.from(document.querySelectorAll('table tbody td')) as HTMLElement[];
+        const empty = tds.filter(td => !td.classList.contains('sticky') && td.innerText.trim() === '');
+        if (empty.length === 0) return;
+        const choice = empty[Math.floor(Math.random() * empty.length)];
+        const rect = choice.getBoundingClientRect();
+        const left = rect.left + rect.width / 2 - 48; // center minus half cat
+        const top = rect.top + rect.height / 2 - 48;
+        setCatPosition({ left: Math.max(8, left), top: Math.max(8, top) });
+      } catch (e) {
+        // ignore
+      }
+    };
+
+    const id = window.setInterval(() => { if (!running) return; moveCatToRandomEmptyCell(); }, 8000);
+    // initial placement
+    setTimeout(moveCatToRandomEmptyCell, 300);
+    const onResize = () => { moveCatToRandomEmptyCell(); };
+    window.addEventListener('resize', onResize);
+    return () => { running = false; window.clearInterval(id); window.removeEventListener('resize', onResize); };
+  }, [currentWeekPlans]);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -723,10 +759,19 @@ export default function App() {
 
              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-[#FF6B00]" onClick={() => {
                 playMusicalNote();
+                // Toggle gym panel: second press closes it
+                if (gymRestOpen) {
+                  setGymRestOpen(false);
+                  setCatMoodOverride(null);
+                  return;
+                }
                 if (!settings.gymRestEnabled) {
                   handleUpdateSettings({ gymRestEnabled: true });
                 }
                 setGymRestOpen(true);
+                // set cat to gym mood briefly
+                setCatMoodOverride('gym');
+                setTimeout(() => setCatMoodOverride(null), 5000);
               }}>
                 <Dumbbell className="w-4 h-4" />
              </Button>
@@ -762,6 +807,13 @@ export default function App() {
                 onAddPlan={p => user ? cloudStorage.savePlan(user.uid, p) : setPlans([...plans, p])}
                 onUpdatePlan={handleUpdatePlan}
                 onDeletePlan={id => user ? cloudStorage.deletePlan(user.uid, id) : setPlans(plans.filter(x => x.id !== id))}
+               onPlanTurnGreen={(p) => {
+                  // Cat celebrates and meows
+                  setCatMoodOverride('celebrating');
+                  playMeow();
+                  setShowCelebration(true);
+                  setTimeout(() => setCatMoodOverride(null), 3000);
+               }}
                 language={settings.language}
                 theme={settings.theme}
                 startHour={settings.startHour}
@@ -931,7 +983,7 @@ export default function App() {
 
       {/* Floating UI Group */}
       <div className="fixed bottom-20 right-4 z-40 flex flex-col gap-3 pointer-events-none items-end">
-        <HealthTipPanel theme={settings.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settings.language} />
+        <HealthTipPanel theme={settings.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settings.language} onActivate={(m) => { setCatMoodOverride(m); setTimeout(() => setCatMoodOverride(null), 4000); }} />
         {gymRestOpen && (
           <AnimatePresence>
             <motion.div
@@ -1058,14 +1110,17 @@ export default function App() {
             transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
             className="pointer-events-auto"
           >
-            <DynamicCat 
-              mood={catMood} 
-              size="md"
-              onClick={() => {
-                playMusicalNote();
-                setShowCelebration(true);
-              }}
-            />
+            {/* Dynamic Cat positioned above everything */}
+            <div style={{ position: 'fixed', left: (catPosition?.left ?? window.innerWidth - 110), top: (catPosition?.top ?? window.innerHeight - 220), zIndex: 99999 }} className="pointer-events-auto">
+              <DynamicCat 
+                mood={catMoodOverride ?? catMood}
+                size="md"
+                onClick={() => {
+                  playMusicalNote();
+                  setShowCelebration(true);
+                }}
+              />
+            </div>
           </motion.div>
         )}
         <div className="relative inline-block pointer-events-auto">
