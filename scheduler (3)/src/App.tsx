@@ -722,7 +722,10 @@ export default function App() {
 
              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-[#FF6B00]" onClick={() => {
                 playMusicalNote();
-                setGymRestOpen((v) => !v);
+                if (!settings.gymRestEnabled) {
+                  handleUpdateSettings({ gymRestEnabled: true });
+                }
+                setGymRestOpen(true);
               }}>
                 <Dumbbell className="w-4 h-4" />
              </Button>
@@ -937,7 +940,7 @@ export default function App() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               onPointerDown={(e) => e.stopPropagation()}
-              className="fixed bottom-24 right-4 z-40 w-[min(95vw,22rem)] border shadow-2xl rounded-3xl overflow-hidden cursor-move bg-card border-border"
+              className="fixed bottom-24 right-4 z-40 w-[min(95vw,22rem)] border shadow-2xl rounded-3xl overflow-hidden cursor-move bg-card border-border pointer-events-auto"
             >
               <Card className="border-0 shadow-none bg-transparent">
                 <CardContent className="p-0">
