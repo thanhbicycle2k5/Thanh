@@ -15,6 +15,7 @@ const defaultSettings: AppSettings = {
   gymRestEnabled: false,
   gymRestDurationSeconds: 60,
   gymRestSoundEnabled: true,
+  gymRestVibrationEnabled: true,
 };
 
 const keyFor = (key: string, uid?: string | null) => uid ? `${key}_${uid}` : key;

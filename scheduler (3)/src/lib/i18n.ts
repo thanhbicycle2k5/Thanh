@@ -120,8 +120,15 @@ export const translations = {
     gymRestTimerDescription: "Quick rest countdown between sets.",
     gymRestDuration: "Rest duration",
     gymRestSound: "Rest sound",
+    gymRestVibration: "Vibration",
     gymRestNextSet: "Next set ready!",
+    gymRestNextRound: "Next: Auto countdown set {nextRound}",
+    gymRestComplete: "Workout complete!",
     gymRestIconLabel: "Open rest timer",
+    custom: "Custom",
+    seconds: "seconds",
+    setProgress: "Set {current} / {total}",
+    close: "Close",
   },
   vi: {
     appName: "Scheduler",
@@ -243,8 +250,15 @@ export const translations = {
     gymRestTimerDescription: "Đếm ngược nghỉ giữa hiệp nhanh chóng.",
     gymRestDuration: "Thời gian nghỉ",
     gymRestSound: "Âm báo nghỉ",
+    gymRestVibration: "Rung",
     gymRestNextSet: "Sẵn sàng hiệp tiếp theo!",
+    gymRestNextRound: "Tiếp theo: Tự động đếm ngược hiệp {nextRound}",
+    gymRestComplete: "Hoàn thành buổi tập!",
     gymRestIconLabel: "Mở bộ đếm nghỉ",
+    custom: "Tùy chỉnh",
+    seconds: "giây",
+    setProgress: "Hiệp {current} / {total}",
+    close: "Đóng",
   }
 };
 

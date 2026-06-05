@@ -49,6 +49,8 @@ import {
   RotateCcw,
   X,
   Timer,
+  Dumbbell,
+  Zap,
   BookOpen,
   Move,
 } from 'lucide-react';
@@ -266,7 +268,10 @@ export default function App() {
   const [gymRestRemaining, setGymRestRemaining] = React.useState(60);
   const [gymRestEndAt, setGymRestEndAt] = React.useState<number | null>(null);
   const [gymRestRound, setGymRestRound] = React.useState(1);
+  const [gymRestSets, setGymRestSets] = React.useState(4);
   const [gymRestMessage, setGymRestMessage] = React.useState('');
+  const [gymRestCustomOpen, setGymRestCustomOpen] = React.useState(false);
+  const [activeSettingsTab, setActiveSettingsTab] = React.useState('general');
   const [user, setUser] = React.useState<User | null>(null);
   const [authLoading, setAuthLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
@@ -474,10 +479,11 @@ export default function App() {
 
   const startGymRest = () => {
     const duration = settings.gymRestDurationSeconds ?? 60;
+    setGymRestRound(1);
     setGymRestEndAt(Date.now() + duration * 1000);
     setGymRestRemaining(duration);
     setGymRestRunning(true);
-    setGymRestMessage('');
+    setGymRestMessage(t('gymRestNextRound', { nextRound: '2' }));
   };
 
   const pauseGymRest = () => {
@@ -498,18 +504,27 @@ export default function App() {
 
   React.useEffect(() => {
     if (!gymRestRunning || gymRestEndAt === null) return;
+    const duration = settings.gymRestDurationSeconds ?? 60;
+
     const tick = () => {
       const remaining = Math.max(0, Math.round((gymRestEndAt - Date.now()) / 1000));
       setGymRestRemaining(remaining);
       if (remaining <= 0) {
-        setGymRestRunning(false);
-        setGymRestEndAt(null);
-        setGymRestRound((round) => round + 1);
-        setGymRestMessage(t('gymRestNextSet'));
+        if (gymRestRound < gymRestSets) {
+          const nextRound = gymRestRound + 1;
+          setGymRestRound(nextRound);
+          setGymRestRemaining(duration);
+          setGymRestEndAt(Date.now() + duration * 1000);
+          setGymRestMessage(t('gymRestNextRound', { nextRound: String(nextRound) }));
+        } else {
+          setGymRestRunning(false);
+          setGymRestEndAt(null);
+          setGymRestMessage(t('gymRestComplete'));
+        }
         if (settings.gymRestSoundEnabled) {
           playNotificationSound(settings.notificationSound);
         }
-        if (navigator.vibrate) {
+        if (settings.gymRestVibrationEnabled && navigator.vibrate) {
           navigator.vibrate(300);
         }
       }
@@ -517,7 +532,7 @@ export default function App() {
     tick();
     const intervalId = window.setInterval(tick, 250);
     return () => window.clearInterval(intervalId);
-  }, [gymRestRunning, gymRestEndAt, settings.gymRestSoundEnabled, settings.notificationSound]);
+  }, [gymRestRunning, gymRestEndAt, gymRestRound, gymRestSets, settings.gymRestSoundEnabled, settings.gymRestVibrationEnabled, settings.notificationSound, t]);
 
   const currentWeekPlans = React.useMemo(() => {
     return plans.filter(p => isSameWeek(new Date(p.date), selectedWeekStart, { weekStartsOn: 1 }));
@@ -705,6 +720,12 @@ export default function App() {
                </PopoverContent>
              </Popover>
 
+             <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-[#FF6B00]" onClick={() => {
+                playMusicalNote();
+                setGymRestOpen((v) => !v);
+              }}>
+                <Dumbbell className="w-4 h-4" />
+             </Button>
              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
                 playMusicalNote();
                 setIsSettingsOpen(true);
@@ -907,81 +928,123 @@ export default function App() {
       {/* Floating UI Group */}
       <div className="fixed bottom-20 right-4 z-40 flex flex-col gap-3 pointer-events-none items-end">
         <HealthTipPanel theme={settings.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settings.language} />
-        {settings.gymRestEnabled && (
-          <div className="relative inline-block pointer-events-auto">
-            <button
-              type="button"
+        {gymRestOpen && (
+          <AnimatePresence>
+            <motion.div
+              drag
+              dragMomentum={false}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
               onPointerDown={(e) => e.stopPropagation()}
-              onClick={() => setGymRestOpen((v) => !v)}
-              className="w-12 h-12 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95 bg-[#107C41] text-white"
-              title={t('gymRestIconLabel')}
+              className="fixed bottom-24 right-4 z-40 w-[min(95vw,22rem)] border shadow-2xl rounded-3xl overflow-hidden cursor-move bg-card border-border"
             >
-              <Timer className="w-6 h-6" />
-            </button>
-            <AnimatePresence>
-              {gymRestOpen && (
-                <motion.div
-                  drag
-                  dragMomentum={false}
-                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                  onPointerDown={(e) => e.stopPropagation()}
-                  className="absolute z-40 w-72 right-0 bottom-14 border shadow-2xl rounded-xl overflow-hidden cursor-move bg-card border-border"
-                >
-                  <Card className="border-0 shadow-none bg-transparent">
-                    <CardContent className="p-0">
-                      <div className="flex items-center justify-between gap-2 px-3 py-2 bg-muted">
-                        <div>
-                          <h3 className="text-[10px] font-bold uppercase tracking-wider">{t('gymRestTimer')}</h3>
-                          <p className="text-[10px] opacity-70">{t('gymRestDuration')} {formatSeconds(settings.gymRestDurationSeconds ?? 60)}</p>
-                        </div>
-                        <X className="w-3.5 h-3.5 cursor-pointer hover:text-red-500 transition-colors" onClick={() => setGymRestOpen(false)} />
-                      </div>
-                      <div className="p-4 space-y-3">
-                        <div className="text-center py-5 rounded-2xl border border-border bg-background">
-                          <div className="text-4xl font-black font-mono">{formatSeconds(gymRestRemaining)}</div>
-                          <p className="text-[10px] uppercase opacity-70 mt-1 font-bold tracking-widest">{`${t('gymRestTimer')} • Hiệp ${gymRestRound}`}</p>
-                        </div>
-                        {gymRestMessage && (
-                          <div className="rounded-xl bg-green-500/10 text-green-700 px-3 py-2 text-xs">
-                            {gymRestMessage}
-                          </div>
+              <Card className="border-0 shadow-none bg-transparent">
+                <CardContent className="p-0">
+                  <div className="flex items-center justify-between gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-rose-500 text-white">
+                    <div>
+                      <h3 className="text-xs font-bold uppercase tracking-widest">{t('gymRestTimer')}</h3>
+                      <p className="text-[10px] opacity-90">{t('gymRestDuration')} {formatSeconds(settings.gymRestDurationSeconds ?? 60)}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateSettings({ gymRestSoundEnabled: !settings.gymRestSoundEnabled })}
+                        className={cn(
+                          "inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-white/20 bg-white/10 transition",
+                          settings.gymRestSoundEnabled ? 'text-white' : 'text-white/70'
                         )}
-                        <div className="grid grid-cols-3 gap-2">
-                          <Button
-                            className={cn(
-                              "h-9 rounded-xl text-sm font-bold",
-                              gymRestRunning ? 'bg-yellow-500 text-white hover:bg-yellow-600' : 'bg-[#107C41] text-white hover:bg-[#0d6435]'
-                            )}
-                            onClick={() => {
-                              if (gymRestRunning) {
-                                pauseGymRest();
-                              } else {
-                                startGymRest();
-                              }
-                            }}
-                          >
-                            {gymRestRunning ? (
-                              <><Pause className="w-4 h-4 mr-1 inline" />{t('pause')}</>
-                            ) : (
-                              <><Play className="w-4 h-4 mr-1 inline" />{t('start')}</>
-                            )}
-                          </Button>
-                          <Button variant="outline" size="sm" className="h-9" onClick={resetGymRest}>
-                            {t('reset')}
-                          </Button>
-                          <Button variant="ghost" size="sm" className="h-9" onClick={() => setGymRestOpen(false)}>
-                            {t('cancel')}
-                          </Button>
-                        </div>
+                        title={t('gymRestSound')}
+                      >
+                        <Volume2 className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUpdateSettings({ gymRestVibrationEnabled: !settings.gymRestVibrationEnabled })}
+                        className={cn(
+                          "inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-white/20 bg-white/10 transition",
+                          settings.gymRestVibrationEnabled ? 'text-white' : 'text-white/70'
+                        )}
+                        title={t('gymRestVibration')}
+                      >
+                        <Zap className="w-4 h-4" />
+                      </button>
+                      <X className="w-4 h-4 cursor-pointer" onClick={() => setGymRestOpen(false)} />
+                    </div>
+                  </div>
+                  <div className="p-4 space-y-4">
+                    <div className="grid grid-cols-3 gap-2">
+                      {[30, 45, 60, 90, 120].map((sec) => (
+                        <Button
+                          key={sec}
+                          size="sm"
+                          variant={settings.gymRestDurationSeconds === sec ? 'secondary' : 'outline'}
+                          className="h-9 rounded-2xl text-xs font-bold"
+                          onClick={() => handleUpdateSettings({ gymRestDurationSeconds: sec })}
+                        >
+                          {sec}s
+                        </Button>
+                      ))}
+                      <Button
+                        size="sm"
+                        variant={gymRestCustomOpen ? 'secondary' : 'outline'}
+                        className="h-9 rounded-2xl text-xs font-bold col-span-3"
+                        onClick={() => setGymRestCustomOpen((v) => !v)}
+                      >
+                        {t('custom')} ⚙️
+                      </Button>
+                    </div>
+
+                    {gymRestCustomOpen && (
+                      <div className="grid grid-cols-[1fr_auto] gap-2 items-center">
+                        <Input
+                          type="number"
+                          min={5}
+                          max={600}
+                          value={settings.gymRestDurationSeconds ?? 60}
+                          onChange={(e) => {
+                            const value = Number(e.target.value);
+                            handleUpdateSettings({ gymRestDurationSeconds: value });
+                            if (!gymRestRunning) setGymRestRemaining(value);
+                          }}
+                          className="h-11 rounded-2xl border border-border bg-muted/70 text-center"
+                        />
+                        <span className="text-xs text-muted-foreground">{t('seconds')}</span>
                       </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+                    )}
+
+                    <div className="rounded-[32px] border border-border bg-background p-5 text-center">
+                      <div className="text-[3rem] font-black leading-none tracking-tight text-[#FF6B00]">
+                        {formatSeconds(gymRestRemaining)}
+                      </div>
+                      <p className="text-xs uppercase opacity-70 mt-2 tracking-[0.3em]">{t('gymRestTimer')}</p>
+                      <p className="text-sm font-bold mt-3">{t('setProgress', { current: String(gymRestRound), total: String(gymRestSets) })}</p>
+                      <p className="text-[11px] opacity-70 mt-1">{t('gymRestNextRound', { nextRound: String(Math.min(gymRestRound + 1, gymRestSets)) })}</p>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Button
+                        className={cn(
+                          "h-12 rounded-2xl text-sm font-bold",
+                          gymRestRunning ? 'bg-red-600 text-white hover:bg-red-700' : 'bg-[#FF6B00] text-white hover:bg-[#ff7f2f]'
+                        )}
+                        onClick={() => {
+                          if (gymRestRunning) pauseGymRest();
+                          else startGymRest();
+                        }}
+                      >
+                        {gymRestRunning ? <><Pause className="w-4 h-4 mr-2 inline" />{t('pause')}</> : <><Play className="w-4 h-4 mr-2 inline" />{t('start')}</>}
+                      </Button>
+                      <div className="flex gap-2">
+                        <Button variant="outline" className="flex-1 h-12 rounded-2xl" onClick={resetGymRest}>{t('reset')}</Button>
+                        <Button variant="ghost" className="flex-1 h-12 rounded-2xl" onClick={() => setGymRestOpen(false)}>{t('close')}</Button>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          </AnimatePresence>
         )}
         
         {/* Dynamic Cat */}
@@ -1099,9 +1162,9 @@ export default function App() {
       <Toaster />
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-         <DialogContent className="w-[min(100vw-1.5rem,650px)] max-h-[90vh] overflow-hidden rounded-[32px] bg-popover p-0">
+         <DialogContent className="w-full max-w-[calc(100vw-32px)] sm:max-w-[650px] max-h-[90vh] overflow-hidden rounded-[32px] bg-popover p-0">
             <div className="flex h-full min-h-[28rem] flex-col overflow-hidden rounded-[32px] bg-card shadow-xl sm:flex-row">
-              <Tabs defaultValue="general" orientation="vertical" className="w-full">
+              <Tabs value={activeSettingsTab} onValueChange={setActiveSettingsTab} orientation="vertical" className="w-full">
                 <aside className="border-b border-border/70 bg-muted/50 p-4 sm:w-52 sm:border-b-0 sm:border-r">
                   <div className="mb-4">
                     <DialogHeader className="p-0">
@@ -1114,13 +1177,19 @@ export default function App() {
                       <TabsTrigger
                         key={tab.value}
                         value={tab.value}
-                        className="group flex h-14 items-center justify-between rounded-2xl border border-transparent bg-background px-4 text-sm font-medium text-foreground transition hover:border-border hover:bg-muted sm:justify-start"
+                        className={cn(
+                          "group flex h-14 items-center justify-between rounded-2xl border border-transparent bg-background px-4 text-sm font-medium text-foreground transition hover:border-border hover:bg-muted sm:justify-start",
+                          activeSettingsTab === tab.value && "bg-[#F8F9FD] shadow-sm"
+                        )}
                       >
                         <span className="flex items-center gap-3">
                           {tab.icon}
                           <span>{tab.label}</span>
                         </span>
-                        <ChevronRight className="w-4 h-4 text-muted-foreground sm:hidden" />
+                        <ChevronRight className={cn(
+                          "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                          activeSettingsTab === tab.value ? "rotate-90" : ""
+                        )} />
                       </TabsTrigger>
                     ))}
                   </TabsList>

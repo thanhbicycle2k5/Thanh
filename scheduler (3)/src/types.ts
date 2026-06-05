@@ -53,6 +53,7 @@ export interface AppSettings {
   gymRestEnabled?: boolean;
   gymRestDurationSeconds?: number;
   gymRestSoundEnabled?: boolean;
+  gymRestVibrationEnabled?: boolean;
 }
 
 export interface WeeklySchedule {
