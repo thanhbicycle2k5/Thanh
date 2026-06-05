@@ -946,7 +946,7 @@ export default function App() {
       <Toaster />
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-         <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+         <DialogContent className="max-w-5xl max-h-[80vh] overflow-y-auto">
             <DialogHeader><DialogTitle>{t('settings')}</DialogTitle></DialogHeader>
             <Tabs defaultValue="general" className="w-full">
                <TabsList className="grid w-full grid-cols-4 lg:grid-cols-5">
