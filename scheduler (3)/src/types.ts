@@ -50,6 +50,9 @@ export interface AppSettings {
   endHour: number;
   backgroundConfig?: BackgroundConfig;
   catEnabled?: boolean;
+  gymRestEnabled?: boolean;
+  gymRestDurationSeconds?: number;
+  gymRestSoundEnabled?: boolean;
 }
 
 export interface WeeklySchedule {

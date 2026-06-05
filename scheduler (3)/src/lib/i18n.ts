@@ -111,6 +111,12 @@ export const translations = {
     cat: "Cat Companion",
     enableCat: "Enable Cat",
     catMood: "Cat's current mood",
+    gymRestTimer: "Gym Rest Timer",
+    gymRestTimerDescription: "Quick rest countdown between sets.",
+    gymRestDuration: "Rest duration",
+    gymRestSound: "Rest sound",
+    gymRestNextSet: "Next set ready!",
+    gymRestIconLabel: "Open rest timer",
   },
   vi: {
     appName: "Scheduler",
@@ -223,6 +229,12 @@ export const translations = {
     cat: "Mèo đồng hành",
     enableCat: "Bật mèo",
     catMood: "Tâm trạng của mèo",
+    gymRestTimer: "Bộ đếm nghỉ gym",
+    gymRestTimerDescription: "Đếm ngược nghỉ giữa hiệp nhanh chóng.",
+    gymRestDuration: "Thời gian nghỉ",
+    gymRestSound: "Âm báo nghỉ",
+    gymRestNextSet: "Sẵn sàng hiệp tiếp theo!",
+    gymRestIconLabel: "Mở bộ đếm nghỉ",
   }
 };
 
