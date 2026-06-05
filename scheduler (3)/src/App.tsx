@@ -1167,7 +1167,7 @@ export default function App() {
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
          <DialogContent className="w-full max-w-[calc(100vw-32px)] sm:max-w-[650px] max-h-[90vh] overflow-hidden rounded-[32px] bg-popover p-0">
-            <div className="flex h-full min-h-[28rem] flex-col overflow-hidden rounded-[32px] bg-card shadow-xl sm:flex-row">
+            <div className="flex h-full sm:min-h-[28rem] min-h-0 flex-col overflow-y-auto rounded-[32px] bg-card shadow-xl sm:flex-row sm:overflow-hidden">
               <Tabs value={activeSettingsTab} onValueChange={setActiveSettingsTab} orientation="vertical" className="w-full">
                 {/* Mobile: accordion list (full width) */}
                 <div className="block sm:hidden px-4">
