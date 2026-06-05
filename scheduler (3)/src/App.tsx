@@ -58,8 +58,10 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { translations, TranslationKey } from './lib/i18n';
-import { AppSettings, Language, Theme } from './types';
+import { AppSettings, Language, Theme, CatMood, BackgroundConfig } from './types';
 import { motion, AnimatePresence } from 'motion/react';
+import { DynamicCat } from './components/DynamicCat';
+import { BackgroundCustomizer } from './components/BackgroundCustomizer';
 
 import { 
   Dialog,
@@ -481,6 +483,59 @@ export default function App() {
     const today = startOfWeek(new Date(), { weekStartsOn: 1 });
     return Array.from({ length: 21 }, (_, i) => addWeeks(today, i - 10));
   }, []);
+
+  // Determine cat mood based on current state
+  const getCatMood = React.useCallback((): CatMood => {
+    if (pomodoroRunning) {
+      if (pomodoroMode === 'work') return 'gym';
+      if (pomodoroMode === 'short') return 'shortBreak';
+      if (pomodoroMode === 'long') return 'longBreak';
+    }
+    
+    if (isSettingsOpen) return 'work';
+    if (isSummaryOpen) return 'celebrating';
+    
+    if (completedPlansCount === totalPlansCount && totalPlansCount > 0) {
+      return 'celebrating';
+    }
+    
+    if (completedPlansCount > totalPlansCount * 0.7 && totalPlansCount > 0) {
+      return 'happy';
+    }
+    
+    if (completedPlansCount === 0 && totalPlansCount > 0) {
+      return 'tired';
+    }
+    
+    return 'idle';
+  }, [pomodoroRunning, pomodoroMode, isSettingsOpen, isSummaryOpen, completedPlansCount, totalPlansCount]);
+
+  const catMood = getCatMood();
+
+  // Build background style
+  const getBackgroundStyle = React.useCallback((): React.CSSProperties => {
+    if (!settings.backgroundConfig) {
+      return {};
+    }
+
+    const { type, value, opacity = 1 } = settings.backgroundConfig;
+
+    if (type === 'color') {
+      return { backgroundColor: value, opacity };
+    } else if (type === 'gradient') {
+      return { background: value, opacity };
+    } else if (type === 'image') {
+      return {
+        backgroundImage: `url(${value})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        opacity,
+      };
+    }
+
+    return {};
+  }, [settings.backgroundConfig]);
 
   return (
     <div className={cn(
