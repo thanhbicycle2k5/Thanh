@@ -538,13 +538,21 @@ export default function App() {
   }, [settings.backgroundConfig]);
 
   return (
-    <div className={cn(
-      "h-screen flex flex-col transition-colors duration-300 overflow-hidden",
-      settings.theme === 'dark' && "dark",
-      "bg-background text-foreground",
-      settings.language === 'vi' ? 'font-vietnamese' : 'font-sans'
-    )}>
-      <header className="border-b sticky top-0 z-50 bg-background/95 dark:bg-background/95 backdrop-blur border-border">
+    <div 
+      className={cn(
+        "h-screen flex flex-col transition-colors duration-300 overflow-hidden relative",
+        settings.theme === 'dark' && "dark",
+        "bg-background text-foreground",
+        settings.language === 'vi' ? 'font-vietnamese' : 'font-sans'
+      )}
+      style={getBackgroundStyle()}
+    >
+      {/* Background overlay for better text readability */}
+      {settings.backgroundConfig && (
+        <div className="absolute inset-0 bg-background/40 dark:bg-background/60 pointer-events-none" />
+      )}
+
+      <header className="border-b sticky top-0 z-50 bg-background/95 dark:bg-background/95 backdrop-blur border-border relative">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
              <Logo className="w-8 h-8" />
@@ -630,7 +638,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth" id="main-scroll-container">
+      <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth relative z-10" id="main-scroll-container">
         <div className="container mx-auto max-w-7xl">
            <div className="mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
@@ -687,7 +695,7 @@ export default function App() {
         </div>
       </main>
 
-      <footer className="p-2 border-t sticky bottom-0 z-50 bg-background/95 border-border backdrop-blur">
+      <footer className="p-2 border-t sticky bottom-0 z-50 bg-background/95 border-border backdrop-blur relative">
          <div className="container mx-auto flex items-center gap-2">
             <Button variant="ghost" size="icon" onClick={() => setSelectedWeekStart(subWeeks(selectedWeekStart, 1))}><ChevronLeft className="w-4 h-4"/></Button>
             <div className="flex-1 overflow-x-auto flex gap-1 scroll-smooth" id="week-tabs-container">
@@ -823,6 +831,12 @@ export default function App() {
       <div className="fixed bottom-20 right-4 z-40 flex flex-col gap-3 pointer-events-none items-end">
         <HealthTipPanel theme={settings.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settings.language} />
         
+        {/* Dynamic Cat */}
+        {settings.catEnabled !== false && (
+          <div className="pointer-events-auto hover:scale-110 transition-transform cursor-pointer" onClick={() => playMusicalNote()}>
+            <DynamicCat mood={catMood} size="md" />
+          </div>
+        )}
         <div className="relative inline-block pointer-events-auto">
           <button
             type="button"
@@ -1017,6 +1031,28 @@ export default function App() {
                     </Button>
                   </div>
                </div>
+               
+               {/* Background Customizer */}
+               <div className="border-t pt-4">
+                  <BackgroundCustomizer
+                    config={settings.backgroundConfig}
+                    onChange={(config) => handleUpdateSettings({ backgroundConfig: config })}
+                    t={t}
+                    theme={settings.theme}
+                  />
+               </div>
+
+               {/* Cat Toggle */}
+               <div className="flex justify-between items-center gap-4 border-t pt-4">
+                  <Label>{t('cat')}</Label>
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={settings.catEnabled !== false}
+                      onCheckedChange={(checked) => handleUpdateSettings({ catEnabled: checked })}
+                    />
+                  </div>
+               </div>
+
                <div className="border-t pt-4">
                  {user ? (
                     <div className="flex items-center gap-3">
