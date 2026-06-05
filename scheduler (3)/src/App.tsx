@@ -1232,6 +1232,37 @@ export default function App() {
                     </DialogHeader>
                     <p className="mt-1 text-xs text-muted-foreground">{t('appDescription')}</p>
                   </div>
+
+                {/* Desktop: left sidebar tabs */}
+                <aside className="hidden sm:flex sm:flex-col sm:w-52 sm:border-r sm:border-b-0 p-4 bg-muted/50">
+                  <div className="mb-4">
+                    <DialogHeader className="p-0">
+                      <DialogTitle className="text-base">{t('settings')}</DialogTitle>
+                    </DialogHeader>
+                    <p className="mt-1 text-xs text-muted-foreground">{t('appDescription')}</p>
+                  </div>
+                  <TabsList className="grid gap-2">
+                    {settingsTabs.map((tab) => (
+                      <TabsTrigger
+                        key={tab.value}
+                        value={tab.value}
+                        className={cn(
+                          "group flex h-14 items-center justify-between rounded-2xl border border-transparent bg-background px-4 text-sm font-medium text-foreground transition hover:border-border hover:bg-muted sm:justify-start",
+                          activeSettingsTab === tab.value && "bg-[#F8F9FD] shadow-sm"
+                        )}
+                      >
+                        <span className="flex items-center gap-3">
+                          {tab.icon}
+                          <span>{tab.label}</span>
+                        </span>
+                        <ChevronRight className={cn(
+                          "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                          activeSettingsTab === tab.value ? "rotate-90" : ""
+                        )} />
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </aside>
                   <div className="space-y-2">
                     {settingsTabs.map((tab) => (
                       <div key={tab.value} className="w-full">
