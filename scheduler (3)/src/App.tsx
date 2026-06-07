@@ -1361,18 +1361,75 @@ export default function App() {
                               )}
 
                               {tab.value === 'sound' && (
-                                <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                                  <Label>{t('notificationSound')}</Label>
-                                  <div className="mt-2 flex items-center gap-2">
-                                    <Select value={settings.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({ notificationSound: v })}>
+                                <div className="rounded-2xl border border-border bg-muted/60 p-4 space-y-4">
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="text-sm font-semibold">{t('notificationsLabel')}</p>
+                                      <p className="text-xs text-muted-foreground">{t('notificationSound')}</p>
+                                    </div>
+                                    <Switch checked={!!settings.notificationsEnabled} onCheckedChange={(v) => handleUpdateSettings({ notificationsEnabled: v })} />
+                                  </div>
+
+                                  <div className="flex flex-col gap-2">
+                                    <Label>{t('notificationSound')}</Label>
+                                    <div className="flex items-center gap-2">
+                                      <Select value={settings.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({ notificationSound: v })}>
+                                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                                        <SelectContent>
+                                          <SelectItem value="bird">{t('bird')}</SelectItem>
+                                          <SelectItem value="wind">{t('wind')}</SelectItem>
+                                          <SelectItem value="bell">{t('bell')}</SelectItem>
+                                          <SelectItem value="chime">{t('chime')}</SelectItem>
+                                        </SelectContent>
+                                      </Select>
+                                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => playNotificationSound(settings.notificationSound)}>
+                                        <Volume2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+
+                                  <div className="pt-2 border-t border-border" />
+
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="text-sm font-semibold">{t('music')}</p>
+                                      <p className="text-xs text-muted-foreground">{t('musicTrack')}</p>
+                                    </div>
+                                    <Switch checked={!!settings.musicEnabled} onCheckedChange={(v) => handleUpdateSettings({ musicEnabled: v })} />
+                                  </div>
+
+                                  <div className="flex flex-col gap-2">
+                                    <Select value={settings.musicTrackId} onValueChange={(v: string) => handleUpdateSettings({ musicTrackId: v })}>
                                       <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="bird">{t('bird')}</SelectItem>
-                                        <SelectItem value="wind">{t('wind')}</SelectItem>
-                                        <SelectItem value="bell">{t('bell')}</SelectItem>
-                                        <SelectItem value="chime">{t('chime')}</SelectItem>
+                                        {PRESET_TRACKS.map(track => (
+                                          <SelectItem key={track.id} value={track.id}>{track.name}</SelectItem>
+                                        ))}
                                       </SelectContent>
                                     </Select>
+                                    <Slider value={[settings.musicVolume ?? 0.3]} onValueChange={(v: number[]) => handleUpdateSettings({ musicVolume: v[0] })} min={0} max={1} step={0.01} />
+                                  </div>
+
+                                  <div className="pt-2 border-t border-border" />
+
+                                  <div className="flex items-center justify-between">
+                                    <div>
+                                      <p className="text-sm font-semibold">{t('gymRestTimer')}</p>
+                                      <p className="text-xs text-muted-foreground">{t('gymRestTimerDescription')}</p>
+                                    </div>
+                                    <Switch checked={!!settings.gymRestEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestEnabled: v })} />
+                                  </div>
+
+                                  <div className="flex flex-col gap-2">
+                                    <Input type="number" min={5} max={600} value={settings.gymRestDurationSeconds ?? 60} onChange={(e) => handleUpdateSettings({ gymRestDurationSeconds: Number(e.target.value) })} className="h-10 rounded-2xl border border-border" placeholder={t('gymRestDuration')} />
+                                    <div className="flex gap-2 items-center">
+                                      <Switch checked={!!settings.gymRestSoundEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestSoundEnabled: v })} />
+                                      <Label className="text-xs">{t('gymRestSound')}</Label>
+                                    </div>
+                                    <div className="flex gap-2 items-center">
+                                      <Switch checked={!!settings.gymRestVibrationEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestVibrationEnabled: v })} />
+                                      <Label className="text-xs">{t('gymRestVibration')}</Label>
+                                    </div>
                                   </div>
                                 </div>
                               )}
@@ -1389,7 +1446,7 @@ export default function App() {
                               )}
 
                               {tab.value === 'account' && (
-                                <div className="rounded-2xl border border-border bg-muted/60 p-4">
+                                <div className="rounded-2xl border border-border bg-muted/60 p-4 space-y-4">
                                   {user ? (
                                     <div className="flex items-center gap-3">
                                       <img src={user.photoURL || ''} className="w-10 h-10 rounded-full" />
@@ -1418,6 +1475,9 @@ export default function App() {
                                       {t('signIn')}
                                     </Button>
                                   )}
+                                  <div className="pt-2 border-t border-border text-center">
+                                    <p className="text-[10px] opacity-30">{t('inspiredBy')}</p>
+                                  </div>
                                 </div>
                               )}
                             </div>
