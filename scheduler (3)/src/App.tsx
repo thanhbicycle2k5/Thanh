@@ -1221,20 +1221,20 @@ export default function App() {
       <Toaster />
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-         <DialogContent className="w-full max-w-[calc(100vw-32px)] sm:max-w-[650px] max-h-[90vh] overflow-hidden rounded-[32px] bg-popover p-0">
-            <div className="flex h-full sm:min-h-[28rem] min-h-0 flex-col overflow-y-auto rounded-[32px] bg-card shadow-xl sm:flex-row sm:overflow-hidden">
+         <DialogContent className="w-full max-w-[calc(100vw-32px)] sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-hidden rounded-[32px] bg-popover p-0">
+            <div className="flex h-full sm:min-h-[32rem] min-h-0 flex-col overflow-y-auto rounded-[32px] bg-card shadow-xl sm:flex-row sm:overflow-hidden">
               <Tabs value={activeSettingsTab} onValueChange={setActiveSettingsTab} orientation="vertical" className="w-full">
                 {/* Mobile: accordion list (full width) */}
                 <div className="block sm:hidden px-4">
-                  <div className="mb-3">
+                  <div className="mb-3 px-2">
                     <DialogHeader className="p-0">
-                      <DialogTitle className="text-base">{t('settings')}</DialogTitle>
+                      <DialogTitle className="text-base md:text-lg">{t('settings')}</DialogTitle>
                     </DialogHeader>
                     <p className="mt-1 text-xs text-muted-foreground">{t('appDescription')}</p>
                   </div>
 
                 {/* Desktop: left sidebar tabs */}
-                <aside className="hidden sm:flex sm:flex-col sm:w-52 sm:border-r sm:border-b-0 p-4 bg-muted/50">
+                <aside className="hidden sm:flex sm:flex-col sm:w-52 md:w-56 lg:w-64 sm:border-r sm:border-b-0 p-4 md:p-6 bg-muted/50 overflow-y-auto">
                   <div className="mb-4">
                     <DialogHeader className="p-0">
                       <DialogTitle className="text-base">{t('settings')}</DialogTitle>
@@ -1263,15 +1263,15 @@ export default function App() {
                     ))}
                   </TabsList>
                 </aside>
-                  <div className="space-y-2">
+                  <div className="space-y-2 px-2">
                     {settingsTabs.map((tab) => (
                       <div key={tab.value} className="w-full">
                         <button
                           type="button"
                           onClick={() => setMobileExpanded(mobileExpanded === tab.value ? null : tab.value)}
                           className={cn(
-                            "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-background text-sm font-medium text-foreground border border-border",
-                            mobileExpanded === tab.value && 'bg-[#F8F9FD] shadow-sm'
+                            "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-background text-sm font-medium text-foreground border border-border transition-all duration-200",
+                            mobileExpanded === tab.value && 'bg-[#F8F9FD] shadow-md'
                           )}
                           aria-expanded={mobileExpanded === tab.value}
                         >
@@ -1286,7 +1286,7 @@ export default function App() {
                         </button>
 
                         {mobileExpanded === tab.value && (
-                          <div className="mt-2 px-0 pb-2">
+                          <div className="mt-2 px-2 pb-2 animate-in fade-in slide-in-from-top-2 duration-200">
                             {/* Render corresponding content for this tab (mobile-friendly full width) */}
                             <div className="space-y-4">
                               {tab.value === 'general' && (
@@ -1428,8 +1428,8 @@ export default function App() {
                   </div>
                 </div>
 
-                <section className="flex-1 overflow-y-auto p-4 hidden sm:block">
-                  <TabsContent value="general" className="space-y-4">
+                <section className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 hidden sm:block">
+                  <TabsContent value="general" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
                     <div className="space-y-4">
                       <div className="rounded-2xl border border-border bg-muted/60 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1477,8 +1477,8 @@ export default function App() {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="schedule" className="space-y-4">
-                    <div className="rounded-2xl border border-border bg-muted/60 p-4 space-y-4">
+                  <TabsContent value="schedule" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+                    <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6 space-y-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-sm text-foreground">{t('startHour')}</span>
                         <div className="flex items-center gap-3">
@@ -1506,8 +1506,8 @@ export default function App() {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="sound" className="space-y-4">
-                    <div className="rounded-2xl border border-border bg-muted/60 p-4 flex flex-col gap-4">
+                  <TabsContent value="sound" className="space-y-4 max-h-[50vh] overflow-y-auto pr-4">
+                    <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6 flex flex-col gap-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-semibold">{t('notifications')}</p>
@@ -1590,8 +1590,8 @@ export default function App() {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="appearance" className="space-y-4">
-                    <div className="rounded-2xl border border-border bg-muted/60 p-4 max-h-[50vh] overflow-y-auto">
+                  <TabsContent value="appearance" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+                    <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6">
                       <BackgroundCustomizer
                         config={settings.backgroundConfig}
                         onChange={(config) => handleUpdateSettings({ backgroundConfig: config })}
@@ -1601,8 +1601,8 @@ export default function App() {
                     </div>
                   </TabsContent>
 
-                  <TabsContent value="account" className="space-y-4">
-                    <div className="rounded-2xl border border-border bg-muted/60 p-4">
+                  <TabsContent value="account" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+                    <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6">
                       {user ? (
                         <div className="flex items-center gap-3">
                           <img src={user.photoURL || ''} className="w-10 h-10 rounded-full" />
