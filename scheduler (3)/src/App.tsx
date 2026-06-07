@@ -280,6 +280,26 @@ export default function App() {
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const [settings, setSettings] = React.useState<AppSettings>(() => storage.getSettings());
 
+  const NOTE_STORAGE_KEY = 'chronos_quick_note';
+  const [isNoteOpen, setIsNoteOpen] = React.useState(false);
+  const [noteText, setNoteText] = React.useState('');
+  const [isMobileNote, setIsMobileNote] = React.useState(false);
+
+  React.useEffect(() => {
+    const storedNote = localStorage.getItem(NOTE_STORAGE_KEY) || '';
+    setNoteText(storedNote);
+
+    const query = window.matchMedia('(max-width: 768px)');
+    setIsMobileNote(query.matches);
+    const handleMediaChange = (event: MediaQueryListEvent) => setIsMobileNote(event.matches);
+    query.addEventListener('change', handleMediaChange);
+    return () => query.removeEventListener('change', handleMediaChange);
+  }, []);
+
+  React.useEffect(() => {
+    localStorage.setItem(NOTE_STORAGE_KEY, noteText);
+  }, [noteText]);
+
   React.useEffect(() => {
     if (!gymRestRunning) {
       setGymRestRemaining(settings.gymRestDurationSeconds ?? 60);
@@ -982,8 +1002,112 @@ export default function App() {
       </footer>
 
       {/* Floating UI Group */}
-      <div className="fixed bottom-20 right-4 z-40 flex flex-col gap-3 pointer-events-none items-end">
-        <HealthTipPanel theme={settings.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settings.language} onActivate={(m) => { setCatMoodOverride(m); setTimeout(() => setCatMoodOverride(null), 4000); }} />
+      <div className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
+        {isMobileNote ? (
+          <AnimatePresence>
+            {isNoteOpen && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+                  onClick={() => setIsNoteOpen(false)}
+                />
+                <motion.div
+                  initial={{ y: 200, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: 200, opacity: 0 }}
+                  transition={{ type: 'spring', stiffness: 320, damping: 30 }}
+                  className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-xl rounded-t-3xl border border-border bg-card p-4 shadow-2xl shadow-black/10 pointer-events-auto"
+                >
+                  <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-muted-foreground/40" />
+                  <div className="flex items-center justify-between gap-3 pb-3">
+                    <div>
+                      <p className="text-sm font-bold">Ghi chú nhanh</p>
+                      <p className="text-[11px] opacity-70">Lưu tự động, không lo mất dữ liệu khi tải lại</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setIsNoteOpen(false)}
+                      className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-muted/80 text-foreground transition hover:bg-muted"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                  <Textarea
+                    value={noteText}
+                    onChange={(e) => setNoteText(e.target.value)}
+                    placeholder="Ghi gì đó..."
+                    rows={10}
+                    className="min-h-[14rem] resize-none bg-muted/70 border-border"
+                  />
+                  <Button
+                    className="mt-4 h-11 w-full rounded-2xl bg-[#107C41] text-white shadow-lg shadow-[#107C41]/20 hover:bg-[#0d6435]"
+                    onClick={() => setIsNoteOpen(false)}
+                  >
+                    Đóng
+                  </Button>
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
+        ) : null}
+
+        <div className="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-3 pointer-events-auto">
+          {isMobileNote ? (
+            <button
+              type="button"
+              onClick={() => setIsNoteOpen((v) => !v)}
+              className="h-14 w-14 rounded-full bg-[#107C41] text-white shadow-2xl border border-white/10 transition hover:scale-105 active:scale-95"
+              aria-label="Ghi chú nhanh"
+            >
+              <BookOpen className="w-6 h-6" />
+            </button>
+          ) : (
+            <Popover open={isNoteOpen} onOpenChange={setIsNoteOpen}>
+              <PopoverTrigger asChild>
+                <button
+                  type="button"
+                  className="h-14 w-14 rounded-full bg-[#107C41] text-white shadow-2xl border border-white/10 transition hover:scale-105 active:scale-95"
+                  aria-label="Ghi chú nhanh"
+                >
+                  <BookOpen className="w-6 h-6" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent
+                className="w-[22rem] max-w-[90vw] rounded-3xl border border-border bg-card p-4 shadow-2xl"
+                side="top"
+                align="end"
+                sideOffset={12}
+              >
+                <div className="flex items-center justify-between gap-3 pb-2">
+                  <div>
+                    <p className="text-sm font-bold">Ghi chú nhanh</p>
+                    <p className="text-[11px] opacity-70">Lưu tự động vào localStorage</p>
+                  </div>
+                  <button
+                    type="button"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-border bg-muted/70 text-foreground transition hover:bg-muted"
+                    onClick={() => setIsNoteOpen(false)}
+                    aria-label="Đóng ghi chú"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <Textarea
+                  value={noteText}
+                  onChange={(e) => setNoteText(e.target.value)}
+                  placeholder="Ghi gì đó..."
+                  rows={8}
+                  className="min-h-[12rem] resize-none bg-muted/70 border-border"
+                />
+              </PopoverContent>
+            </Popover>
+          )}
+
+          <HealthTipPanel theme={settings.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settings.language} onActivate={(m) => { setCatMoodOverride(m); setTimeout(() => setCatMoodOverride(null), 4000); }} />
+        </div>
         {gymRestOpen && (
           <AnimatePresence>
             <motion.div
