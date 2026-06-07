@@ -1510,7 +1510,7 @@ export default function App() {
                     <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6 flex flex-col gap-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-semibold">{t('notifications')}</p>
+                          <p className="text-sm font-semibold">{t('notificationsLabel')}</p>
                           <p className="text-xs text-muted-foreground">{t('notificationSound')}</p>
                         </div>
                         <div className="flex items-center gap-3">

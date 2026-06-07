@@ -36,8 +36,8 @@ const app = isNewApp ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
 
-// Use the database ID from config as per instructions for Enterprise edition
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+// Initialize Firestore database
+export const db = getFirestore(app);
 
 const provider = new GoogleAuthProvider();
 provider.addScope("profile");
