@@ -167,3 +167,21 @@
   animation: scan-line 2s ease-in-out infinite;
   position: absolute;
 }
+
+/* Mobile Settings Dialog - Enable smooth scrolling */
+.mobile-settings-scroll {
+  max-height: calc(90vh - 80px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overflow-scrolling: touch;
+}
+
+/* Ensure scrollbar is visible on mobile */
+.mobile-settings-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.mobile-settings-scroll::-webkit-scrollbar-thumb {
+  background-color: rgba(16, 124, 65, 0.4);
+  border-radius: 3px;
+}

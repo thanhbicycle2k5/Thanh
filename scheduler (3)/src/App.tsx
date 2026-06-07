@@ -1221,11 +1221,11 @@ export default function App() {
       <Toaster />
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-         <DialogContent className="w-full max-w-[calc(100vw-32px)] sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-hidden rounded-[32px] bg-popover p-0">
-            <div className="flex h-full sm:min-h-[32rem] min-h-0 flex-col overflow-y-auto rounded-[32px] bg-card shadow-xl sm:flex-row sm:overflow-hidden">
-              <Tabs value={activeSettingsTab} onValueChange={setActiveSettingsTab} orientation="vertical" className="w-full">
-                {/* Mobile: accordion list (full width) */}
-                <div className="block sm:hidden px-4">
+         <DialogContent className="w-full max-w-[calc(100vw-32px)] sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-y-auto rounded-[32px] bg-popover p-0">
+            <div className="flex h-full sm:min-h-[32rem] min-h-0 flex-col rounded-[32px] bg-card shadow-xl sm:flex-row">
+              <Tabs value={activeSettingsTab} onValueChange={setActiveSettingsTab} orientation="vertical" className="w-full flex flex-col sm:flex-row overflow-hidden">
+                {/* Mobile: accordion list (full width with scrolling) */}
+                <div className="block sm:hidden px-4 py-4 mobile-settings-scroll">
                   <div className="mb-3 px-2">
                     <DialogHeader className="p-0">
                       <DialogTitle className="text-base md:text-lg">{t('settings')}</DialogTitle>
