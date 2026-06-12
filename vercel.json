@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "buildCommand": "cd 'scheduler (3)' && npm install && npm run build",
+  "buildCommand": "cd scheduler\\ \\(3\\) && npm install && npm run build",
   "outputDirectory": "scheduler (3)/dist",
   "installCommand": "true"
 }
