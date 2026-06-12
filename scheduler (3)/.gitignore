@@ -47,3 +47,4 @@ out/
 .turbo/
 .vercel/
 .vercel
+.env*
