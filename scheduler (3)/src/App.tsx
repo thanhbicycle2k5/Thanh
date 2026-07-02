@@ -1106,6 +1106,100 @@ export default function App() {
             </Popover>
           )}
 
+          {/* Pomodoro button grouped with other floating controls */}
+          <div className="relative inline-block pointer-events-auto">
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => setIsPomodoroOpen(v => !v)}
+              className={cn(
+                "w-12 h-12 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95",
+                pomodoroRunning ? "animate-pulse bg-red-500" : "bg-[#107C41]"
+              )}
+              title={t('pomodoro')}
+            >
+              <Timer className="w-6 h-6 text-white" />
+            </button>
+
+            <AnimatePresence>
+              {isPomodoroOpen && (
+                <motion.div
+                  drag
+                  dragMomentum={false}
+                  initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                  onPointerDown={(e) => e.stopPropagation()}
+                  className="absolute z-40 w-64 right-0 bottom-14 border shadow-2xl rounded-xl overflow-hidden cursor-move bg-card"
+                >
+                  <div className="p-4 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="font-bold text-sm uppercase tracking-wider">{t('pomodoro')}</h3>
+                      <Badge variant="outline">{pomodoroSessions} {t('sessions')}</Badge>
+                    </div>
+                    
+                    <div className={cn(
+                      "text-center py-6 rounded-2xl transition-colors duration-500",
+                      pomodoroMode === 'work' 
+                        ? "bg-red-500/10 text-red-600 dark:text-red-400" 
+                        : "bg-teal-500/10 text-teal-600 dark:text-teal-400"
+                    )}>
+                      <div className="text-5xl font-black font-mono tracking-tighter">
+                        {Math.floor(pomodoroSecondsLeft / 60).toString().padStart(2, '0')}:
+                        {(pomodoroSecondsLeft % 60).toString().padStart(2, '0')}
+                      </div>
+                      <p className="text-[10px] uppercase opacity-70 mt-1 font-bold tracking-widest">{t(pomodoroMode as any)}</p>
+                    </div>
+
+                    <div className="flex gap-1.5 p-1 bg-muted rounded-xl">
+                      {(['work', 'short', 'long'] as PomodoroMode[]).map(m => (
+                        <Button 
+                          key={m}
+                          variant={pomodoroMode === m ? 'secondary' : 'ghost'} 
+                          size="xs" 
+                          className={cn(
+                            "flex-1 text-[10px] rounded-lg transition-all",
+                            pomodoroMode === m && (
+                              pomodoroMode === 'work' 
+                                ? "bg-background text-red-600 shadow-sm" 
+                                : "bg-background text-teal-600 shadow-sm"
+                            )
+                          )}
+                          onClick={() => switchPomodoroMode(m)}
+                        >
+                          {t(m === 'work' ? 'work' : m === 'short' ? 'shortBreak' : 'longBreak' as any)}
+                        </Button>
+                      ))}
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <Button 
+                        className={cn(
+                          "flex-1 h-10 rounded-xl font-bold transition-all",
+                          pomodoroRunning 
+                            ? "bg-secondary text-secondary-foreground hover:bg-secondary/80" 
+                            : (pomodoroMode === 'work' ? "bg-red-600 hover:bg-red-700 text-white" : "bg-teal-600 hover:bg-teal-700 text-white")
+                        )}
+                        onClick={togglePomodoro}
+                      >
+                        {pomodoroRunning ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+                        {pomodoroRunning ? t('pause') : t('start')}
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        className="h-10 w-10 rounded-xl"
+                        onClick={resetPomodoro}
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
           <HealthTipPanel theme={settings.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settings.language} onActivate={(m) => { setCatMoodOverride(m); setTimeout(() => setCatMoodOverride(null), 4000); }} />
         </div>
         {gymRestOpen && (
@@ -1247,98 +1341,7 @@ export default function App() {
             </div>
           </motion.div>
         )}
-        <div className="relative inline-block pointer-events-auto">
-          <button
-            type="button"
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={() => setIsPomodoroOpen(v => !v)}
-            className={cn(
-              "w-12 h-12 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95",
-              pomodoroRunning ? "animate-pulse bg-red-500" : "bg-[#107C41]"
-            )}
-            title={t('pomodoro')}
-          >
-            <Timer className="w-6 h-6 text-white" />
-          </button>
-
-          <AnimatePresence>
-            {isPomodoroOpen && (
-              <motion.div
-                drag
-                dragMomentum={false}
-                initial={{ opacity: 0, scale: 0.9, y: 10 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.9, y: 10 }}
-                onPointerDown={(e) => e.stopPropagation()}
-                className="absolute z-40 w-64 right-0 bottom-14 border shadow-2xl rounded-xl overflow-hidden cursor-move bg-card"
-              >
-                <div className="p-4 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h3 className="font-bold text-sm uppercase tracking-wider">{t('pomodoro')}</h3>
-                    <Badge variant="outline">{pomodoroSessions} {t('sessions')}</Badge>
-                  </div>
-                  
-                  <div className={cn(
-                    "text-center py-6 rounded-2xl transition-colors duration-500",
-                    pomodoroMode === 'work' 
-                      ? "bg-red-500/10 text-red-600 dark:text-red-400" 
-                      : "bg-teal-500/10 text-teal-600 dark:text-teal-400"
-                  )}>
-                    <div className="text-5xl font-black font-mono tracking-tighter">
-                      {Math.floor(pomodoroSecondsLeft / 60).toString().padStart(2, '0')}:
-                      {(pomodoroSecondsLeft % 60).toString().padStart(2, '0')}
-                    </div>
-                    <p className="text-[10px] uppercase opacity-70 mt-1 font-bold tracking-widest">{t(pomodoroMode as any)}</p>
-                  </div>
-
-                  <div className="flex gap-1.5 p-1 bg-muted rounded-xl">
-                    {(['work', 'short', 'long'] as PomodoroMode[]).map(m => (
-                      <Button 
-                        key={m}
-                        variant={pomodoroMode === m ? 'secondary' : 'ghost'} 
-                        size="xs" 
-                        className={cn(
-                          "flex-1 text-[10px] rounded-lg transition-all",
-                          pomodoroMode === m && (
-                            pomodoroMode === 'work' 
-                              ? "bg-background text-red-600 shadow-sm" 
-                              : "bg-background text-teal-600 shadow-sm"
-                          )
-                        )}
-                        onClick={() => switchPomodoroMode(m)}
-                      >
-                        {t(m === 'work' ? 'work' : m === 'short' ? 'shortBreak' : 'longBreak' as any)}
-                      </Button>
-                    ))}
-                  </div>
-
-                  <div className="flex gap-2 pt-2">
-                    <Button 
-                      className={cn(
-                        "flex-1 h-10 rounded-xl font-bold transition-all",
-                        pomodoroRunning 
-                          ? "bg-secondary text-secondary-foreground hover:bg-secondary/80" 
-                          : (pomodoroMode === 'work' ? "bg-red-600 hover:bg-red-700 text-white" : "bg-teal-600 hover:bg-teal-700 text-white")
-                      )}
-                      onClick={togglePomodoro}
-                    >
-                      {pomodoroRunning ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-                      {pomodoroRunning ? t('pause') : t('start')}
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="icon" 
-                      className="h-10 w-10 rounded-xl"
-                      onClick={resetPomodoro}
-                    >
-                      <RotateCcw className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        
       </div>
 
       <CelebrationEffect trigger={showCelebration} count={25} />
