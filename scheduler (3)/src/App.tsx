@@ -1054,12 +1054,12 @@ export default function App() {
           </AnimatePresence>
         ) : null}
 
-        <div className="fixed bottom-4 right-4 z-[9999] flex flex-col items-end gap-3 pointer-events-auto">
+        <div className="fixed bottom-12 right-4 z-[9999] flex flex-col items-end gap-3 pointer-events-auto">
           {isMobileNote ? (
             <button
               type="button"
               onClick={() => setIsNoteOpen((v) => !v)}
-              className="h-14 w-14 rounded-full bg-[#107C41] text-white shadow-2xl border border-white/10 transition hover:scale-105 active:scale-95 flex items-center justify-center"
+              className="h-12 w-12 rounded-full bg-[#107C41] text-white shadow-2xl border border-white/10 transition hover:scale-105 active:scale-95 flex items-center justify-center"
               aria-label="Ghi chú nhanh"
             >
               <span className="text-xl font-black leading-none">T</span>
@@ -1069,7 +1069,7 @@ export default function App() {
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="h-14 w-14 rounded-full bg-[#107C41] text-white shadow-2xl border border-white/10 transition hover:scale-105 active:scale-95 flex items-center justify-center"
+                  className="h-12 w-12 rounded-full bg-[#107C41] text-white shadow-2xl border border-white/10 transition hover:scale-105 active:scale-95 flex items-center justify-center"
                   aria-label="Ghi chú nhanh"
                 >
                   <span className="text-xl font-black leading-none">T</span>
