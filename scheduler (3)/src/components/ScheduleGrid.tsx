@@ -288,7 +288,7 @@ export function ScheduleGrid({
       </table>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="fixed inset-0 flex items-center justify-center p-4 sm:static sm:rounded-2xl sm:border-none sm:max-w-sm bg-card">
+        <DialogContent className="sm:rounded-2xl border-none max-w-sm bg-card">
             <DialogHeader>
             <DialogTitle className="text-foreground">
               {plans.some(p => p.id === editingPlan?.id) ? t('editPlan') : t('addPlan')}
