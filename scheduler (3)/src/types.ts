@@ -10,6 +10,9 @@ export interface Plan {
   color: PlanColor;
   notes?: string;
   applyMode?: TaskApplyMode;
+  applyDays?: ('mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun')[];
+  applyWeekInterval?: number; // repeat every N weeks when applyMode === 'week'
+  applyWeekDays?: ('mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun')[]; // which weekdays to apply on weekly mode
 }
 
 export interface WeekMetadata {

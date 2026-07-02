@@ -79,6 +79,9 @@ export function ScheduleGrid({
   const [newColor, setNewColor] = React.useState<PlanColor>('yellow');
   const [newDuration, setNewDuration] = React.useState(1);
   const [newApplyMode, setNewApplyMode] = React.useState<TaskApplyMode>('none');
+  const [newApplyDays, setNewApplyDays] = React.useState<string[]>([]);
+  const [newApplyWeekInterval, setNewApplyWeekInterval] = React.useState<number>(1);
+  const [newApplyWeekDays, setNewApplyWeekDays] = React.useState<string[]>([]);
   const [newNotes, setNewNotes] = React.useState('');
 
   const daysOfCurrentWeek = React.useMemo(() => {
@@ -99,13 +102,16 @@ export function ScheduleGrid({
         clickCount.current = 0;
       }
       
-      if (existing) {
+        if (existing) {
         setEditingPlan(existing);
         setNewTitle(existing.title);
         setNewColor(existing.color);
         setNewDuration(existing.duration);
-        setNewApplyMode(existing.applyMode || 'none');
-        setNewNotes(existing.notes || '');
+          setNewApplyMode(existing.applyMode || 'none');
+          setNewApplyDays(existing.applyDays || []);
+          setNewApplyWeekInterval(existing.applyWeekInterval || 1);
+          setNewApplyWeekDays(existing.applyWeekDays || []);
+          setNewNotes(existing.notes || '');
       } else {
         setEditingPlan({
           id: crypto.randomUUID(),
@@ -119,6 +125,9 @@ export function ScheduleGrid({
         setNewColor('yellow');
         setNewDuration(1);
         setNewApplyMode('none');
+        setNewApplyDays([]);
+        setNewApplyWeekInterval(1);
+        setNewApplyWeekDays([]);
         setNewNotes('');
       }
       setIsDialogOpen(true);
@@ -156,6 +165,9 @@ export function ScheduleGrid({
     setNewColor(plan.color);
     setNewDuration(plan.duration);
     setNewApplyMode(plan.applyMode || 'none');
+    setNewApplyDays(plan.applyDays || []);
+    setNewApplyWeekInterval(plan.applyWeekInterval || 1);
+    setNewApplyWeekDays(plan.applyWeekDays || []);
     setNewNotes(plan.notes || '');
     setIsDialogOpen(true);
   };
@@ -163,7 +175,7 @@ export function ScheduleGrid({
   const handleSave = async () => {
     if (!editingPlan) return;
     
-    const planToSave = { ...editingPlan, title: newTitle, color: newColor, duration: newDuration, applyMode: newApplyMode, notes: newNotes || undefined };
+    const planToSave = { ...editingPlan, title: newTitle, color: newColor, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, notes: newNotes || undefined };
     const wasGreen = plans.find(p => p.id === editingPlan.id)?.color === 'green';
     const isNew = !plans.some(p => p.id === planToSave.id);
     
@@ -276,7 +288,7 @@ export function ScheduleGrid({
       </table>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:rounded-2xl border-none max-w-sm bg-card">
+            <DialogContent className="fixed inset-0 flex items-center justify-center p-4 sm:static sm:rounded-2xl sm:border-none sm:max-w-sm bg-card">
             <DialogHeader>
             <DialogTitle className="text-foreground">
               {plans.some(p => p.id === editingPlan?.id) ? t('editPlan') : t('addPlan')}
@@ -366,6 +378,55 @@ export function ScheduleGrid({
                 </Select>
               </div>
             </div>
+            {newApplyMode === 'day' && (
+              <div className="grid grid-cols-4 items-center gap-3">
+                <Label className="text-right text-xs font-bold text-muted-foreground">
+                  Apply daily to
+                </Label>
+                <div className="col-span-3 flex gap-2 flex-wrap">
+                  {['mon','tue','wed','thu','fri','sat','sun'].map(d => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setNewApplyDays(prev => prev.includes(d) ? prev.filter(x => x!==d) : [...prev, d])}
+                      className={cn("px-2 py-1 rounded-md border", newApplyDays.includes(d) ? 'bg-primary text-primary-foreground' : 'bg-muted/50 border-border')}
+                    >
+                      {d.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {newApplyMode === 'week' && (
+              <>
+                <div className="grid grid-cols-4 items-center gap-3">
+                  <Label className="text-right text-xs font-bold text-muted-foreground">
+                    Apply weekly every
+                  </Label>
+                  <div className="col-span-3 flex items-center gap-2">
+                    <Input type="number" value={newApplyWeekInterval} onChange={(e) => setNewApplyWeekInterval(Number(e.target.value)||1)} className="w-20 bg-muted/50 border-border" />
+                    <span className="text-xs text-muted-foreground">weeks</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-3">
+                  <Label className="text-right text-xs font-bold text-muted-foreground">
+                    Apply weekly to
+                  </Label>
+                  <div className="col-span-3 flex gap-2 flex-wrap">
+                    {['mon','tue','wed','thu','fri','sat','sun'].map(d => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setNewApplyWeekDays(prev => prev.includes(d) ? prev.filter(x => x!==d) : [...prev, d])}
+                        className={cn("px-2 py-1 rounded-md border", newApplyWeekDays.includes(d) ? 'bg-primary text-primary-foreground' : 'bg-muted/50 border-border')}
+                      >
+                        {d.toUpperCase()}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
             <div className="grid grid-cols-4 items-start gap-3">
               <Label className="text-right text-xs font-bold pt-2 text-muted-foreground">
                 {t('notes')}
