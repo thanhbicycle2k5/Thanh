@@ -1059,20 +1059,20 @@ export default function App() {
             <button
               type="button"
               onClick={() => setIsNoteOpen((v) => !v)}
-              className="h-14 w-14 rounded-full bg-[#107C41] text-white shadow-2xl border border-white/10 transition hover:scale-105 active:scale-95"
+              className="h-14 w-14 rounded-full bg-[#107C41] text-white shadow-2xl border border-white/10 transition hover:scale-105 active:scale-95 flex items-center justify-center"
               aria-label="Ghi chú nhanh"
             >
-              <BookOpen className="w-6 h-6" />
+              <span className="text-xl font-black leading-none">T</span>
             </button>
           ) : (
             <Popover open={isNoteOpen} onOpenChange={setIsNoteOpen}>
               <PopoverTrigger asChild>
                 <button
                   type="button"
-                  className="h-14 w-14 rounded-full bg-[#107C41] text-white shadow-2xl border border-white/10 transition hover:scale-105 active:scale-95"
+                  className="h-14 w-14 rounded-full bg-[#107C41] text-white shadow-2xl border border-white/10 transition hover:scale-105 active:scale-95 flex items-center justify-center"
                   aria-label="Ghi chú nhanh"
                 >
-                  <BookOpen className="w-6 h-6" />
+                  <span className="text-xl font-black leading-none">T</span>
                 </button>
               </PopoverTrigger>
               <PopoverContent
@@ -1105,6 +1105,8 @@ export default function App() {
               </PopoverContent>
             </Popover>
           )}
+
+          <HealthTipPanel theme={settings.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settings.language} onActivate={(m) => { setCatMoodOverride(m); setTimeout(() => setCatMoodOverride(null), 4000); }} />
 
           {/* Pomodoro button grouped with other floating controls */}
           <div className="relative inline-block pointer-events-auto">
@@ -1200,7 +1202,7 @@ export default function App() {
             </AnimatePresence>
           </div>
 
-          <HealthTipPanel theme={settings.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settings.language} onActivate={(m) => { setCatMoodOverride(m); setTimeout(() => setCatMoodOverride(null), 4000); }} />
+          
         </div>
         {gymRestOpen && (
           <AnimatePresence>
