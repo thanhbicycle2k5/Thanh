@@ -4,7 +4,7 @@ import {
   addDays, 
   isSameDay 
 } from 'date-fns';
-import { Plan, PlanColor, Language, Theme } from '../types';
+import { Plan, PlanColor, Language, Theme, TaskApplyMode } from '../types';
 import { cn } from '@/lib/utils';
 import { Plus, Edit2, Trash2, Clock } from 'lucide-react';
 import { translations } from '../lib/i18n';
@@ -78,6 +78,7 @@ export function ScheduleGrid({
   const [newTitle, setNewTitle] = React.useState('');
   const [newColor, setNewColor] = React.useState<PlanColor>('yellow');
   const [newDuration, setNewDuration] = React.useState(1);
+  const [newApplyMode, setNewApplyMode] = React.useState<TaskApplyMode>('none');
   const [newNotes, setNewNotes] = React.useState('');
 
   const daysOfCurrentWeek = React.useMemo(() => {
@@ -103,6 +104,7 @@ export function ScheduleGrid({
         setNewTitle(existing.title);
         setNewColor(existing.color);
         setNewDuration(existing.duration);
+        setNewApplyMode(existing.applyMode || 'none');
         setNewNotes(existing.notes || '');
       } else {
         setEditingPlan({
@@ -116,6 +118,7 @@ export function ScheduleGrid({
         setNewTitle('');
         setNewColor('yellow');
         setNewDuration(1);
+        setNewApplyMode('none');
         setNewNotes('');
       }
       setIsDialogOpen(true);
@@ -152,6 +155,7 @@ export function ScheduleGrid({
     setNewTitle(plan.title);
     setNewColor(plan.color);
     setNewDuration(plan.duration);
+    setNewApplyMode(plan.applyMode || 'none');
     setNewNotes(plan.notes || '');
     setIsDialogOpen(true);
   };
@@ -159,7 +163,7 @@ export function ScheduleGrid({
   const handleSave = async () => {
     if (!editingPlan) return;
     
-    const planToSave = { ...editingPlan, title: newTitle, color: newColor, duration: newDuration, notes: newNotes || undefined };
+    const planToSave = { ...editingPlan, title: newTitle, color: newColor, duration: newDuration, applyMode: newApplyMode, notes: newNotes || undefined };
     const wasGreen = plans.find(p => p.id === editingPlan.id)?.color === 'green';
     const isNew = !plans.some(p => p.id === planToSave.id);
     
@@ -340,6 +344,26 @@ export function ScheduleGrid({
                     title={color}
                   />
                 ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs font-bold text-muted-foreground">
+                {t('applyMode')}
+              </Label>
+              <div className="col-span-3">
+                <Select
+                  value={newApplyMode}
+                  onValueChange={(v) => setNewApplyMode(v as TaskApplyMode)}
+                >
+                  <SelectTrigger className="w-full bg-muted/50 border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t('none')}</SelectItem>
+                    <SelectItem value="day">{t('applyToDay')}</SelectItem>
+                    <SelectItem value="week">{t('applyToWeek')}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-4 items-start gap-3">

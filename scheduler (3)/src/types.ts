@@ -1,4 +1,5 @@
 export type PlanColor = 'default' | 'green' | 'yellow' | 'gray' | 'red' | 'blue';
+export type TaskApplyMode = 'none' | 'day' | 'week';
 
 export interface Plan {
   id: string;
@@ -8,6 +9,7 @@ export interface Plan {
   duration: number;
   color: PlanColor;
   notes?: string;
+  applyMode?: TaskApplyMode;
 }
 
 export interface WeekMetadata {
