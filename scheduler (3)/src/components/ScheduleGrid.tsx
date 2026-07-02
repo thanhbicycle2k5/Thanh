@@ -385,7 +385,7 @@ export function ScheduleGrid({
             {newApplyMode === 'day' && (
               <div className="grid grid-cols-4 items-center gap-3">
                 <Label className="text-right text-xs font-bold text-muted-foreground">
-                  Apply daily until
+                  {t('applyDailyUntil')}
                 </Label>
                 <div className="col-span-3 flex gap-2 items-center">
                   <Input type="date" value={newApplyUntil || ''} onChange={(e) => setNewApplyUntil(e.target.value || undefined)} className="w-44 bg-muted/50 border-border" />
@@ -396,7 +396,7 @@ export function ScheduleGrid({
               <>
                 <div className="grid grid-cols-4 items-center gap-3">
                   <Label className="text-right text-xs font-bold text-muted-foreground">
-                    Apply weekly every
+                    {t('applyWeeklyEvery')}
                   </Label>
                   <div className="col-span-3 flex items-center gap-2">
                     <Input type="number" value={newApplyWeekInterval} onChange={(e) => setNewApplyWeekInterval(Number(e.target.value)||1)} className="w-20 bg-muted/50 border-border" />
@@ -405,7 +405,7 @@ export function ScheduleGrid({
                 </div>
                 <div className="grid grid-cols-4 items-center gap-3">
                   <Label className="text-right text-xs font-bold text-muted-foreground">
-                    Apply until
+                    {t('applyUntil')}
                   </Label>
                   <div className="col-span-3 flex gap-2 items-center">
                     <Input type="date" value={newApplyUntil || ''} onChange={(e) => setNewApplyUntil(e.target.value || undefined)} className="w-44 bg-muted/50 border-border" />
@@ -413,7 +413,7 @@ export function ScheduleGrid({
                 </div>
                 <div className="grid grid-cols-4 items-center gap-3">
                   <Label className="text-right text-xs font-bold text-muted-foreground">
-                    Apply weekly to
+                    {t('applyWeeklyTo')}
                   </Label>
                   <div className="col-span-3 flex gap-2 flex-wrap">
                     {['mon','tue','wed','thu','fri','sat','sun'].map(d => (
@@ -445,16 +445,18 @@ export function ScheduleGrid({
           </div>
           <DialogFooter className="flex justify-between w-full flex-row gap-2">
             {plans.some(p => p.id === editingPlan?.id) && (
-              <Button variant="destructive" size="sm" onClick={handleDelete} className="bg-destructive hover:bg-destructive/90">
-                <Trash2 className="w-4 h-4 md:mr-2" />
-                <span className="hidden md:inline">{t('delete')}</span>
-              </Button>
+              <div className="flex items-center">
+                <Button variant="destructive" size="sm" onClick={handleDelete} className="bg-destructive hover:bg-destructive/90 flex items-center gap-2 px-4 py-2">
+                  <Trash2 className="w-4 h-4" />
+                  <span className="text-sm">{t('delete')}</span>
+                </Button>
+              </div>
             )}
             <div className="flex gap-2 ml-auto">
               <Button variant="ghost" size="sm" onClick={() => setIsDialogOpen(false)} className="text-muted-foreground">
                 {t('cancel')}
               </Button>
-              <Button onClick={handleSave} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Button type="button" onClick={handleSave} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
                 {t('save')}
               </Button>
             </div>
