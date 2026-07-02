@@ -166,8 +166,13 @@ export const cloudStorage = {
   savePlan: async (uid: string, plan: Plan): Promise<void> => {
     const path = `users/${uid}/plans/${plan.id}`;
     const planRef = doc(db, "users", uid, "plans", plan.id);
-    const cleanPlan = { ...plan, notes: plan.notes || undefined };
-    if (cleanPlan.notes === undefined) delete cleanPlan.notes;
+    // Remove any undefined fields before writing to Firestore (Firestore rejects undefined)
+    const cleanPlan: Record<string, any> = { ...plan };
+    // normalize notes
+    if (!cleanPlan.notes) cleanPlan.notes = undefined;
+    Object.keys(cleanPlan).forEach((k) => {
+      if (cleanPlan[k] === undefined) delete cleanPlan[k];
+    });
     
     try {
       await setDoc(planRef, cleanPlan);
@@ -180,7 +185,11 @@ export const cloudStorage = {
     const batch = writeBatch(db);
     plans.forEach((plan) => {
       const planRef = doc(db, "users", uid, "plans", plan.id);
-      batch.set(planRef, plan);
+      const cleaned: Record<string, any> = { ...plan };
+      Object.keys(cleaned).forEach((k) => {
+        if (cleaned[k] === undefined) delete cleaned[k];
+      });
+      batch.set(planRef, cleaned);
     });
     try {
       await batch.commit();
