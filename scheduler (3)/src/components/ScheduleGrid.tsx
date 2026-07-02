@@ -516,7 +516,7 @@ export function ScheduleGrid({
               <Button variant="ghost" size="sm" onClick={() => setIsDialogOpen(false)} className="text-muted-foreground">
                 {t('cancel')}
               </Button>
-              <Button type="button" onClick={handleSave} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+              <Button type="button" onClick={handleSave} size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground z-60 pointer-events-auto">
                 {t('save')}
               </Button>
             </div>
