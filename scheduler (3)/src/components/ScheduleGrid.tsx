@@ -82,6 +82,7 @@ export function ScheduleGrid({
   const [newApplyDays, setNewApplyDays] = React.useState<string[]>([]);
   const [newApplyWeekInterval, setNewApplyWeekInterval] = React.useState<number>(1);
   const [newApplyWeekDays, setNewApplyWeekDays] = React.useState<string[]>([]);
+  const [newApplyUntil, setNewApplyUntil] = React.useState<string | undefined>(undefined);
   const [newNotes, setNewNotes] = React.useState('');
 
   const daysOfCurrentWeek = React.useMemo(() => {
@@ -111,6 +112,7 @@ export function ScheduleGrid({
           setNewApplyDays(existing.applyDays || []);
           setNewApplyWeekInterval(existing.applyWeekInterval || 1);
           setNewApplyWeekDays(existing.applyWeekDays || []);
+          setNewApplyUntil(existing.applyUntil || undefined);
           setNewNotes(existing.notes || '');
       } else {
         setEditingPlan({
@@ -128,6 +130,7 @@ export function ScheduleGrid({
         setNewApplyDays([]);
         setNewApplyWeekInterval(1);
         setNewApplyWeekDays([]);
+        setNewApplyUntil(undefined);
         setNewNotes('');
       }
       setIsDialogOpen(true);
@@ -168,6 +171,7 @@ export function ScheduleGrid({
     setNewApplyDays(plan.applyDays || []);
     setNewApplyWeekInterval(plan.applyWeekInterval || 1);
     setNewApplyWeekDays(plan.applyWeekDays || []);
+    setNewApplyUntil(plan.applyUntil || undefined);
     setNewNotes(plan.notes || '');
     setIsDialogOpen(true);
   };
@@ -175,7 +179,7 @@ export function ScheduleGrid({
   const handleSave = async () => {
     if (!editingPlan) return;
     
-    const planToSave = { ...editingPlan, title: newTitle, color: newColor, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, notes: newNotes || undefined };
+    const planToSave = { ...editingPlan, title: newTitle, color: newColor, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, notes: newNotes || undefined };
     const wasGreen = plans.find(p => p.id === editingPlan.id)?.color === 'green';
     const isNew = !plans.some(p => p.id === planToSave.id);
     
@@ -381,19 +385,10 @@ export function ScheduleGrid({
             {newApplyMode === 'day' && (
               <div className="grid grid-cols-4 items-center gap-3">
                 <Label className="text-right text-xs font-bold text-muted-foreground">
-                  Apply daily to
+                  Apply daily until
                 </Label>
-                <div className="col-span-3 flex gap-2 flex-wrap">
-                  {['mon','tue','wed','thu','fri','sat','sun'].map(d => (
-                    <button
-                      key={d}
-                      type="button"
-                      onClick={() => setNewApplyDays(prev => prev.includes(d) ? prev.filter(x => x!==d) : [...prev, d])}
-                      className={cn("px-2 py-1 rounded-md border", newApplyDays.includes(d) ? 'bg-primary text-primary-foreground' : 'bg-muted/50 border-border')}
-                    >
-                      {d.toUpperCase()}
-                    </button>
-                  ))}
+                <div className="col-span-3 flex gap-2 items-center">
+                  <Input type="date" value={newApplyUntil || ''} onChange={(e) => setNewApplyUntil(e.target.value || undefined)} className="w-44 bg-muted/50 border-border" />
                 </div>
               </div>
             )}
@@ -406,6 +401,14 @@ export function ScheduleGrid({
                   <div className="col-span-3 flex items-center gap-2">
                     <Input type="number" value={newApplyWeekInterval} onChange={(e) => setNewApplyWeekInterval(Number(e.target.value)||1)} className="w-20 bg-muted/50 border-border" />
                     <span className="text-xs text-muted-foreground">weeks</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-3">
+                  <Label className="text-right text-xs font-bold text-muted-foreground">
+                    Apply until
+                  </Label>
+                  <div className="col-span-3 flex gap-2 items-center">
+                    <Input type="date" value={newApplyUntil || ''} onChange={(e) => setNewApplyUntil(e.target.value || undefined)} className="w-44 bg-muted/50 border-border" />
                   </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-3">
