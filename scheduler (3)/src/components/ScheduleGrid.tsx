@@ -179,23 +179,83 @@ export function ScheduleGrid({
   const handleSave = async () => {
     if (!editingPlan) return;
     
-    const planToSave = { ...editingPlan, title: newTitle, color: newColor, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, notes: newNotes || undefined };
+    const basePlan = { ...editingPlan, title: newTitle, color: newColor, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, notes: newNotes || undefined };
     const wasGreen = plans.find(p => p.id === editingPlan.id)?.color === 'green';
-    const isNew = !plans.some(p => p.id === planToSave.id);
-    
+    const isNew = !plans.some(p => p.id === basePlan.id);
+
+    const overlaps = (dateIso: string, startHour: number, duration: number) => {
+      return plans.some(p => {
+        if (!isSameDay(new Date(p.date), new Date(dateIso))) return false;
+        const aStart = p.startHour;
+        const aEnd = p.startHour + p.duration;
+        const bStart = startHour;
+        const bEnd = startHour + duration;
+        return (aStart < bEnd && bStart < aEnd);
+      });
+    };
+
     try {
       if (isNew) {
-        await onAddPlan(planToSave);
+        // Always add the base plan for the selected date if no overlap
+        if (!overlaps(basePlan.date, basePlan.startHour, basePlan.duration)) {
+          await onAddPlan(basePlan);
+        }
+
+        // Handle applyMode 'day' -> apply daily until date
+        if (basePlan.applyMode === 'day' && basePlan.applyUntil) {
+          let cur = new Date(basePlan.date);
+          const end = new Date(basePlan.applyUntil);
+          cur.setDate(cur.getDate() + 1);
+          while (cur <= end) {
+            const iso = cur.toISOString();
+            if (!overlaps(iso, basePlan.startHour, basePlan.duration)) {
+              const newPlan = { ...basePlan, id: crypto.randomUUID(), date: iso };
+              await onAddPlan(newPlan);
+            }
+            cur.setDate(cur.getDate() + 1);
+          }
+        }
+
+        // Handle applyMode 'week' -> apply weekly according to selected weekdays and interval
+        if (basePlan.applyMode === 'week' && basePlan.applyUntil) {
+          const interval = basePlan.applyWeekInterval || 1;
+          const weekdays = (basePlan.applyWeekDays || []).map(d => ['mon','tue','wed','thu','fri','sat','sun'].indexOf(d));
+          if (weekdays.length > 0) {
+            const startDate = new Date(basePlan.date);
+            const endDate = new Date(basePlan.applyUntil);
+            // iterate weeks
+            let weekStart = new Date(startDate);
+            // align to week start (same weekday as startDate)
+            while (weekStart <= endDate) {
+              for (const wd of weekdays) {
+                const candidate = new Date(weekStart);
+                const currentWeekday = candidate.getDay(); // 0=Sun,1=Mon
+                // convert wd index(0..6 where 0=Mon) to JS getDay
+                const targetDay = (wd + 1) % 7; // Mon->1 ... Sun->0
+                const diff = targetDay - currentWeekday;
+                candidate.setDate(candidate.getDate() + diff);
+                if (candidate >= startDate && candidate <= endDate) {
+                  const iso = candidate.toISOString();
+                  if (!overlaps(iso, basePlan.startHour, basePlan.duration)) {
+                    const newPlan = { ...basePlan, id: crypto.randomUUID(), date: iso };
+                    await onAddPlan(newPlan);
+                  }
+                }
+              }
+              weekStart.setDate(weekStart.getDate() + interval * 7);
+            }
+          }
+        }
       } else {
-        await onUpdatePlan(planToSave);
+        await onUpdatePlan(basePlan);
       }
-      
+
       if (!isNew && !wasGreen && newColor === 'green') {
-        onPlanTurnGreen?.(planToSave);
+        onPlanTurnGreen?.(basePlan);
       } else if (isNew && newColor === 'green') {
-        onPlanTurnGreen?.(planToSave);
+        onPlanTurnGreen?.(basePlan);
       }
-      
+
       setIsDialogOpen(false);
     } catch (e) {
       console.error('Error saving plan:', e);
