@@ -277,9 +277,9 @@ export function ScheduleGrid({
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:rounded-2xl border-none max-w-sm bg-card">
-          <DialogHeader>
+            <DialogHeader>
             <DialogTitle className="text-foreground">
-              {plans.some(p => p.id === editingPlan?.id) ? t('editPlan') : t('addPlan')}
+              {plans.some(p => p.id === editingPlan?.id) ? t('editPlan') : `${t('addPlan')} (apply-fix-test)`}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
               {editingPlan && `${editingPlan.startHour}:00 — ${format(new Date(editingPlan.date), 'EEE, d/M')}`}
