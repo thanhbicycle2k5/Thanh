@@ -539,7 +539,6 @@ export default function App() {
     { value: 'schedule', label: t('schedule'), icon: <CalendarIcon className="w-4 h-4" /> },
     { value: 'sound', label: t('sound'), icon: <Volume2 className="w-4 h-4" /> },
     { value: 'appearance', label: t('appearance'), icon: <Sun className="w-4 h-4" /> },
-    { value: 'desktop', label: t('desktop'), icon: <Move className="w-4 h-4" /> },
     { value: 'account', label: t('account'), icon: <CloudIcon className="w-4 h-4" /> },
   ], [t]);
 
@@ -1419,306 +1418,39 @@ export default function App() {
               }
             >
               <div className="flex h-full min-h-0 flex-col rounded-[32px] bg-card shadow-xl sm:flex-row">
-                <Tabs value={activeSettingsTab} onValueChange={setActiveSettingsTab} orientation="vertical" className="w-full flex flex-col sm:flex-row overflow-hidden">
-                  {/* Mobile: accordion list (full width with scrolling) */}
-                  <div className="block sm:hidden px-4 py-4 mobile-settings-scroll">
-                    <div className="mb-3 px-2">
-                      <DialogHeader className="p-0">
-                        <DialogTitle className="text-base md:text-lg">{t('settings')}</DialogTitle>
-                      </DialogHeader>
-                      <p className="mt-1 text-xs text-muted-foreground">{t('appDescription')}</p>
-                    </div>
+                <aside className="w-full sm:w-64 p-4 sm:p-6 sm:border-r bg-muted/50">
+                  <DialogHeader className="p-0">
+                    <DialogTitle className="text-base md:text-lg">{t('settings')}</DialogTitle>
+                  </DialogHeader>
+                  <p className="mt-1 text-xs text-muted-foreground">{t('appDescription')}</p>
 
-                {/* Desktop: left sidebar tabs */}
-                  <div className="space-y-2 px-2">
-                    {settingsTabs.map((tab) => (
-                      <div key={tab.value} className="w-full">
-                        <button
-                          type="button"
-                          onClick={() => setMobileExpanded(mobileExpanded === tab.value ? null : tab.value)}
-                          className={cn(
-                            "w-full flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-background text-sm font-medium text-foreground border border-border transition-all duration-200",
-                            mobileExpanded === tab.value && 'bg-[#F8F9FD] shadow-md'
-                          )}
-                          aria-expanded={mobileExpanded === tab.value}
-                        >
-                          <span className="flex items-center gap-3">
-                            {tab.icon}
-                            <span className="truncate">{tab.label}</span>
-                          </span>
-                          <ChevronRight className={cn(
-                            "w-4 h-4 text-muted-foreground transition-transform duration-200",
-                            mobileExpanded === tab.value ? "rotate-90" : ""
-                          )} />
-                        </button>
-
-                        {mobileExpanded === tab.value && (
-                          <div className="mt-2 px-2 pb-2 animate-in fade-in slide-in-from-top-2 duration-200">
-                            {/* Render corresponding content for this tab (mobile-friendly full width) */}
-                            <div className="space-y-4">
-                              {tab.value === 'general' && (
-                                <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                                  <div className="flex flex-col gap-3">
-                                    <div className="w-full">
-                                      <p className="text-sm font-semibold">{t('language')}</p>
-                                      <p className="text-xs text-muted-foreground">{t('language')}</p>
-                                      <div className="mt-2">
-                                        <Select value={settingsState.language} onValueChange={(v: Language) => handleUpdateSettings({ language: v })}>
-                                          <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                                          <SelectContent>
-                                            <SelectItem value="en">English</SelectItem>
-                                            <SelectItem value="vi">Tiếng Việt</SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    </div>
-
-                                    <div className="w-full">
-                                      <p className="text-sm font-semibold mt-2">{t('theme')}</p>
-                                      <p className="text-xs text-muted-foreground">{t('theme')}</p>
-                                      <div className="flex items-center gap-2 rounded-full bg-background p-1 mt-2">
-                                        <Button variant={settingsState.theme === 'light' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'light' })}>
-                                          <Sun className="w-3 h-3" />
-                                        </Button>
-                                        <Button variant={settingsState.theme === 'dark' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'dark' })}>
-                                          <Moon className="w-3 h-3" />
-                                        </Button>
-                                      </div>
-                                    </div>
-
-                                    <div className="w-full">
-                                      <p className="text-sm font-semibold mt-2">{t('cat')}</p>
-                                      <p className="text-xs text-muted-foreground">{t('enableCat')}</p>
-                                      <div className="mt-2">
-                                        <Switch
-                                          checked={settingsState.catEnabled !== false}
-                                          onCheckedChange={(checked) => handleUpdateSettings({ catEnabled: checked })}
-                                        />
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {tab.value === 'schedule' && (
-                                <div className="rounded-2xl border border-border bg-muted/60 p-4 space-y-4">
-                                  <div className="flex flex-col gap-3">
-                                    <span className="text-sm text-foreground">{t('startHour')}</span>
-                                    <div className="flex items-center gap-3">
-                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.startHour > 0) handleUpdateSettings({ startHour: settingsState.startHour - 1 }); }}>
-                                        <Minus className="w-3 h-3" />
-                                      </Button>
-                                      <span className="w-12 text-center font-black text-[#107C41]">{settingsState.startHour}h</span>
-                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.startHour < settingsState.endHour - 1) handleUpdateSettings({ startHour: settingsState.startHour + 1 }); }}>
-                                        <Plus className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-                                    <span className="text-sm text-foreground">{t('endHour')}</span>
-                                    <div className="flex items-center gap-3">
-                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.endHour > settingsState.startHour + 1) handleUpdateSettings({ endHour: settingsState.endHour - 1 }); }}>
-                                        <Minus className="w-3 h-3" />
-                                      </Button>
-                                      <span className="w-12 text-center font-black text-[#107C41]">{settingsState.endHour}h</span>
-                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.endHour < 23) handleUpdateSettings({ endHour: settingsState.endHour + 1 }); }}>
-                                        <Plus className="w-3 h-3" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {tab.value === 'sound' && (
-                                <div className="rounded-2xl border border-border bg-muted/60 p-4 space-y-4">
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <p className="text-sm font-semibold">{t('notificationsLabel')}</p>
-                                      <p className="text-xs text-muted-foreground">{t('notificationSound')}</p>
-                                    </div>
-                                    <Switch checked={!!settingsState.notificationsEnabled} onCheckedChange={(v) => handleUpdateSettings({ notificationsEnabled: v })} />
-                                  </div>
-
-                                  <div className="flex flex-col gap-2">
-                                    <Label>{t('notificationSound')}</Label>
-                                    <div className="flex items-center gap-2">
-                                      <Select value={settingsState.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({ notificationSound: v })}>
-                                        <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                                        <SelectContent>
-                                          <SelectItem value="bird">{t('bird')}</SelectItem>
-                                          <SelectItem value="wind">{t('wind')}</SelectItem>
-                                          <SelectItem value="bell">{t('bell')}</SelectItem>
-                                          <SelectItem value="chime">{t('chime')}</SelectItem>
-                                        </SelectContent>
-                                      </Select>
-                                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => playNotificationSound(settingsState.notificationSound)}>
-                                        <Volume2 className="w-4 h-4" />
-                                      </Button>
-                                    </div>
-                                  </div>
-
-                                  <div className="pt-2 border-t border-border" />
-
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <p className="text-sm font-semibold">{t('music')}</p>
-                                      <p className="text-xs text-muted-foreground">{t('musicTrack')}</p>
-                                    </div>
-                                    <Switch checked={!!settingsState.musicEnabled} onCheckedChange={(v) => handleUpdateSettings({ musicEnabled: v })} />
-                                  </div>
-
-                                  <div className="flex flex-col gap-2">
-                                    <Select value={settingsState.musicTrackId} onValueChange={(v: string) => handleUpdateSettings({ musicTrackId: v })}>
-                                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
-                                      <SelectContent>
-                                        {PRESET_TRACKS.map(track => (
-                                          <SelectItem key={track.id} value={track.id}>{track.name}</SelectItem>
-                                        ))}
-                                      </SelectContent>
-                                    </Select>
-                                    <Slider value={[settingsState.musicVolume ?? 0.3]} onValueChange={(v: number[]) => handleUpdateSettings({ musicVolume: v[0] })} min={0} max={1} step={0.01} />
-                                  </div>
-
-                                  <div className="pt-2 border-t border-border" />
-
-                                  <div className="flex items-center justify-between">
-                                    <div>
-                                      <p className="text-sm font-semibold">{t('gymRestTimer')}</p>
-                                      <p className="text-xs text-muted-foreground">{t('gymRestTimerDescription')}</p>
-                                    </div>
-                                    <Switch checked={!!settingsState.gymRestEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestEnabled: v })} />
-                                  </div>
-
-                                  <div className="flex flex-col gap-2">
-                                    <Input type="number" min={5} max={600} value={settingsState.gymRestDurationSeconds ?? 60} onChange={(e) => handleUpdateSettings({ gymRestDurationSeconds: Number(e.target.value) })} className="h-10 rounded-2xl border border-border" placeholder={t('gymRestDuration')} />
-                                    <div className="flex gap-2 items-center">
-                                      <Switch checked={!!settingsState.gymRestSoundEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestSoundEnabled: v })} />
-                                      <Label className="text-xs">{t('gymRestSound')}</Label>
-                                    </div>
-                                    <div className="flex gap-2 items-center">
-                                      <Switch checked={!!settingsState.gymRestVibrationEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestVibrationEnabled: v })} />
-                                      <Label className="text-xs">{t('gymRestVibration')}</Label>
-                                    </div>
-                                  </div>
-                                </div>
-                              )}
-
-                              {tab.value === 'desktop' && (
-                                <div className="rounded-2xl border border-border bg-muted/60 p-4 space-y-4">
-                                  <div>
-                                    <p className="text-sm font-semibold">{t('desktop')}</p>
-                                    <p className="text-xs text-muted-foreground">{t('desktopLayoutHelp')}</p>
-                                  </div>
-                                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4">
-                                    <div>
-                                      <p className="text-sm font-semibold">{t('desktopSidebar')}</p>
-                                      <p className="text-xs text-muted-foreground">{t('desktopLayoutHelp')}</p>
-                                    </div>
-                                    <Switch checked={settingsState.desktopSidebarEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopSidebarEnabled: v })} />
-                                  </div>
-                                  <div className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-4">
-                                    <p className="text-sm font-semibold">{t('desktopFontSize')}</p>
-                                    <div className="grid grid-cols-3 gap-2">
-                                      {(['small','medium','large'] as const).map((size) => (
-                                        <button
-                                          key={size}
-                                          type="button"
-                                          className={cn(
-                                            "rounded-2xl border p-3 text-sm font-semibold transition",
-                                            settingsState.desktopFontSize === size ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background text-foreground'
-                                          )}
-                                          onClick={() => handleUpdateSettings({ desktopFontSize: size })}
-                                        >
-                                          {t(size === 'small' ? 'smallFont' : size === 'medium' ? 'mediumFont' : 'largeFont')}
-                                        </button>
-                                      ))}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4">
-                                    <div>
-                                      <p className="text-sm font-semibold">{t('shortcuts')}</p>
-                                      <p className="text-xs text-muted-foreground">{t('enableShortcuts')}</p>
-                                    </div>
-                                    <Switch checked={settingsState.desktopKeyboardShortcutsEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopKeyboardShortcutsEnabled: v })} />
-                                  </div>
-                                </div>
-                              )}
-
-                              {tab.value === 'appearance' && (
-                                <div className="rounded-2xl border border-border bg-muted/60 p-4">
-                                  <BackgroundCustomizer
-                                    config={settingsState.backgroundConfig}
-                                    onChange={(config) => handleUpdateSettings({ backgroundConfig: config })}
-                                    t={t}
-                                    theme={settingsState.theme}
-                                  />
-                                </div>
-                              )}
-
-                              {tab.value === 'account' && (
-                                <div className="rounded-2xl border border-border bg-muted/60 p-4 space-y-4">
-                                  {user ? (
-                                    <div className="flex items-center gap-3">
-                                      <img src={user.photoURL || ''} className="w-10 h-10 rounded-full" />
-                                      <div className="flex-1">
-                                        <p className="text-sm font-semibold">{user.displayName}</p>
-                                        <p className="text-xs opacity-70">{user.email}</p>
-                                      </div>
-                                      <Button variant="outline" size="sm" onClick={() => signOutUser()}>{t('signOut')}</Button>
-                                    </div>
-                                  ) : (
-                                    <Button
-                                      disabled={loginLoading}
-                                      onClick={async () => {
-                                        setLoginLoading(true);
-                                        try {
-                                          await signInWithGoogle();
-                                        } catch (err: any) {
-                                          toast.error(err.message || "Đăng nhập thất bại");
-                                        } finally {
-                                          setLoginLoading(false);
-                                        }
-                                      }}
-                                      className="w-full bg-[#107C41] hover:bg-[#0d6435] text-white"
-                                    >
-                                      {loginLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                                      {t('signIn')}
-                                    </Button>
-                                  )}
-                                  <div className="pt-2 border-t border-border text-center">
-                                    <p className="text-[10px] opacity-30">{t('inspiredBy')}</p>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <section className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 hidden sm:block">
-                  <div className={cn(
-                    "hidden sm:flex flex-wrap gap-2 mb-4",
-                    settingsState.desktopSidebarEnabled === false ? 'sm:flex' : 'sm:hidden'
-                  )}>
+                  <div className="mt-4 grid gap-2">
                     {settingsTabs.map((tab) => (
                       <button
                         key={tab.value}
                         type="button"
-                        onClick={() => setActiveSettingsTab(tab.value)}
+                        onClick={() => { setActiveSettingsTab(tab.value); setMobileExpanded(null); }}
                         className={cn(
-                          "rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:border-primary/70 hover:bg-muted",
-                          activeSettingsTab === tab.value && 'border-primary bg-primary/10 text-primary'
+                          "group flex h-12 items-center justify-between rounded-2xl border border-transparent bg-background px-4 text-sm font-medium text-foreground transition hover:border-border hover:bg-muted",
+                          activeSettingsTab === tab.value && "bg-[#F8F9FD] shadow-sm"
                         )}
                       >
-                        {tab.label}
+                        <span className="flex items-center gap-3">
+                          {tab.icon}
+                          <span>{tab.label}</span>
+                        </span>
+                        <ChevronRight className={cn(
+                          "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                          activeSettingsTab === tab.value ? "rotate-90" : ""
+                        )} />
                       </button>
                     ))}
                   </div>
+                </aside>
 
+                <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
                   {activeSettingsTab === 'general' && (
-                    <TabsContent value="general" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
-                      <div className="space-y-4">
+                    <div className="space-y-4">
                       <div className="rounded-2xl border border-border bg-muted/60 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
@@ -1734,6 +1466,7 @@ export default function App() {
                           </Select>
                         </div>
                       </div>
+
                       <div className="rounded-2xl border border-border bg-muted/60 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
@@ -1750,6 +1483,7 @@ export default function App() {
                           </div>
                         </div>
                       </div>
+
                       <div className="rounded-2xl border border-border bg-muted/60 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
@@ -1763,10 +1497,9 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                  </TabsContent>
-                )}
+                  )}
 
-                  <TabsContent value="schedule" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+                  {activeSettingsTab === 'schedule' && (
                     <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6 space-y-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-sm text-foreground">{t('startHour')}</span>
@@ -1793,9 +1526,9 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                  </TabsContent>
+                  )}
 
-                  <TabsContent value="sound" className="space-y-4 max-h-[50vh] overflow-y-auto pr-4">
+                  {activeSettingsTab === 'sound' && (
                     <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6 flex flex-col gap-4">
                       <div className="flex items-center justify-between">
                         <div>
@@ -1877,60 +1610,9 @@ export default function App() {
                         </div>
                       </div>
                     </div>
-                  </TabsContent>
+                  )}
 
-                  <TabsContent value="desktop" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
-                    <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
-                      <div className="rounded-2xl border border-border bg-muted/60 p-4 space-y-4">
-                        <div>
-                          <p className="text-sm font-semibold">{t('desktop')}</p>
-                          <p className="text-xs text-muted-foreground">{t('desktopLayoutHelp')}</p>
-                        </div>
-                        <div className="rounded-2xl border border-border bg-background p-4">
-                          <div className="flex items-center justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-semibold">{t('desktopSidebar')}</p>
-                              <p className="text-xs text-muted-foreground">{t('desktopLayoutHelp')}</p>
-                            </div>
-                            <Switch checked={settingsState.desktopSidebarEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopSidebarEnabled: v })} />
-                          </div>
-                        </div>
-                        <div className="rounded-2xl border border-border bg-background p-4">
-                          <p className="text-sm font-semibold">{t('desktopFontSize')}</p>
-                          <div className="grid grid-cols-3 gap-2 mt-3">
-                            {(['small','medium','large'] as const).map((size) => (
-                              <button
-                                key={size}
-                                type="button"
-                                className={cn(
-                                  "rounded-2xl border p-3 text-sm font-semibold transition",
-                                  settingsState.desktopFontSize === size ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background text-foreground'
-                                )}
-                                onClick={() => handleUpdateSettings({ desktopFontSize: size })}
-                              >
-                                {t(size === 'small' ? 'smallFont' : size === 'medium' ? 'mediumFont' : 'largeFont')}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="rounded-2xl border border-border bg-muted/60 p-4 space-y-4">
-                        <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4">
-                          <div>
-                            <p className="text-sm font-semibold">{t('shortcuts')}</p>
-                            <p className="text-xs text-muted-foreground">{t('enableShortcuts')}</p>
-                          </div>
-                          <Switch checked={settingsState.desktopKeyboardShortcutsEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopKeyboardShortcutsEnabled: v })} />
-                        </div>
-                        <div className="rounded-2xl border border-border bg-background p-4">
-                          <p className="text-sm font-semibold">{t('desktopLayoutHelp')}</p>
-                          <p className="text-xs text-muted-foreground mt-2">This panel shows desktop-only UI and accessibility settings. Use it to customize the app experience on larger screens.</p>
-                        </div>
-                      </div>
-                    </div>
-                  </TabsContent>
-
-                  <TabsContent value="appearance" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+                  {activeSettingsTab === 'appearance' && (
                     <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6">
                       <BackgroundCustomizer
                         config={settingsState.backgroundConfig}
@@ -1939,9 +1621,9 @@ export default function App() {
                         theme={settingsState.theme}
                       />
                     </div>
-                  </TabsContent>
+                  )}
 
-                  <TabsContent value="account" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+                  {activeSettingsTab === 'account' && (
                     <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6">
                       {user ? (
                         <div className="flex items-center gap-3">
@@ -1972,48 +1654,8 @@ export default function App() {
                         </Button>
                       )}
                     </div>
-                    <div className="pt-4 border-t border-border text-center">
-                      <p className="text-[10px] opacity-30">{t('inspiredBy')}</p>
-                    </div>
-                  </TabsContent>
-                </section>
-              </Tabs>
-            </div>
-
-                {/* Desktop: left sidebar tabs (moved out of mobile block) */}
-                <aside className={cn(
-                  "hidden sm:flex sm:flex-col sm:w-52 md:w-56 lg:w-64 sm:border-r sm:border-b-0 p-4 md:p-6 bg-muted/50 overflow-y-auto",
-                  settingsState.desktopSidebarEnabled === false && 'sm:hidden'
-                )}>
-                  <div className="mb-4">
-                    <DialogHeader className="p-0">
-                      <DialogTitle className="text-base">{t('settings')}</DialogTitle>
-                    </DialogHeader>
-                    <p className="mt-1 text-xs text-muted-foreground">{t('appDescription')}</p>
-                  </div>
-                  <div className="grid gap-2">
-                    {settingsTabs.map((tab) => (
-                      <button
-                        key={tab.value}
-                        type="button"
-                        onClick={() => setActiveSettingsTab(tab.value)}
-                        className={cn(
-                          "group flex h-14 items-center justify-between rounded-2xl border border-transparent bg-background px-4 text-sm font-medium text-foreground transition hover:border-border hover:bg-muted sm:justify-start",
-                          activeSettingsTab === tab.value && "bg-[#F8F9FD] shadow-sm"
-                        )}
-                      >
-                        <span className="flex items-center gap-3">
-                          {tab.icon}
-                          <span>{tab.label}</span>
-                        </span>
-                        <ChevronRight className={cn(
-                          "w-4 h-4 text-muted-foreground transition-transform duration-200",
-                          activeSettingsTab === tab.value ? "rotate-90" : ""
-                        )} />
-                      </button>
-                    ))}
-                  </div>
-                </aside>
+                  )}
+                </main>
           </SettingsErrorBoundary>
          </DialogContent>
       </Dialog>
