@@ -1638,6 +1638,7 @@ export default function App() {
                       </div>
                     </div>
                   </TabsContent>
+                )}
 
                   <TabsContent value="schedule" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
                     <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6 space-y-4">
