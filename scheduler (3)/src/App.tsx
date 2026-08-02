@@ -1424,8 +1424,8 @@ export default function App() {
                 </div>
               }
             >
-              <div className="flex h-full min-h-0 flex-col rounded-[32px] bg-card shadow-xl sm:flex-row">
-                <aside className="w-full sm:w-[180px] md:w-[220px] p-3 sm:p-4 md:p-5 sm:border-r bg-muted/50 overflow-y-auto flex-shrink-0">
+              <div className="flex h-[90vh] min-h-0 flex-col rounded-[32px] bg-card shadow-xl sm:flex-row">
+                <aside className="w-full sm:w-[180px] md:w-[220px] max-h-[25vh] sm:max-h-none p-3 sm:p-4 md:p-5 sm:border-r bg-muted/50 overflow-y-auto flex-shrink-0">
                   <DialogHeader className="p-0">
                     <DialogTitle className="text-sm md:text-base">{t('settings')}</DialogTitle>
                   </DialogHeader>
