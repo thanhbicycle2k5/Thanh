@@ -65,6 +65,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { DynamicCat } from './components/DynamicCat';
 import { BackgroundCustomizer } from './components/BackgroundCustomizer';
 import { CelebrationEffect } from './components/CelebrationEffect';
+import { QuickNoteEditor } from './components/QuickNoteEditor';
 
 import { 
   Dialog,
@@ -284,25 +285,16 @@ export default function App() {
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const [settings, setSettings] = React.useState<AppSettings>(() => storage.getSettings());
 
-  const NOTE_STORAGE_KEY = 'chronos_quick_note';
   const [isNoteOpen, setIsNoteOpen] = React.useState(false);
-  const [noteText, setNoteText] = React.useState('');
   const [isMobileNote, setIsMobileNote] = React.useState(false);
 
   React.useEffect(() => {
-    const storedNote = localStorage.getItem(NOTE_STORAGE_KEY) || '';
-    setNoteText(storedNote);
-
     const query = window.matchMedia('(max-width: 768px)');
     setIsMobileNote(query.matches);
     const handleMediaChange = (event: MediaQueryListEvent) => setIsMobileNote(event.matches);
     query.addEventListener('change', handleMediaChange);
     return () => query.removeEventListener('change', handleMediaChange);
   }, []);
-
-  React.useEffect(() => {
-    localStorage.setItem(NOTE_STORAGE_KEY, noteText);
-  }, [noteText]);
 
   React.useEffect(() => {
     if (!gymRestRunning) {
@@ -1087,56 +1079,7 @@ export default function App() {
         ) : null}
 
         <div className="fixed bottom-12 right-4 z-[9999] flex flex-col items-end gap-3 pointer-events-auto">
-          {isMobileNote ? (
-            <button
-              type="button"
-              onClick={() => setIsNoteOpen((v) => !v)}
-              className="h-12 w-12 rounded-full bg-yellow-400 text-black shadow-2xl border border-white/10 transition hover:bg-yellow-500 hover:scale-105 active:scale-95 flex items-center justify-center"
-              aria-label="Ghi chú nhanh"
-            >
-              <span className="text-xl font-black leading-none">T</span>
-            </button>
-          ) : (
-            <Popover open={isNoteOpen} onOpenChange={setIsNoteOpen}>
-              <PopoverTrigger asChild>
-                <button
-                  type="button"
-                  className="h-12 w-12 rounded-full bg-yellow-400 text-black shadow-2xl border border-white/10 transition hover:bg-yellow-500 hover:scale-105 active:scale-95 flex items-center justify-center"
-                  aria-label="Ghi chú nhanh"
-                >
-                  <span className="text-xl font-black leading-none">T</span>
-                </button>
-              </PopoverTrigger>
-              <PopoverContent
-                className="w-[22rem] max-w-[90vw] rounded-3xl border border-border bg-card p-4 shadow-2xl"
-                side="top"
-                align="end"
-                sideOffset={12}
-              >
-                <div className="flex items-center justify-between gap-3 pb-2">
-                  <div>
-                    <p className="text-sm font-bold">Ghi chú nhanh</p>
-                    <p className="text-[11px] opacity-70">Lưu tự động vào localStorage</p>
-                  </div>
-                  <button
-                    type="button"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-border bg-muted/70 text-foreground transition hover:bg-muted"
-                    onClick={() => setIsNoteOpen(false)}
-                    aria-label="Đóng ghi chú"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </div>
-                <Textarea
-                  value={noteText}
-                  onChange={(e) => setNoteText(e.target.value)}
-                  placeholder="Ghi gì đó..."
-                  rows={8}
-                  className="min-h-[12rem] resize-none bg-muted/70 border-border"
-                />
-              </PopoverContent>
-            </Popover>
-          )}
+          <QuickNoteEditor isMobile={isMobileNote} isOpen={isNoteOpen} onOpenChange={setIsNoteOpen} />
 
           <HealthTipPanel theme={settings.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settings.language} onActivate={(m) => { setCatMoodOverride(m); setTimeout(() => setCatMoodOverride(null), 4000); }} />
 
