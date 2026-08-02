@@ -261,7 +261,6 @@ const Logo = ({ className }: { className?: string }) => (
 export default function App() {
   const [plans, setPlans] = React.useState<Plan[]>(() => storage.getPlans());
   const [weekMetas, setWeekMetas] = React.useState<Record<string, any>>(() => storage.getWeekMetas());
-  const [currentTime, setCurrentTime] = React.useState(new Date());
   const [isSummaryOpen, setIsSummaryOpen] = React.useState(false);
   const plansRef = React.useRef<Plan[]>(plans);
   React.useEffect(() => {
@@ -479,10 +478,8 @@ export default function App() {
   }, []);
 
   React.useEffect(() => {
-    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     if (settings.theme === 'dark') document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
-    return () => clearInterval(timer);
   }, [settings.theme]);
 
   const handleUpdateSettings = (newSettings: Partial<AppSettings>) => {
@@ -498,13 +495,13 @@ export default function App() {
     return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
   };
 
-  const settingsTabs = [
+  const settingsTabs = React.useMemo(() => [
     { value: 'general', label: t('general'), icon: <Settings className="w-4 h-4" /> },
     { value: 'schedule', label: t('schedule'), icon: <CalendarIcon className="w-4 h-4" /> },
     { value: 'sound', label: t('sound'), icon: <Volume2 className="w-4 h-4" /> },
     { value: 'appearance', label: t('appearance'), icon: <Sun className="w-4 h-4" /> },
     { value: 'account', label: t('account'), icon: <CloudIcon className="w-4 h-4" /> },
-  ];
+  ], [t]);
 
   const startGymRest = () => {
     const duration = settings.gymRestDurationSeconds ?? 60;
@@ -1593,8 +1590,9 @@ export default function App() {
                 </div>
 
                 <section className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 hidden sm:block">
-                  <TabsContent value="general" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
-                    <div className="space-y-4">
+                  {activeSettingsTab === 'general' && (
+                    <TabsContent value="general" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+                      <div className="space-y-4">
                       <div className="rounded-2xl border border-border bg-muted/60 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>

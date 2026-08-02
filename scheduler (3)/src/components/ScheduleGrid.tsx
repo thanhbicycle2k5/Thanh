@@ -38,6 +38,70 @@ const COLOR_MAP: Record<PlanColor, string> = {
   blue: 'bg-[#0070C0] text-[#fff]',
 };
 
+interface ScheduleCellProps {
+  dayKey: string;
+  dayIndex: number;
+  hour: number;
+  plan?: Plan;
+  isPartOfPreviousPlan: boolean;
+  day: Date;
+  handleUnifiedClick: (date: Date, hour: number, existingPlan?: Plan) => void;
+  handleOpenEdit: (plan: Plan, e: React.MouseEvent) => void;
+  t: (key: keyof typeof translations.en) => string;
+}
+
+const ScheduleCell = React.memo(function ScheduleCell({
+  dayKey,
+  dayIndex,
+  hour,
+  plan,
+  isPartOfPreviousPlan,
+  day,
+  handleUnifiedClick,
+  handleOpenEdit,
+  t,
+}: ScheduleCellProps) {
+  if (isPartOfPreviousPlan) return null;
+
+  return (
+    <td
+      rowSpan={plan?.duration || 1}
+      className={cn(
+        "border p-0 relative group cursor-pointer transition-all duration-200 border-border",
+        plan ? COLOR_MAP[plan.color] : "bg-background/50 hover:bg-muted"
+      )}
+      onClick={() => handleUnifiedClick(day, hour)}
+    >
+      {plan ? (
+        <div className="w-full h-full p-1.5 text-[10px] md:text-xs font-bold flex flex-col items-center justify-center text-center relative leading-tight gap-0.5">
+          <span className={cn(plan.title === '' && "italic opacity-30")}>
+            {plan.title || t('enterTask')}
+          </span>
+          {plan.duration > 1 && (
+            <span className="text-[9px] opacity-50">{plan.duration}{t('hours_suffix')}</span>
+          )}
+          {plan.notes && (
+            <span className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-current opacity-40" title={plan.notes} />
+          )}
+          <button
+            onClick={(e) => {
+              playMusicalNote();
+              handleOpenEdit(plan, e);
+            }}
+            className="absolute bottom-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-muted/40 p-1 rounded hover:bg-muted/60"
+          >
+            <Edit2 className="w-2 md:w-3 h-2 md:h-3" />
+          </button>
+        </div>
+      ) : (
+        <div className="w-full h-full flex items-center justify-center opacity-10 group-hover:opacity-20 transition-opacity">
+          <Plus className="w-4 md:w-5 h-4 md:h-5 text-muted-foreground" />
+        </div>
+      )}
+    </td>
+  );
+});
+
 interface ScheduleGridProps {
   currentWeekStart: Date;
   plans: Plan[];
@@ -64,9 +128,9 @@ function ScheduleGridComponent({
   endHour,
 }: ScheduleGridProps) {
 
-  const t = (key: keyof typeof translations.en) => translations[language][key];
-  const dayLabels = [t('monday'), t('tuesday'), t('wednesday'), t('thursday'), t('friday'), t('saturday'), t('sunday')];
-  const dayShortLabels = [t('mon'), t('tue'), t('wed'), t('thu'), t('fri'), t('sat'), t('sun')];
+  const t = React.useCallback((key: keyof typeof translations.en) => translations[language][key], [language]);
+  const dayLabels = React.useMemo(() => [t('monday'), t('tuesday'), t('wednesday'), t('thursday'), t('friday'), t('saturday'), t('sunday')], [t]);
+  const dayShortLabels = React.useMemo(() => [t('mon'), t('tue'), t('wed'), t('thu'), t('fri'), t('sat'), t('sun')], [t]);
 
   const HOURS = React.useMemo(
     () => Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour),
@@ -113,9 +177,9 @@ function ScheduleGridComponent({
   const clickCount = React.useRef(0);
   const clickTimer = React.useRef<NodeJS.Timeout | null>(null);
 
-  const handleUnifiedClick = (date: Date, hour: number) => {
+  const handleUnifiedClick = React.useCallback((date: Date, hour: number, existingPlan?: Plan) => {
     playMusicalNote();
-    const existing = plans.find(p => isSameDay(new Date(p.date), date) && p.startHour === hour);
+    const existing = existingPlan ?? plans.find(p => isSameDay(new Date(p.date), date) && p.startHour === hour);
 
     if (!existing || existing.title === '') {
       if (clickTimer.current) {
@@ -123,18 +187,18 @@ function ScheduleGridComponent({
         clickTimer.current = null;
         clickCount.current = 0;
       }
-      
-        if (existing) {
+
+      if (existing) {
         setEditingPlan(existing);
         setNewTitle(existing.title);
         setNewColor(existing.color);
         setNewDuration(existing.duration);
-          setNewApplyMode(existing.applyMode || 'none');
-          setNewApplyDays(existing.applyDays || []);
-          setNewApplyWeekInterval(existing.applyWeekInterval || 1);
-          setNewApplyWeekDays(existing.applyWeekDays || []);
-          setNewApplyUntil(existing.applyUntil || undefined);
-          setNewNotes(existing.notes || '');
+        setNewApplyMode(existing.applyMode || 'none');
+        setNewApplyDays(existing.applyDays || []);
+        setNewApplyWeekInterval(existing.applyWeekInterval || 1);
+        setNewApplyWeekDays(existing.applyWeekDays || []);
+        setNewApplyUntil(existing.applyUntil || undefined);
+        setNewNotes(existing.notes || '');
       } else {
         setEditingPlan({
           id: crypto.randomUUID(),
@@ -180,9 +244,9 @@ function ScheduleGridComponent({
       clickCount.current = 0;
       clickTimer.current = null;
     }, 300);
-  };
+  }, [onPlanTurnGreen, onUpdatePlan, plans]);
 
-  const handleOpenEdit = (plan: Plan, e: React.MouseEvent) => {
+  const handleOpenEdit = React.useCallback((plan: Plan, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingPlan(plan);
     setNewTitle(plan.title);
@@ -195,7 +259,7 @@ function ScheduleGridComponent({
     setNewApplyUntil(plan.applyUntil || undefined);
     setNewNotes(plan.notes || '');
     setIsDialogOpen(true);
-  };
+  }, []);
 
   const handleSave = async () => {
     if (!editingPlan) return;
@@ -321,47 +385,21 @@ function ScheduleGridComponent({
               {daysOfCurrentWeek.map((day, dayIndex) => {
                 const dayKey = format(day, 'yyyy-MM-dd');
                 const plan = planMap.get(`${dayKey}#${hour}`);
-                const isPartofPreviousPlan = occupiedHoursMap.has(`${dayKey}#${hour}`);
-
-                if (isPartofPreviousPlan) return null;
+                const isPartOfPreviousPlan = occupiedHoursMap.has(`${dayKey}#${hour}`);
 
                 return (
-                  <td 
-                    key={dayIndex} 
-                    rowSpan={plan?.duration || 1}
-                    className={cn(
-                      "border p-0 relative group cursor-pointer transition-all duration-200 border-border",
-                      plan ? COLOR_MAP[plan.color] : "bg-background/50 hover:bg-muted"
-                    )}
-                    onClick={() => handleUnifiedClick(day, hour)}
-                  >
-                    {plan ? (
-                      <div className="w-full h-full p-1.5 text-[10px] md:text-xs font-bold flex flex-col items-center justify-center text-center relative leading-tight gap-0.5">
-                        <span className={cn(plan.title === '' && "italic opacity-30")}>
-                          {plan.title || t('enterTask')}
-                        </span>
-                        {plan.duration > 1 && (
-                          <span className="text-[9px] opacity-50">{plan.duration}{t('hours_suffix')}</span>
-                        )}
-                        {plan.notes && (
-                          <span className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-current opacity-40" title={plan.notes} />
-                        )}
-                        <button 
-                          onClick={(e) => {
-                            playMusicalNote();
-                            handleOpenEdit(plan, e);
-                          }}
-                          className="absolute bottom-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-muted/40 p-1 rounded hover:bg-muted/60"
-                        >
-                          <Edit2 className="w-2 md:w-3 h-2 md:h-3" />
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Plus className="w-4 md:w-5 h-4 md:h-5 text-muted-foreground" />
-                      </div>
-                    )}
-                  </td>
+                  <ScheduleCell
+                    key={dayIndex}
+                    dayKey={dayKey}
+                    dayIndex={dayIndex}
+                    hour={hour}
+                    plan={plan}
+                    isPartOfPreviousPlan={isPartOfPreviousPlan}
+                    day={day}
+                    handleUnifiedClick={handleUnifiedClick}
+                    handleOpenEdit={handleOpenEdit}
+                    t={t}
+                  />
                 );
               })}
             </tr>
