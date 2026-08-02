@@ -23,6 +23,43 @@ const defaultSettings: AppSettings = {
 
 const keyFor = (key: string, uid?: string | null) => uid ? `${key}_${uid}` : key;
 
+const isBackgroundConfig = (value: any): value is AppSettings['backgroundConfig'] => {
+  return (
+    value &&
+    typeof value === 'object' &&
+    (value.type === 'color' || value.type === 'gradient' || value.type === 'image') &&
+    typeof value.value === 'string' &&
+    (value.opacity === undefined || typeof value.opacity === 'number')
+  );
+};
+
+export const normalizeSettings = (raw: any): AppSettings => {
+  const obj = raw && typeof raw === 'object' ? raw : {};
+
+  return {
+    language: obj.language === 'vi' ? 'vi' : 'en',
+    theme: obj.theme === 'dark' ? 'dark' : 'light',
+    musicEnabled: typeof obj.musicEnabled === 'boolean' ? obj.musicEnabled : defaultSettings.musicEnabled,
+    musicVolume: typeof obj.musicVolume === 'number' && !Number.isNaN(obj.musicVolume) ? obj.musicVolume : defaultSettings.musicVolume,
+    musicTrackId: typeof obj.musicTrackId === 'string' ? obj.musicTrackId : defaultSettings.musicTrackId,
+    customMusicDataUrl: typeof obj.customMusicDataUrl === 'string' ? obj.customMusicDataUrl : defaultSettings.customMusicDataUrl,
+    customMusicName: typeof obj.customMusicName === 'string' ? obj.customMusicName : defaultSettings.customMusicName,
+    notificationsEnabled: typeof obj.notificationsEnabled === 'boolean' ? obj.notificationsEnabled : defaultSettings.notificationsEnabled,
+    notificationSound: obj.notificationSound === 'bird' || obj.notificationSound === 'wind' || obj.notificationSound === 'bell' || obj.notificationSound === 'chime' ? obj.notificationSound : defaultSettings.notificationSound,
+    startHour: typeof obj.startHour === 'number' && Number.isInteger(obj.startHour) ? obj.startHour : defaultSettings.startHour,
+    endHour: typeof obj.endHour === 'number' && Number.isInteger(obj.endHour) ? obj.endHour : defaultSettings.endHour,
+    backgroundConfig: isBackgroundConfig(obj.backgroundConfig) ? obj.backgroundConfig : undefined,
+    catEnabled: typeof obj.catEnabled === 'boolean' ? obj.catEnabled : true,
+    gymRestEnabled: typeof obj.gymRestEnabled === 'boolean' ? obj.gymRestEnabled : defaultSettings.gymRestEnabled,
+    gymRestDurationSeconds: typeof obj.gymRestDurationSeconds === 'number' && Number.isInteger(obj.gymRestDurationSeconds) ? obj.gymRestDurationSeconds : defaultSettings.gymRestDurationSeconds,
+    gymRestSoundEnabled: typeof obj.gymRestSoundEnabled === 'boolean' ? obj.gymRestSoundEnabled : defaultSettings.gymRestSoundEnabled,
+    gymRestVibrationEnabled: typeof obj.gymRestVibrationEnabled === 'boolean' ? obj.gymRestVibrationEnabled : defaultSettings.gymRestVibrationEnabled,
+    desktopSidebarEnabled: typeof obj.desktopSidebarEnabled === 'boolean' ? obj.desktopSidebarEnabled : defaultSettings.desktopSidebarEnabled,
+    desktopFontSize: obj.desktopFontSize === 'small' || obj.desktopFontSize === 'medium' || obj.desktopFontSize === 'large' ? obj.desktopFontSize : defaultSettings.desktopFontSize,
+    desktopKeyboardShortcutsEnabled: typeof obj.desktopKeyboardShortcutsEnabled === 'boolean' ? obj.desktopKeyboardShortcutsEnabled : defaultSettings.desktopKeyboardShortcutsEnabled,
+  };
+};
+
 export const storage = {
   getPlans: (uid?: string | null): Plan[] => {
     try {
@@ -52,14 +89,16 @@ export const storage = {
   getSettings: (uid?: string | null): AppSettings => {
     try {
       const data = localStorage.getItem(keyFor('chronos_settings', uid));
-      return data ? { ...defaultSettings, ...JSON.parse(data) } : defaultSettings;
+      const parsed = data ? JSON.parse(data) : {};
+      return normalizeSettings({ ...defaultSettings, ...parsed });
     } catch (e) {
       return defaultSettings;
     }
   },
   saveSettings: (settings: Partial<AppSettings>, uid?: string | null) => {
     const current = storage.getSettings(uid);
-    localStorage.setItem(keyFor('chronos_settings', uid), JSON.stringify({ ...current, ...settings }));
+    const normalized = normalizeSettings({ ...current, ...settings });
+    localStorage.setItem(keyFor('chronos_settings', uid), JSON.stringify(normalized));
   },
   addPlan: (plan: Plan, uid?: string | null) => {
     const plans = storage.getPlans(uid);

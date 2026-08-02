@@ -13,7 +13,7 @@ import {
   isSameWeek 
 } from 'date-fns';
 import { Plan, NotificationSound } from './types';
-import { storage } from './lib/storage';
+import { storage, normalizeSettings } from './lib/storage';
 import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, settleRedirectAuth } from './lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
@@ -214,6 +214,38 @@ function HealthTipPanel({ theme, isSettingsOpen, t, lang, onActivate }: { theme:
   );
 }
 
+class SettingsErrorBoundary extends React.Component<{
+  children: React.ReactNode;
+  onError: (message: string) => void;
+  fallback?: React.ReactNode;
+}> {
+  state = { hasError: false, errorMessage: '' };
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, errorMessage: error?.message || 'Unknown error' };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error('Settings render error:', error);
+    this.props.onError(error?.message || 'Unknown error');
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback ?? (
+        <div className="flex min-h-[20rem] items-center justify-center p-6">
+          <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-center">
+            <p className="text-sm font-semibold text-red-800">Failed to load settings.</p>
+            <p className="mt-2 text-xs text-red-700">{this.state.errorMessage}</p>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 const WEEK_COLORS = [
   { name: 'Default', value: 'bg-muted' },
   { name: 'Red', value: 'bg-red-500/10 border-red-500/20' },
@@ -282,7 +314,8 @@ export default function App() {
   const [syncing, setSyncing] = React.useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
-  const [settings, setSettings] = React.useState<AppSettings>(() => storage.getSettings());
+  const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(storage.getSettings()));
+  const [settingsError, setSettingsError] = React.useState<string | null>(null);
 
   const [isNoteOpen, setIsNoteOpen] = React.useState(false);
   const [noteText, setNoteText] = React.useState('');
@@ -303,9 +336,9 @@ export default function App() {
 
   React.useEffect(() => {
     if (!gymRestRunning) {
-      setGymRestRemaining(settings.gymRestDurationSeconds ?? 60);
+      setGymRestRemaining(settingsState.gymRestDurationSeconds ?? 60);
     }
-  }, [settings.gymRestDurationSeconds, gymRestRunning]);
+  }, [settingsState.gymRestDurationSeconds, gymRestRunning]);
 
   type PomodoroMode = 'work' | 'short' | 'long';
   const POMODORO_DURATIONS: Record<PomodoroMode, number> = { work: 25 * 60, short: 5 * 60, long: 15 * 60 };
@@ -326,12 +359,12 @@ export default function App() {
       }, 1000);
     } else if (pomodoroSecondsLeft === 0) {
       setPomodoroRunning(false);
-      playNotificationSound(settings.notificationSound);
+      playNotificationSound(settingsState.notificationSound);
       if (pomodoroMode === 'work') setPomodoroSessions(v => v + 1);
       toast.success(t(pomodoroMode === 'work' ? 'workCompleted' : 'breakOver'));
     }
     return () => clearInterval(interval);
-  }, [pomodoroRunning, pomodoroSecondsLeft, pomodoroMode, settings.notificationSound]);
+  }, [pomodoroRunning, pomodoroSecondsLeft, pomodoroMode, settingsState.notificationSound]);
 
   const togglePomodoro = () => setPomodoroRunning(!pomodoroRunning);
   const resetPomodoro = () => {
@@ -374,13 +407,13 @@ export default function App() {
   };
 
   const t = React.useCallback((key: keyof typeof translations.en, params: Record<string, string> = {}) => {
-    let text = translations[settings.language][key];
-    if (!text) return key;
+    const locale = translations[settingsState.language] ?? translations.en;
+    let text = locale[key] ?? translations.en[key] ?? key;
     Object.entries(params).forEach(([k, v]) => {
       text = text.replace(`{${k}}`, v);
     });
     return text;
-  }, [settings.language]);
+  }, [settingsState.language]);
 
   const [selectedWeekStart, setSelectedWeekStart] = React.useState(() => 
     startOfWeek(new Date(), { weekStartsOn: 1 })
@@ -453,7 +486,7 @@ export default function App() {
              setWeekMetas(initialMetas);
 
              if (Object.keys(cloudSettings).length > 0) {
-               setSettings(prev => ({ ...prev, ...cloudSettings }));
+               setSettings(prev => normalizeSettings({ ...prev, ...cloudSettings }));
              }
 
              unsubPlans = subscribePlans(firebaseUser.uid, p => { 
@@ -470,7 +503,7 @@ export default function App() {
         } else {
            setPlans(storage.getPlans());
            setWeekMetas(storage.getWeekMetas());
-           setSettings(storage.getSettings());
+           setSettings(normalizeSettings(storage.getSettings()));
            setSyncing(false);
         }
      });
@@ -484,12 +517,12 @@ export default function App() {
   }, []);
 
   React.useEffect(() => {
-    if (settings.theme === 'dark') document.documentElement.classList.add('dark');
+    if (settingsState.theme === 'dark') document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
-  }, [settings.theme]);
+  }, [settingsState.theme]);
 
   const handleUpdateSettings = (newSettings: Partial<AppSettings>) => {
-    const updated = { ...settings, ...newSettings };
+    const updated = normalizeSettings({ ...settingsState, ...newSettings });
     setSettings(updated);
     storage.saveSettings(newSettings, user?.uid);
     if (user) cloudStorage.saveSettings(user.uid, newSettings);
@@ -511,7 +544,7 @@ export default function App() {
   ], [t]);
 
   const desktopFontClass = React.useMemo(() => {
-    switch (settings.desktopFontSize) {
+    switch (settingsState.desktopFontSize) {
       case 'small':
         return 'text-sm';
       case 'large':
@@ -519,10 +552,10 @@ export default function App() {
       default:
         return 'text-base';
     }
-  }, [settings.desktopFontSize]);
+  }, [settingsState.desktopFontSize]);
 
   const startGymRest = () => {
-    const duration = settings.gymRestDurationSeconds ?? 60;
+    const duration = settingsState.gymRestDurationSeconds ?? 60;
     // Resume from paused remaining if available
     if (!gymRestRunning && gymRestEndAt === null && gymRestRemaining && gymRestRemaining < duration) {
       setGymRestEndAt(Date.now() + gymRestRemaining * 1000);
@@ -551,12 +584,12 @@ export default function App() {
     setGymRestEndAt(null);
     setGymRestRound(1);
     setGymRestMessage('');
-    setGymRestRemaining(settings.gymRestDurationSeconds ?? 60);
+    setGymRestRemaining(settingsState.gymRestDurationSeconds ?? 60);
   };
 
   React.useEffect(() => {
     if (!gymRestRunning || gymRestEndAt === null) return;
-    const duration = settings.gymRestDurationSeconds ?? 60;
+    const duration = settingsState.gymRestDurationSeconds ?? 60;
 
     const tick = () => {
       const remaining = Math.max(0, Math.round((gymRestEndAt - Date.now()) / 1000));
@@ -573,10 +606,10 @@ export default function App() {
           setGymRestEndAt(null);
           setGymRestMessage(t('gymRestComplete'));
         }
-        if (settings.gymRestSoundEnabled) {
-          playNotificationSound(settings.notificationSound);
+        if (settingsState.gymRestSoundEnabled) {
+          playNotificationSound(settingsState.notificationSound);
         }
-        if (settings.gymRestVibrationEnabled && navigator.vibrate) {
+        if (settingsState.gymRestVibrationEnabled && navigator.vibrate) {
           navigator.vibrate(300);
         }
       }
@@ -584,7 +617,7 @@ export default function App() {
     tick();
     const intervalId = window.setInterval(tick, 250);
     return () => window.clearInterval(intervalId);
-  }, [gymRestRunning, gymRestEndAt, gymRestRound, gymRestSets, settings.gymRestSoundEnabled, settings.gymRestVibrationEnabled, settings.notificationSound, t]);
+  }, [gymRestRunning, gymRestEndAt, gymRestRound, gymRestSets, settingsState.gymRestSoundEnabled, settingsState.gymRestVibrationEnabled, settingsState.notificationSound, t]);
 
   const currentWeekPlans = React.useMemo(() => {
     return plans.filter(p => isSameWeek(new Date(p.date), selectedWeekStart, { weekStartsOn: 1 }));
@@ -592,7 +625,7 @@ export default function App() {
 
   // Cat auto-move: find empty schedule cells and teleport the cat there periodically
   React.useEffect(() => {
-    if (isMobile || settings.catEnabled === false) return;
+    if (isMobile || settingsState.catEnabled === false) return;
 
     let running = true;
     const moveCatToRandomEmptyCell = () => {
@@ -616,7 +649,7 @@ export default function App() {
     const onResize = () => { moveCatToRandomEmptyCell(); };
     window.addEventListener('resize', onResize);
     return () => { running = false; window.clearInterval(id); window.removeEventListener('resize', onResize); };
-  }, [currentWeekPlans, isMobile, settings.catEnabled]);
+  }, [currentWeekPlans, isMobile, settingsState.catEnabled]);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -633,7 +666,7 @@ export default function App() {
   const handleUpdatePlan = React.useCallback((p: Plan) => {
     const oldPlan = plansRef.current.find(x => x.id === p.id);
     if (oldPlan && oldPlan.color !== 'green' && p.color === 'green') {
-      playNotificationSound(settings.notificationSound);
+      playNotificationSound(settingsState.notificationSound);
       const motivators = [t('motivate1'), t('motivate2'), t('motivate3'), t('motivate4'), t('motivate5')];
       const message = motivators[Math.floor(Math.random() * motivators.length)];
       toast.success(message, { 
@@ -647,7 +680,7 @@ export default function App() {
     } else {
       setPlans(prev => prev.map(x => x.id === p.id ? p : x));
     }
-  }, [user, settings.notificationSound, t]);
+  }, [user, settingsState.notificationSound, t]);
 
   const handleAddPlan = React.useCallback((p: Plan) => {
     if (user) {
@@ -710,11 +743,11 @@ export default function App() {
 
   // Build background style
   const getBackgroundStyle = React.useCallback((): React.CSSProperties => {
-    if (!settings.backgroundConfig) {
+    if (!settingsState.backgroundConfig) {
       return {};
     }
 
-    const { type, value, opacity = 1 } = settings.backgroundConfig;
+    const { type, value, opacity = 1 } = settingsState.backgroundConfig;
 
     if (type === 'color') {
       return { backgroundColor: value, opacity };
@@ -731,20 +764,20 @@ export default function App() {
     }
 
     return {};
-  }, [settings.backgroundConfig]);
+  }, [settingsState.backgroundConfig]);
 
   return (
     <div 
       className={cn(
         "h-screen flex flex-col transition-colors duration-300 overflow-hidden relative",
-        settings.theme === 'dark' && "dark",
+        settingsState.theme === 'dark' && "dark",
         "bg-background text-foreground",
-        settings.language === 'vi' ? 'font-vietnamese' : 'font-sans'
+        settingsState.language === 'vi' ? 'font-vietnamese' : 'font-sans'
       )}
       style={getBackgroundStyle()}
     >
       {/* Background overlay for better text readability */}
-      {settings.backgroundConfig && (
+      {settingsState.backgroundConfig && (
         <div className="absolute inset-0 bg-background/40 dark:bg-background/60 pointer-events-none" />
       )}
 
@@ -780,9 +813,9 @@ export default function App() {
              )}
              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
                 playMusicalNote();
-                handleUpdateSettings({ notificationsEnabled: !settings.notificationsEnabled });
+                handleUpdateSettings({ notificationsEnabled: !settingsState.notificationsEnabled });
               }}>
-                {settings.notificationsEnabled ? <Bell className="w-4 h-4 text-[#107C41]" /> : <BellOff className="w-4 h-4" />}
+                {settingsState.notificationsEnabled ? <Bell className="w-4 h-4 text-[#107C41]" /> : <BellOff className="w-4 h-4" />}
              </Button>
 
              <Popover>
@@ -832,7 +865,7 @@ export default function App() {
                   setCatMoodOverride(null);
                   return;
                 }
-                if (!settings.gymRestEnabled) {
+                if (!settingsState.gymRestEnabled) {
                   handleUpdateSettings({ gymRestEnabled: true });
                 }
                 setGymRestOpen(true);
@@ -875,17 +908,17 @@ export default function App() {
                 onUpdatePlan={handleUpdatePlan}
                 onDeletePlan={handleDeletePlan}
                onPlanTurnGreen={handlePlanTurnGreen}
-                language={settings.language}
-                theme={settings.theme}
-                startHour={settings.startHour}
-                endHour={settings.endHour}
+                language={settingsState.language}
+                theme={settingsState.theme}
+                startHour={settingsState.startHour}
+                endHour={settingsState.endHour}
              />
              <div className="p-4 border-t bg-muted/30">
                <Label className="text-[10px] font-bold uppercase mb-2 block opacity-50">{t('weekNote')}</Label>
                <WeekNoteEditor 
                   weekStart={selectedWeekStart}
                   initialNote={weekMetas[format(selectedWeekStart, 'yyyy-MM-dd')]?.note || ''}
-                  theme={settings.theme}
+                  theme={settingsState.theme}
                   placeholder={t('weekNotePlaceholder')}
                   btnSaveText={t('saveNote')}
                   btnSavedText={t('saved')}
@@ -1098,7 +1131,7 @@ export default function App() {
         <div className="fixed bottom-12 right-4 z-[9999] flex flex-col items-end gap-3 pointer-events-auto">
           <QuickNoteEditor isMobile={isMobileNote} isOpen={isNoteOpen} onOpenChange={setIsNoteOpen} />
 
-          <HealthTipPanel theme={settings.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settings.language} onActivate={(m) => { setCatMoodOverride(m); setTimeout(() => setCatMoodOverride(null), 4000); }} />
+          <HealthTipPanel theme={settingsState.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settingsState.language} onActivate={(m) => { setCatMoodOverride(m); setTimeout(() => setCatMoodOverride(null), 4000); }} />
 
           {/* Pomodoro button grouped with other floating controls */}
           <div className="relative inline-block pointer-events-auto">
@@ -1212,15 +1245,15 @@ export default function App() {
                   <div className="flex items-center justify-between gap-2 px-4 py-3 bg-gradient-to-r from-orange-500 to-rose-500 text-white">
                     <div>
                       <h3 className="text-xs font-bold uppercase tracking-widest">{t('gymRestTimer')}</h3>
-                      <p className="text-[10px] opacity-90">{t('gymRestDuration')} {formatSeconds(settings.gymRestDurationSeconds ?? 60)}</p>
+                      <p className="text-[10px] opacity-90">{t('gymRestDuration')} {formatSeconds(settingsState.gymRestDurationSeconds ?? 60)}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => handleUpdateSettings({ gymRestSoundEnabled: !settings.gymRestSoundEnabled })}
+                        onClick={() => handleUpdateSettings({ gymRestSoundEnabled: !settingsState.gymRestSoundEnabled })}
                         className={cn(
                           "inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-white/20 bg-white/10 transition",
-                          settings.gymRestSoundEnabled ? 'text-white' : 'text-white/70'
+                          settingsState.gymRestSoundEnabled ? 'text-white' : 'text-white/70'
                         )}
                         title={t('gymRestSound')}
                       >
@@ -1228,10 +1261,10 @@ export default function App() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleUpdateSettings({ gymRestVibrationEnabled: !settings.gymRestVibrationEnabled })}
+                        onClick={() => handleUpdateSettings({ gymRestVibrationEnabled: !settingsState.gymRestVibrationEnabled })}
                         className={cn(
                           "inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-white/20 bg-white/10 transition",
-                          settings.gymRestVibrationEnabled ? 'text-white' : 'text-white/70'
+                          settingsState.gymRestVibrationEnabled ? 'text-white' : 'text-white/70'
                         )}
                         title={t('gymRestVibration')}
                       >
@@ -1246,7 +1279,7 @@ export default function App() {
                         <Button
                           key={sec}
                           size="sm"
-                          variant={settings.gymRestDurationSeconds === sec ? 'secondary' : 'outline'}
+                          variant={settingsState.gymRestDurationSeconds === sec ? 'secondary' : 'outline'}
                           className="h-9 rounded-2xl text-xs font-bold"
                           onClick={() => handleUpdateSettings({ gymRestDurationSeconds: sec })}
                         >
@@ -1269,7 +1302,7 @@ export default function App() {
                           type="number"
                           min={5}
                           max={600}
-                          value={settings.gymRestDurationSeconds ?? 60}
+                          value={settingsState.gymRestDurationSeconds ?? 60}
                           onChange={(e) => {
                             const value = Number(e.target.value);
                             handleUpdateSettings({ gymRestDurationSeconds: value });
@@ -1316,7 +1349,7 @@ export default function App() {
         )}
         
         {/* Dynamic Cat */}
-        {!isMobile && settings.catEnabled !== false && (
+        {!isMobile && settingsState.catEnabled !== false && (
           <motion.div
             animate={{ x: [0, -8, 8, 0], y: [0, -6, 6, 0] }}
             transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
@@ -1346,21 +1379,42 @@ export default function App() {
            "w-full max-w-[calc(100vw-64px)] md:max-w-[1200px] xl:max-w-[1400px] max-h-[90vh] overflow-y-auto rounded-[32px] bg-popover p-0",
            desktopFontClass
          )}>
-            <div className="flex h-full min-h-0 flex-col rounded-[32px] bg-card shadow-xl sm:flex-row">
-              <Tabs value={activeSettingsTab} onValueChange={setActiveSettingsTab} orientation="vertical" className="w-full flex flex-col sm:flex-row overflow-hidden">
-                {/* Mobile: accordion list (full width with scrolling) */}
-                <div className="block sm:hidden px-4 py-4 mobile-settings-scroll">
-                  <div className="mb-3 px-2">
-                    <DialogHeader className="p-0">
-                      <DialogTitle className="text-base md:text-lg">{t('settings')}</DialogTitle>
-                    </DialogHeader>
-                    <p className="mt-1 text-xs text-muted-foreground">{t('appDescription')}</p>
+            <SettingsErrorBoundary
+              onError={(message) => setSettingsError(message)}
+              fallback={
+                <div className="flex min-h-[20rem] items-center justify-center p-6">
+                  <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-center">
+                    <p className="text-sm font-semibold text-red-800">Failed to load settings.</p>
+                    <p className="mt-2 text-xs text-red-700">{settingsError || 'Please refresh the page.'}</p>
+                    <Button
+                      variant="outline"
+                      className="mt-4"
+                      onClick={() => {
+                        setSettingsError(null);
+                        setSettings(normalizeSettings(storage.getSettings()));
+                      }}
+                    >
+                      Retry
+                    </Button>
                   </div>
+                </div>
+              }
+            >
+              <div className="flex h-full min-h-0 flex-col rounded-[32px] bg-card shadow-xl sm:flex-row">
+                <Tabs value={activeSettingsTab} onValueChange={setActiveSettingsTab} orientation="vertical" className="w-full flex flex-col sm:flex-row overflow-hidden">
+                  {/* Mobile: accordion list (full width with scrolling) */}
+                  <div className="block sm:hidden px-4 py-4 mobile-settings-scroll">
+                    <div className="mb-3 px-2">
+                      <DialogHeader className="p-0">
+                        <DialogTitle className="text-base md:text-lg">{t('settings')}</DialogTitle>
+                      </DialogHeader>
+                      <p className="mt-1 text-xs text-muted-foreground">{t('appDescription')}</p>
+                    </div>
 
                 {/* Desktop: left sidebar tabs */}
                 <aside className={cn(
                   "hidden sm:flex sm:flex-col sm:w-52 md:w-56 lg:w-64 sm:border-r sm:border-b-0 p-4 md:p-6 bg-muted/50 overflow-y-auto",
-                  settings.desktopSidebarEnabled === false && 'sm:hidden'
+                  settingsState.desktopSidebarEnabled === false && 'sm:hidden'
                 )}>
                   <div className="mb-4">
                     <DialogHeader className="p-0">
@@ -1423,7 +1477,7 @@ export default function App() {
                                       <p className="text-sm font-semibold">{t('language')}</p>
                                       <p className="text-xs text-muted-foreground">{t('language')}</p>
                                       <div className="mt-2">
-                                        <Select value={settings.language} onValueChange={(v: Language) => handleUpdateSettings({ language: v })}>
+                                        <Select value={settingsState.language} onValueChange={(v: Language) => handleUpdateSettings({ language: v })}>
                                           <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                                           <SelectContent>
                                             <SelectItem value="en">English</SelectItem>
@@ -1437,10 +1491,10 @@ export default function App() {
                                       <p className="text-sm font-semibold mt-2">{t('theme')}</p>
                                       <p className="text-xs text-muted-foreground">{t('theme')}</p>
                                       <div className="flex items-center gap-2 rounded-full bg-background p-1 mt-2">
-                                        <Button variant={settings.theme === 'light' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'light' })}>
+                                        <Button variant={settingsState.theme === 'light' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'light' })}>
                                           <Sun className="w-3 h-3" />
                                         </Button>
-                                        <Button variant={settings.theme === 'dark' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'dark' })}>
+                                        <Button variant={settingsState.theme === 'dark' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'dark' })}>
                                           <Moon className="w-3 h-3" />
                                         </Button>
                                       </div>
@@ -1451,7 +1505,7 @@ export default function App() {
                                       <p className="text-xs text-muted-foreground">{t('enableCat')}</p>
                                       <div className="mt-2">
                                         <Switch
-                                          checked={settings.catEnabled !== false}
+                                          checked={settingsState.catEnabled !== false}
                                           onCheckedChange={(checked) => handleUpdateSettings({ catEnabled: checked })}
                                         />
                                       </div>
@@ -1465,21 +1519,21 @@ export default function App() {
                                   <div className="flex flex-col gap-3">
                                     <span className="text-sm text-foreground">{t('startHour')}</span>
                                     <div className="flex items-center gap-3">
-                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settings.startHour > 0) handleUpdateSettings({ startHour: settings.startHour - 1 }); }}>
+                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.startHour > 0) handleUpdateSettings({ startHour: settingsState.startHour - 1 }); }}>
                                         <Minus className="w-3 h-3" />
                                       </Button>
-                                      <span className="w-12 text-center font-black text-[#107C41]">{settings.startHour}h</span>
-                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settings.startHour < settings.endHour - 1) handleUpdateSettings({ startHour: settings.startHour + 1 }); }}>
+                                      <span className="w-12 text-center font-black text-[#107C41]">{settingsState.startHour}h</span>
+                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.startHour < settingsState.endHour - 1) handleUpdateSettings({ startHour: settingsState.startHour + 1 }); }}>
                                         <Plus className="w-3 h-3" />
                                       </Button>
                                     </div>
                                     <span className="text-sm text-foreground">{t('endHour')}</span>
                                     <div className="flex items-center gap-3">
-                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settings.endHour > settings.startHour + 1) handleUpdateSettings({ endHour: settings.endHour - 1 }); }}>
+                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.endHour > settingsState.startHour + 1) handleUpdateSettings({ endHour: settingsState.endHour - 1 }); }}>
                                         <Minus className="w-3 h-3" />
                                       </Button>
-                                      <span className="w-12 text-center font-black text-[#107C41]">{settings.endHour}h</span>
-                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settings.endHour < 23) handleUpdateSettings({ endHour: settings.endHour + 1 }); }}>
+                                      <span className="w-12 text-center font-black text-[#107C41]">{settingsState.endHour}h</span>
+                                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.endHour < 23) handleUpdateSettings({ endHour: settingsState.endHour + 1 }); }}>
                                         <Plus className="w-3 h-3" />
                                       </Button>
                                     </div>
@@ -1494,13 +1548,13 @@ export default function App() {
                                       <p className="text-sm font-semibold">{t('notificationsLabel')}</p>
                                       <p className="text-xs text-muted-foreground">{t('notificationSound')}</p>
                                     </div>
-                                    <Switch checked={!!settings.notificationsEnabled} onCheckedChange={(v) => handleUpdateSettings({ notificationsEnabled: v })} />
+                                    <Switch checked={!!settingsState.notificationsEnabled} onCheckedChange={(v) => handleUpdateSettings({ notificationsEnabled: v })} />
                                   </div>
 
                                   <div className="flex flex-col gap-2">
                                     <Label>{t('notificationSound')}</Label>
                                     <div className="flex items-center gap-2">
-                                      <Select value={settings.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({ notificationSound: v })}>
+                                      <Select value={settingsState.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({ notificationSound: v })}>
                                         <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                           <SelectItem value="bird">{t('bird')}</SelectItem>
@@ -1509,7 +1563,7 @@ export default function App() {
                                           <SelectItem value="chime">{t('chime')}</SelectItem>
                                         </SelectContent>
                                       </Select>
-                                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => playNotificationSound(settings.notificationSound)}>
+                                      <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => playNotificationSound(settingsState.notificationSound)}>
                                         <Volume2 className="w-4 h-4" />
                                       </Button>
                                     </div>
@@ -1522,11 +1576,11 @@ export default function App() {
                                       <p className="text-sm font-semibold">{t('music')}</p>
                                       <p className="text-xs text-muted-foreground">{t('musicTrack')}</p>
                                     </div>
-                                    <Switch checked={!!settings.musicEnabled} onCheckedChange={(v) => handleUpdateSettings({ musicEnabled: v })} />
+                                    <Switch checked={!!settingsState.musicEnabled} onCheckedChange={(v) => handleUpdateSettings({ musicEnabled: v })} />
                                   </div>
 
                                   <div className="flex flex-col gap-2">
-                                    <Select value={settings.musicTrackId} onValueChange={(v: string) => handleUpdateSettings({ musicTrackId: v })}>
+                                    <Select value={settingsState.musicTrackId} onValueChange={(v: string) => handleUpdateSettings({ musicTrackId: v })}>
                                       <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                                       <SelectContent>
                                         {PRESET_TRACKS.map(track => (
@@ -1534,7 +1588,7 @@ export default function App() {
                                         ))}
                                       </SelectContent>
                                     </Select>
-                                    <Slider value={[settings.musicVolume ?? 0.3]} onValueChange={(v: number[]) => handleUpdateSettings({ musicVolume: v[0] })} min={0} max={1} step={0.01} />
+                                    <Slider value={[settingsState.musicVolume ?? 0.3]} onValueChange={(v: number[]) => handleUpdateSettings({ musicVolume: v[0] })} min={0} max={1} step={0.01} />
                                   </div>
 
                                   <div className="pt-2 border-t border-border" />
@@ -1544,17 +1598,17 @@ export default function App() {
                                       <p className="text-sm font-semibold">{t('gymRestTimer')}</p>
                                       <p className="text-xs text-muted-foreground">{t('gymRestTimerDescription')}</p>
                                     </div>
-                                    <Switch checked={!!settings.gymRestEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestEnabled: v })} />
+                                    <Switch checked={!!settingsState.gymRestEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestEnabled: v })} />
                                   </div>
 
                                   <div className="flex flex-col gap-2">
-                                    <Input type="number" min={5} max={600} value={settings.gymRestDurationSeconds ?? 60} onChange={(e) => handleUpdateSettings({ gymRestDurationSeconds: Number(e.target.value) })} className="h-10 rounded-2xl border border-border" placeholder={t('gymRestDuration')} />
+                                    <Input type="number" min={5} max={600} value={settingsState.gymRestDurationSeconds ?? 60} onChange={(e) => handleUpdateSettings({ gymRestDurationSeconds: Number(e.target.value) })} className="h-10 rounded-2xl border border-border" placeholder={t('gymRestDuration')} />
                                     <div className="flex gap-2 items-center">
-                                      <Switch checked={!!settings.gymRestSoundEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestSoundEnabled: v })} />
+                                      <Switch checked={!!settingsState.gymRestSoundEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestSoundEnabled: v })} />
                                       <Label className="text-xs">{t('gymRestSound')}</Label>
                                     </div>
                                     <div className="flex gap-2 items-center">
-                                      <Switch checked={!!settings.gymRestVibrationEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestVibrationEnabled: v })} />
+                                      <Switch checked={!!settingsState.gymRestVibrationEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestVibrationEnabled: v })} />
                                       <Label className="text-xs">{t('gymRestVibration')}</Label>
                                     </div>
                                   </div>
@@ -1572,7 +1626,7 @@ export default function App() {
                                       <p className="text-sm font-semibold">{t('desktopSidebar')}</p>
                                       <p className="text-xs text-muted-foreground">{t('desktopLayoutHelp')}</p>
                                     </div>
-                                    <Switch checked={settings.desktopSidebarEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopSidebarEnabled: v })} />
+                                    <Switch checked={settingsState.desktopSidebarEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopSidebarEnabled: v })} />
                                   </div>
                                   <div className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-4">
                                     <p className="text-sm font-semibold">{t('desktopFontSize')}</p>
@@ -1583,7 +1637,7 @@ export default function App() {
                                           type="button"
                                           className={cn(
                                             "rounded-2xl border p-3 text-sm font-semibold transition",
-                                            settings.desktopFontSize === size ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background text-foreground'
+                                            settingsState.desktopFontSize === size ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background text-foreground'
                                           )}
                                           onClick={() => handleUpdateSettings({ desktopFontSize: size })}
                                         >
@@ -1597,7 +1651,7 @@ export default function App() {
                                       <p className="text-sm font-semibold">{t('shortcuts')}</p>
                                       <p className="text-xs text-muted-foreground">{t('enableShortcuts')}</p>
                                     </div>
-                                    <Switch checked={settings.desktopKeyboardShortcutsEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopKeyboardShortcutsEnabled: v })} />
+                                    <Switch checked={settingsState.desktopKeyboardShortcutsEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopKeyboardShortcutsEnabled: v })} />
                                   </div>
                                 </div>
                               )}
@@ -1605,10 +1659,10 @@ export default function App() {
                               {tab.value === 'appearance' && (
                                 <div className="rounded-2xl border border-border bg-muted/60 p-4">
                                   <BackgroundCustomizer
-                                    config={settings.backgroundConfig}
+                                    config={settingsState.backgroundConfig}
                                     onChange={(config) => handleUpdateSettings({ backgroundConfig: config })}
                                     t={t}
-                                    theme={settings.theme}
+                                    theme={settingsState.theme}
                                   />
                                 </div>
                               )}
@@ -1659,7 +1713,7 @@ export default function App() {
                 <section className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 hidden sm:block">
                   <div className={cn(
                     "hidden sm:flex flex-wrap gap-2 mb-4",
-                    settings.desktopSidebarEnabled === false ? 'sm:flex' : 'sm:hidden'
+                    settingsState.desktopSidebarEnabled === false ? 'sm:flex' : 'sm:hidden'
                   )}>
                     {settingsTabs.map((tab) => (
                       <TabsTrigger
@@ -1684,7 +1738,7 @@ export default function App() {
                             <p className="text-sm font-semibold">{t('language')}</p>
                             <p className="text-xs text-muted-foreground">{t('language')}</p>
                           </div>
-                          <Select value={settings.language} onValueChange={(v: Language) => handleUpdateSettings({ language: v })}>
+                          <Select value={settingsState.language} onValueChange={(v: Language) => handleUpdateSettings({ language: v })}>
                             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="en">English</SelectItem>
@@ -1700,10 +1754,10 @@ export default function App() {
                             <p className="text-xs text-muted-foreground">{t('theme')}</p>
                           </div>
                           <div className="flex items-center gap-2 rounded-full bg-background p-1">
-                            <Button variant={settings.theme === 'light' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'light' })}>
+                            <Button variant={settingsState.theme === 'light' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'light' })}>
                               <Sun className="w-3 h-3" />
                             </Button>
-                            <Button variant={settings.theme === 'dark' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'dark' })}>
+                            <Button variant={settingsState.theme === 'dark' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'dark' })}>
                               <Moon className="w-3 h-3" />
                             </Button>
                           </div>
@@ -1716,7 +1770,7 @@ export default function App() {
                             <p className="text-xs text-muted-foreground">{t('enableCat')}</p>
                           </div>
                           <Switch
-                            checked={settings.catEnabled !== false}
+                            checked={settingsState.catEnabled !== false}
                             onCheckedChange={(checked) => handleUpdateSettings({ catEnabled: checked })}
                           />
                         </div>
@@ -1730,11 +1784,11 @@ export default function App() {
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-sm text-foreground">{t('startHour')}</span>
                         <div className="flex items-center gap-3">
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settings.startHour > 0) handleUpdateSettings({ startHour: settings.startHour - 1 }); }}>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.startHour > 0) handleUpdateSettings({ startHour: settingsState.startHour - 1 }); }}>
                             <Minus className="w-3 h-3" />
                           </Button>
-                          <span className="w-12 text-center font-black text-[#107C41]">{settings.startHour}h</span>
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settings.startHour < settings.endHour - 1) handleUpdateSettings({ startHour: settings.startHour + 1 }); }}>
+                          <span className="w-12 text-center font-black text-[#107C41]">{settingsState.startHour}h</span>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.startHour < settingsState.endHour - 1) handleUpdateSettings({ startHour: settingsState.startHour + 1 }); }}>
                             <Plus className="w-3 h-3" />
                           </Button>
                         </div>
@@ -1742,11 +1796,11 @@ export default function App() {
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-sm text-foreground">{t('endHour')}</span>
                         <div className="flex items-center gap-3">
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settings.endHour > settings.startHour + 1) handleUpdateSettings({ endHour: settings.endHour - 1 }); }}>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.endHour > settingsState.startHour + 1) handleUpdateSettings({ endHour: settingsState.endHour - 1 }); }}>
                             <Minus className="w-3 h-3" />
                           </Button>
-                          <span className="w-12 text-center font-black text-[#107C41]">{settings.endHour}h</span>
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settings.endHour < 23) handleUpdateSettings({ endHour: settings.endHour + 1 }); }}>
+                          <span className="w-12 text-center font-black text-[#107C41]">{settingsState.endHour}h</span>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.endHour < 23) handleUpdateSettings({ endHour: settingsState.endHour + 1 }); }}>
                             <Plus className="w-3 h-3" />
                           </Button>
                         </div>
@@ -1762,14 +1816,14 @@ export default function App() {
                           <p className="text-xs text-muted-foreground">{t('notificationSound')}</p>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Switch checked={!!settings.notificationsEnabled} onCheckedChange={(v) => handleUpdateSettings({ notificationsEnabled: v })} />
+                          <Switch checked={!!settingsState.notificationsEnabled} onCheckedChange={(v) => handleUpdateSettings({ notificationsEnabled: v })} />
                         </div>
                       </div>
 
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <Label>{t('notificationSound')}</Label>
                         <div className="flex items-center gap-2">
-                          <Select value={settings.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({ notificationSound: v })}>
+                          <Select value={settingsState.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({ notificationSound: v })}>
                             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               <SelectItem value="bird">{t('bird')}</SelectItem>
@@ -1778,7 +1832,7 @@ export default function App() {
                               <SelectItem value="chime">{t('chime')}</SelectItem>
                             </SelectContent>
                           </Select>
-                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => playNotificationSound(settings.notificationSound)}>
+                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => playNotificationSound(settingsState.notificationSound)}>
                             <Volume2 className="w-4 h-4" />
                           </Button>
                         </div>
@@ -1792,13 +1846,13 @@ export default function App() {
                           <p className="text-xs text-muted-foreground">{t('musicTrack')}</p>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Switch checked={!!settings.musicEnabled} onCheckedChange={(v) => handleUpdateSettings({ musicEnabled: v })} />
+                          <Switch checked={!!settingsState.musicEnabled} onCheckedChange={(v) => handleUpdateSettings({ musicEnabled: v })} />
                         </div>
                       </div>
 
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div className="w-full sm:w-auto">
-                          <Select value={settings.musicTrackId} onValueChange={(v: string) => handleUpdateSettings({ musicTrackId: v })}>
+                          <Select value={settingsState.musicTrackId} onValueChange={(v: string) => handleUpdateSettings({ musicTrackId: v })}>
                             <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
                             <SelectContent>
                               {PRESET_TRACKS.map(track => (
@@ -1808,7 +1862,7 @@ export default function App() {
                           </Select>
                         </div>
                         <div className="w-full sm:w-48">
-                          <Slider value={[settings.musicVolume ?? 0.3]} onValueChange={(v: number[]) => handleUpdateSettings({ musicVolume: v[0] })} min={0} max={1} step={0.01} />
+                          <Slider value={[settingsState.musicVolume ?? 0.3]} onValueChange={(v: number[]) => handleUpdateSettings({ musicVolume: v[0] })} min={0} max={1} step={0.01} />
                         </div>
                       </div>
 
@@ -1820,18 +1874,18 @@ export default function App() {
                           <p className="text-xs text-muted-foreground">{t('gymRestTimerDescription')}</p>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Switch checked={!!settings.gymRestEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestEnabled: v })} />
+                          <Switch checked={!!settingsState.gymRestEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestEnabled: v })} />
                         </div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 items-center">
-                        <Input type="number" min={5} max={600} value={settings.gymRestDurationSeconds ?? 60} onChange={(e) => handleUpdateSettings({ gymRestDurationSeconds: Number(e.target.value) })} className="h-10 rounded-2xl border border-border" />
+                        <Input type="number" min={5} max={600} value={settingsState.gymRestDurationSeconds ?? 60} onChange={(e) => handleUpdateSettings({ gymRestDurationSeconds: Number(e.target.value) })} className="h-10 rounded-2xl border border-border" />
                         <div className="flex gap-2">
-                          <Switch checked={!!settings.gymRestSoundEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestSoundEnabled: v })} />
+                          <Switch checked={!!settingsState.gymRestSoundEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestSoundEnabled: v })} />
                           <Label className="text-xs">{t('gymRestSound')}</Label>
                         </div>
                         <div className="flex gap-2 col-span-2 items-center">
-                          <Switch checked={!!settings.gymRestVibrationEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestVibrationEnabled: v })} />
+                          <Switch checked={!!settingsState.gymRestVibrationEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestVibrationEnabled: v })} />
                           <Label className="text-xs">{t('gymRestVibration')}</Label>
                         </div>
                       </div>
@@ -1851,7 +1905,7 @@ export default function App() {
                               <p className="text-sm font-semibold">{t('desktopSidebar')}</p>
                               <p className="text-xs text-muted-foreground">{t('desktopLayoutHelp')}</p>
                             </div>
-                            <Switch checked={settings.desktopSidebarEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopSidebarEnabled: v })} />
+                            <Switch checked={settingsState.desktopSidebarEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopSidebarEnabled: v })} />
                           </div>
                         </div>
                         <div className="rounded-2xl border border-border bg-background p-4">
@@ -1863,7 +1917,7 @@ export default function App() {
                                 type="button"
                                 className={cn(
                                   "rounded-2xl border p-3 text-sm font-semibold transition",
-                                  settings.desktopFontSize === size ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background text-foreground'
+                                  settingsState.desktopFontSize === size ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background text-foreground'
                                 )}
                                 onClick={() => handleUpdateSettings({ desktopFontSize: size })}
                               >
@@ -1879,7 +1933,7 @@ export default function App() {
                             <p className="text-sm font-semibold">{t('shortcuts')}</p>
                             <p className="text-xs text-muted-foreground">{t('enableShortcuts')}</p>
                           </div>
-                          <Switch checked={settings.desktopKeyboardShortcutsEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopKeyboardShortcutsEnabled: v })} />
+                          <Switch checked={settingsState.desktopKeyboardShortcutsEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopKeyboardShortcutsEnabled: v })} />
                         </div>
                         <div className="rounded-2xl border border-border bg-background p-4">
                           <p className="text-sm font-semibold">{t('desktopLayoutHelp')}</p>
@@ -1892,10 +1946,10 @@ export default function App() {
                   <TabsContent value="appearance" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
                     <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6">
                       <BackgroundCustomizer
-                        config={settings.backgroundConfig}
+                        config={settingsState.backgroundConfig}
                         onChange={(config) => handleUpdateSettings({ backgroundConfig: config })}
                         t={t}
-                        theme={settings.theme}
+                        theme={settingsState.theme}
                       />
                     </div>
                   </TabsContent>
@@ -1938,6 +1992,7 @@ export default function App() {
                 </section>
               </Tabs>
             </div>
+          </SettingsErrorBoundary>
          </DialogContent>
       </Dialog>
 
