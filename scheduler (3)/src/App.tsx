@@ -1656,7 +1656,8 @@ export default function App() {
                     </div>
                   )}
                 </main>
-          </SettingsErrorBoundary>
+              </div>
+            </SettingsErrorBoundary>
          </DialogContent>
       </Dialog>
 
