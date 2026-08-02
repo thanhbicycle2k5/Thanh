@@ -741,6 +741,24 @@ export default function App() {
 
   const catMood = getCatMood();
 
+  // Test hook: expose a global helper to open Settings from integration tests
+  React.useEffect(() => {
+    try {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      if (typeof window !== 'undefined') window.__openSettings = () => setIsSettingsOpen(true);
+    } catch (e) {
+      // ignore
+    }
+    return () => {
+      try {
+        // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+        // @ts-ignore
+        if (typeof window !== 'undefined' && window.__openSettings) delete window.__openSettings;
+      } catch (e) {}
+    };
+  }, []);
+
   // Build background style
   const getBackgroundStyle = React.useCallback((): React.CSSProperties => {
     if (!settingsState.backgroundConfig) {
@@ -1412,38 +1430,6 @@ export default function App() {
                     </div>
 
                 {/* Desktop: left sidebar tabs */}
-                <aside className={cn(
-                  "hidden sm:flex sm:flex-col sm:w-52 md:w-56 lg:w-64 sm:border-r sm:border-b-0 p-4 md:p-6 bg-muted/50 overflow-y-auto",
-                  settingsState.desktopSidebarEnabled === false && 'sm:hidden'
-                )}>
-                  <div className="mb-4">
-                    <DialogHeader className="p-0">
-                      <DialogTitle className="text-base">{t('settings')}</DialogTitle>
-                    </DialogHeader>
-                    <p className="mt-1 text-xs text-muted-foreground">{t('appDescription')}</p>
-                  </div>
-                  <TabsList className="grid gap-2">
-                    {settingsTabs.map((tab) => (
-                      <TabsTrigger
-                        key={tab.value}
-                        value={tab.value}
-                        className={cn(
-                          "group flex h-14 items-center justify-between rounded-2xl border border-transparent bg-background px-4 text-sm font-medium text-foreground transition hover:border-border hover:bg-muted sm:justify-start",
-                          activeSettingsTab === tab.value && "bg-[#F8F9FD] shadow-sm"
-                        )}
-                      >
-                        <span className="flex items-center gap-3">
-                          {tab.icon}
-                          <span>{tab.label}</span>
-                        </span>
-                        <ChevronRight className={cn(
-                          "w-4 h-4 text-muted-foreground transition-transform duration-200",
-                          activeSettingsTab === tab.value ? "rotate-90" : ""
-                        )} />
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </aside>
                   <div className="space-y-2 px-2">
                     {settingsTabs.map((tab) => (
                       <div key={tab.value} className="w-full">
@@ -1716,16 +1702,17 @@ export default function App() {
                     settingsState.desktopSidebarEnabled === false ? 'sm:flex' : 'sm:hidden'
                   )}>
                     {settingsTabs.map((tab) => (
-                      <TabsTrigger
+                      <button
                         key={tab.value}
-                        value={tab.value}
+                        type="button"
+                        onClick={() => setActiveSettingsTab(tab.value)}
                         className={cn(
                           "rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:border-primary/70 hover:bg-muted",
                           activeSettingsTab === tab.value && 'border-primary bg-primary/10 text-primary'
                         )}
                       >
                         {tab.label}
-                      </TabsTrigger>
+                      </button>
                     ))}
                   </div>
 
@@ -1992,6 +1979,41 @@ export default function App() {
                 </section>
               </Tabs>
             </div>
+
+                {/* Desktop: left sidebar tabs (moved out of mobile block) */}
+                <aside className={cn(
+                  "hidden sm:flex sm:flex-col sm:w-52 md:w-56 lg:w-64 sm:border-r sm:border-b-0 p-4 md:p-6 bg-muted/50 overflow-y-auto",
+                  settingsState.desktopSidebarEnabled === false && 'sm:hidden'
+                )}>
+                  <div className="mb-4">
+                    <DialogHeader className="p-0">
+                      <DialogTitle className="text-base">{t('settings')}</DialogTitle>
+                    </DialogHeader>
+                    <p className="mt-1 text-xs text-muted-foreground">{t('appDescription')}</p>
+                  </div>
+                  <div className="grid gap-2">
+                    {settingsTabs.map((tab) => (
+                      <button
+                        key={tab.value}
+                        type="button"
+                        onClick={() => setActiveSettingsTab(tab.value)}
+                        className={cn(
+                          "group flex h-14 items-center justify-between rounded-2xl border border-transparent bg-background px-4 text-sm font-medium text-foreground transition hover:border-border hover:bg-muted sm:justify-start",
+                          activeSettingsTab === tab.value && "bg-[#F8F9FD] shadow-sm"
+                        )}
+                      >
+                        <span className="flex items-center gap-3">
+                          {tab.icon}
+                          <span>{tab.label}</span>
+                        </span>
+                        <ChevronRight className={cn(
+                          "w-4 h-4 text-muted-foreground transition-transform duration-200",
+                          activeSettingsTab === tab.value ? "rotate-90" : ""
+                        )} />
+                      </button>
+                    ))}
+                  </div>
+                </aside>
           </SettingsErrorBoundary>
          </DialogContent>
       </Dialog>
