@@ -949,6 +949,12 @@ export default function App() {
                   }}
                />
              </div>
+
+             {/* Copyright Footer - inside the card */}
+             <div className="border-t bg-muted/20 p-3 text-center">
+               <p className="text-xs text-gray-500 dark:text-gray-400">Được tạo ra bởi ThànhBicycle</p>
+               <p className="text-xs text-gray-400 dark:text-gray-500">Created by ThànhBicycle</p>
+             </div>
            </div>
 
            <div className="mt-8 flex justify-between items-center bg-[#107C41] text-white p-6 rounded-xl">
@@ -1091,18 +1097,6 @@ export default function App() {
               </PopoverContent>
             </Popover>
          </div>
-      </footer>
-
-      {/* Copyright Footer */}
-      <footer className="border-t bg-background/80 dark:bg-background/80 backdrop-blur border-border py-3 sm:py-4 px-4 text-center">
-        <div className="space-y-1.5">
-          <p className="text-xs sm:text-xs text-gray-500 dark:text-gray-400">
-            Được tạo ra bởi ThànhBicycle
-          </p>
-          <p className="text-xs sm:text-xs text-gray-400 dark:text-gray-500">
-            Created by ThànhBicycle
-          </p>
-        </div>
       </footer>
 
       {/* Floating UI Group */}
