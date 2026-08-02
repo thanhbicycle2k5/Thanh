@@ -500,8 +500,20 @@ export default function App() {
     { value: 'schedule', label: t('schedule'), icon: <CalendarIcon className="w-4 h-4" /> },
     { value: 'sound', label: t('sound'), icon: <Volume2 className="w-4 h-4" /> },
     { value: 'appearance', label: t('appearance'), icon: <Sun className="w-4 h-4" /> },
+    { value: 'desktop', label: t('desktop'), icon: <Move className="w-4 h-4" /> },
     { value: 'account', label: t('account'), icon: <CloudIcon className="w-4 h-4" /> },
   ], [t]);
+
+  const desktopFontClass = React.useMemo(() => {
+    switch (settings.desktopFontSize) {
+      case 'small':
+        return 'text-sm';
+      case 'large':
+        return 'text-lg';
+      default:
+        return 'text-base';
+    }
+  }, [settings.desktopFontSize]);
 
   const startGymRest = () => {
     const duration = settings.gymRestDurationSeconds ?? 60;
@@ -1324,8 +1336,11 @@ export default function App() {
       <Toaster />
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-         <DialogContent className="w-full max-w-[calc(100vw-32px)] sm:max-w-xl md:max-w-2xl lg:max-w-4xl xl:max-w-5xl max-h-[90vh] overflow-y-auto rounded-[32px] bg-popover p-0">
-            <div className="flex h-full sm:min-h-[32rem] min-h-0 flex-col rounded-[32px] bg-card shadow-xl sm:flex-row">
+         <DialogContent className={cn(
+           "w-full max-w-[calc(100vw-64px)] md:max-w-[1200px] xl:max-w-[1400px] max-h-[90vh] overflow-y-auto rounded-[32px] bg-popover p-0",
+           desktopFontClass
+         )}>
+            <div className="flex h-full min-h-0 flex-col rounded-[32px] bg-card shadow-xl sm:flex-row">
               <Tabs value={activeSettingsTab} onValueChange={setActiveSettingsTab} orientation="vertical" className="w-full flex flex-col sm:flex-row overflow-hidden">
                 {/* Mobile: accordion list (full width with scrolling) */}
                 <div className="block sm:hidden px-4 py-4 mobile-settings-scroll">
@@ -1337,7 +1352,10 @@ export default function App() {
                   </div>
 
                 {/* Desktop: left sidebar tabs */}
-                <aside className="hidden sm:flex sm:flex-col sm:w-52 md:w-56 lg:w-64 sm:border-r sm:border-b-0 p-4 md:p-6 bg-muted/50 overflow-y-auto">
+                <aside className={cn(
+                  "hidden sm:flex sm:flex-col sm:w-52 md:w-56 lg:w-64 sm:border-r sm:border-b-0 p-4 md:p-6 bg-muted/50 overflow-y-auto",
+                  settings.desktopSidebarEnabled === false && 'sm:hidden'
+                )}>
                   <div className="mb-4">
                     <DialogHeader className="p-0">
                       <DialogTitle className="text-base">{t('settings')}</DialogTitle>
@@ -1537,6 +1555,47 @@ export default function App() {
                                 </div>
                               )}
 
+                              {tab.value === 'desktop' && (
+                                <div className="rounded-2xl border border-border bg-muted/60 p-4 space-y-4">
+                                  <div>
+                                    <p className="text-sm font-semibold">{t('desktop')}</p>
+                                    <p className="text-xs text-muted-foreground">{t('desktopLayoutHelp')}</p>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4">
+                                    <div>
+                                      <p className="text-sm font-semibold">{t('desktopSidebar')}</p>
+                                      <p className="text-xs text-muted-foreground">{t('desktopLayoutHelp')}</p>
+                                    </div>
+                                    <Switch checked={settings.desktopSidebarEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopSidebarEnabled: v })} />
+                                  </div>
+                                  <div className="flex flex-col gap-2 rounded-2xl border border-border bg-background p-4">
+                                    <p className="text-sm font-semibold">{t('desktopFontSize')}</p>
+                                    <div className="grid grid-cols-3 gap-2">
+                                      {(['small','medium','large'] as const).map((size) => (
+                                        <button
+                                          key={size}
+                                          type="button"
+                                          className={cn(
+                                            "rounded-2xl border p-3 text-sm font-semibold transition",
+                                            settings.desktopFontSize === size ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background text-foreground'
+                                          )}
+                                          onClick={() => handleUpdateSettings({ desktopFontSize: size })}
+                                        >
+                                          {t(size === 'small' ? 'smallFont' : size === 'medium' ? 'mediumFont' : 'largeFont')}
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4">
+                                    <div>
+                                      <p className="text-sm font-semibold">{t('shortcuts')}</p>
+                                      <p className="text-xs text-muted-foreground">{t('enableShortcuts')}</p>
+                                    </div>
+                                    <Switch checked={settings.desktopKeyboardShortcutsEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopKeyboardShortcutsEnabled: v })} />
+                                  </div>
+                                </div>
+                              )}
+
                               {tab.value === 'appearance' && (
                                 <div className="rounded-2xl border border-border bg-muted/60 p-4">
                                   <BackgroundCustomizer
@@ -1592,6 +1651,24 @@ export default function App() {
                 </div>
 
                 <section className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 hidden sm:block">
+                  <div className={cn(
+                    "hidden sm:flex flex-wrap gap-2 mb-4",
+                    settings.desktopSidebarEnabled === false ? 'sm:flex' : 'sm:hidden'
+                  )}>
+                    {settingsTabs.map((tab) => (
+                      <TabsTrigger
+                        key={tab.value}
+                        value={tab.value}
+                        className={cn(
+                          "rounded-2xl border border-border bg-background px-4 py-2 text-sm font-medium text-foreground transition hover:border-primary/70 hover:bg-muted",
+                          activeSettingsTab === tab.value && 'border-primary bg-primary/10 text-primary'
+                        )}
+                      >
+                        {tab.label}
+                      </TabsTrigger>
+                    ))}
+                  </div>
+
                   {activeSettingsTab === 'general' && (
                     <TabsContent value="general" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
                       <div className="space-y-4">
@@ -1750,6 +1827,57 @@ export default function App() {
                         <div className="flex gap-2 col-span-2 items-center">
                           <Switch checked={!!settings.gymRestVibrationEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestVibrationEnabled: v })} />
                           <Label className="text-xs">{t('gymRestVibration')}</Label>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="desktop" className="space-y-4 max-h-[60vh] overflow-y-auto pr-4">
+                    <div className="grid gap-4 xl:grid-cols-[1.1fr_0.9fr]">
+                      <div className="rounded-2xl border border-border bg-muted/60 p-4 space-y-4">
+                        <div>
+                          <p className="text-sm font-semibold">{t('desktop')}</p>
+                          <p className="text-xs text-muted-foreground">{t('desktopLayoutHelp')}</p>
+                        </div>
+                        <div className="rounded-2xl border border-border bg-background p-4">
+                          <div className="flex items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold">{t('desktopSidebar')}</p>
+                              <p className="text-xs text-muted-foreground">{t('desktopLayoutHelp')}</p>
+                            </div>
+                            <Switch checked={settings.desktopSidebarEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopSidebarEnabled: v })} />
+                          </div>
+                        </div>
+                        <div className="rounded-2xl border border-border bg-background p-4">
+                          <p className="text-sm font-semibold">{t('desktopFontSize')}</p>
+                          <div className="grid grid-cols-3 gap-2 mt-3">
+                            {(['small','medium','large'] as const).map((size) => (
+                              <button
+                                key={size}
+                                type="button"
+                                className={cn(
+                                  "rounded-2xl border p-3 text-sm font-semibold transition",
+                                  settings.desktopFontSize === size ? 'border-primary bg-primary text-primary-foreground' : 'border-border bg-background text-foreground'
+                                )}
+                                onClick={() => handleUpdateSettings({ desktopFontSize: size })}
+                              >
+                                {t(size === 'small' ? 'smallFont' : size === 'medium' ? 'mediumFont' : 'largeFont')}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="rounded-2xl border border-border bg-muted/60 p-4 space-y-4">
+                        <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4">
+                          <div>
+                            <p className="text-sm font-semibold">{t('shortcuts')}</p>
+                            <p className="text-xs text-muted-foreground">{t('enableShortcuts')}</p>
+                          </div>
+                          <Switch checked={settings.desktopKeyboardShortcutsEnabled !== false} onCheckedChange={(v) => handleUpdateSettings({ desktopKeyboardShortcutsEnabled: v })} />
+                        </div>
+                        <div className="rounded-2xl border border-border bg-background p-4">
+                          <p className="text-sm font-semibold">{t('desktopLayoutHelp')}</p>
+                          <p className="text-xs text-muted-foreground mt-2">This panel shows desktop-only UI and accessibility settings. Use it to customize the app experience on larger screens.</p>
                         </div>
                       </div>
                     </div>

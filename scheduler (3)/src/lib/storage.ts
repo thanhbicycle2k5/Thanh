@@ -16,6 +16,9 @@ const defaultSettings: AppSettings = {
   gymRestDurationSeconds: 60,
   gymRestSoundEnabled: true,
   gymRestVibrationEnabled: true,
+  desktopSidebarEnabled: true,
+  desktopFontSize: 'medium',
+  desktopKeyboardShortcutsEnabled: true,
 };
 
 const keyFor = (key: string, uid?: string | null) => uid ? `${key}_${uid}` : key;
