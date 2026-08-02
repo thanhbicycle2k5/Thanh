@@ -1372,24 +1372,24 @@ export default function App() {
           </AnimatePresence>
         )}
         
-        {/* Dynamic Cat */}
-        {!isMobile && settingsState.catEnabled !== false && (
+        {/* Celebration Cat - Fixed position */}
+        {settingsState.catEnabled !== false && (
           <motion.div
-            animate={{ x: [0, -8, 8, 0], y: [0, -6, 6, 0] }}
-            transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-            className="pointer-events-auto"
+            initial={{ scale: 1 }}
+            animate={catMoodOverride === 'celebrating' ? { scale: [1, 1.15, 0.95, 1.1, 1], rotate: [0, -10, 10, -8, 0] } : { scale: 1, rotate: 0 }}
+            transition={{ duration: 2.5, ease: 'easeInOut' }}
+            className="fixed bottom-24 right-4 z-40 pointer-events-auto"
           >
-            {/* Dynamic Cat positioned above everything */}
-            <div style={{ position: 'fixed', left: (catPosition?.left ?? window.innerWidth - 110), top: (catPosition?.top ?? window.innerHeight - 220), zIndex: 99999 }} className="pointer-events-auto">
-              <DynamicCat 
-                mood={catMoodOverride ?? catMood}
-                size="md"
-                onClick={() => {
-                  playMusicalNote();
-                  setShowCelebration(true);
-                }}
-              />
-            </div>
+            <DynamicCat 
+              mood={catMoodOverride ?? catMood}
+              size="sm"
+              onClick={() => {
+                playMusicalNote();
+                setCatMoodOverride('celebrating');
+                playMeow();
+                setTimeout(() => setCatMoodOverride(null), 3000);
+              }}
+            />
           </motion.div>
         )}
         
