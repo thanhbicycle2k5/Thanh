@@ -262,6 +262,10 @@ export default function App() {
   const [weekMetas, setWeekMetas] = React.useState<Record<string, any>>(() => storage.getWeekMetas());
   const [currentTime, setCurrentTime] = React.useState(new Date());
   const [isSummaryOpen, setIsSummaryOpen] = React.useState(false);
+  const plansRef = React.useRef<Plan[]>(plans);
+  React.useEffect(() => {
+    plansRef.current = plans;
+  }, [plans]);
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const [gymRestOpen, setGymRestOpen] = React.useState(false);
   const [gymRestRunning, setGymRestRunning] = React.useState(false);
@@ -372,14 +376,14 @@ export default function App() {
     }
   };
 
-  const t = (key: keyof typeof translations.en, params: Record<string, string> = {}) => {
+  const t = React.useCallback((key: keyof typeof translations.en, params: Record<string, string> = {}) => {
     let text = translations[settings.language][key];
     if (!text) return key;
     Object.entries(params).forEach(([k, v]) => {
       text = text.replace(`{${k}}`, v);
     });
     return text;
-  };
+  }, [settings.language]);
 
   const [selectedWeekStart, setSelectedWeekStart] = React.useState(() => 
     startOfWeek(new Date(), { weekStartsOn: 1 })
@@ -395,8 +399,14 @@ export default function App() {
          console.error("Initial redirect result error:", err);
          toast.error(t('loginFailed'));
        });
-       
-     const unsub = onAuthChanged(async (firebaseUser) => {
+
+     let unsubPlans: (() => void) | null = null;
+     const unsubscribeAuth = onAuthChanged(async (firebaseUser) => {
+        if (unsubPlans) {
+          unsubPlans();
+          unsubPlans = null;
+        }
+
         setUser(firebaseUser);
         setAuthLoading(false);
         if (firebaseUser) {
@@ -449,15 +459,13 @@ export default function App() {
                setSettings(prev => ({ ...prev, ...cloudSettings }));
              }
 
-             const unsubPlans = subscribePlans(firebaseUser.uid, p => { 
+             unsubPlans = subscribePlans(firebaseUser.uid, p => { 
                 if (p.length > 0 || initialPlans.length === 0) {
                   setPlans(p); 
                   storage.savePlans(p, firebaseUser.uid);
                 }
                 setSyncing(false); 
              });
-             
-             return () => { unsubPlans(); };
            } catch (e) {
              console.error("Failed to sync/migrate data:", e);
              setSyncing(false);
@@ -469,7 +477,13 @@ export default function App() {
            setSyncing(false);
         }
      });
-     return unsub;
+
+     return () => {
+       unsubscribeAuth();
+       if (unsubPlans) {
+         unsubPlans();
+       }
+     };
   }, []);
 
   React.useEffect(() => {
@@ -607,8 +621,8 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [selectedWeekStart]);
 
-  const handleUpdatePlan = (p: Plan) => {
-    const oldPlan = plans.find(x => x.id === p.id);
+  const handleUpdatePlan = React.useCallback((p: Plan) => {
+    const oldPlan = plansRef.current.find(x => x.id === p.id);
     if (oldPlan && oldPlan.color !== 'green' && p.color === 'green') {
       playNotificationSound(settings.notificationSound);
       const motivators = [t('motivate1'), t('motivate2'), t('motivate3'), t('motivate4'), t('motivate5')];
@@ -622,9 +636,33 @@ export default function App() {
     if (user) {
       cloudStorage.savePlan(user.uid, p);
     } else {
-      setPlans(plans.map(x => x.id === p.id ? p : x));
+      setPlans(prev => prev.map(x => x.id === p.id ? p : x));
     }
-  };
+  }, [user, settings.notificationSound, t]);
+
+  const handleAddPlan = React.useCallback((p: Plan) => {
+    if (user) {
+      cloudStorage.savePlan(user.uid, p);
+    } else {
+      setPlans(prev => [...prev, p]);
+    }
+  }, [user]);
+
+  const handleDeletePlan = React.useCallback((id: string) => {
+    if (user) {
+      cloudStorage.deletePlan(user.uid, id);
+    } else {
+      setPlans(prev => prev.filter(x => x.id !== id));
+    }
+  }, [user]);
+
+  const handlePlanTurnGreen = React.useCallback((p: Plan) => {
+    setCatMoodOverride('celebrating');
+    playMeow();
+    setShowCelebration(true);
+    window.setTimeout(() => setCatMoodOverride(null), 3000);
+  }, []);
+
   const totalPlansCount = currentWeekPlans.length;
   const completedPlansCount = currentWeekPlans.filter(p => p.color === 'green').length;
 
@@ -823,17 +861,11 @@ export default function App() {
            <div className="bg-card dark:border-white/10 rounded-xl border shadow-xl overflow-hidden">
              <ScheduleGrid 
                 currentWeekStart={selectedWeekStart}
-                plans={plans}
-                onAddPlan={p => user ? cloudStorage.savePlan(user.uid, p) : setPlans([...plans, p])}
+                plans={currentWeekPlans}
+                onAddPlan={handleAddPlan}
                 onUpdatePlan={handleUpdatePlan}
-                onDeletePlan={id => user ? cloudStorage.deletePlan(user.uid, id) : setPlans(plans.filter(x => x.id !== id))}
-               onPlanTurnGreen={(p) => {
-                  // Cat celebrates and meows
-                  setCatMoodOverride('celebrating');
-                  playMeow();
-                  setShowCelebration(true);
-                  setTimeout(() => setCatMoodOverride(null), 3000);
-               }}
+                onDeletePlan={handleDeletePlan}
+               onPlanTurnGreen={handlePlanTurnGreen}
                 language={settings.language}
                 theme={settings.theme}
                 startHour={settings.startHour}

@@ -51,7 +51,7 @@ interface ScheduleGridProps {
   endHour: number;
 }
 
-export function ScheduleGrid({ 
+function ScheduleGridComponent({ 
   currentWeekStart, 
   plans, 
   onAddPlan, 
@@ -88,6 +88,27 @@ export function ScheduleGrid({
   const daysOfCurrentWeek = React.useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   }, [currentWeekStart]);
+
+  const planMap = React.useMemo(() => {
+    const map = new Map<string, Plan>();
+    plans.forEach((plan) => {
+      const dayKey = format(new Date(plan.date), 'yyyy-MM-dd');
+      const key = `${dayKey}#${plan.startHour}`;
+      map.set(key, plan);
+    });
+    return map;
+  }, [plans]);
+
+  const occupiedHoursMap = React.useMemo(() => {
+    const map = new Map<string, boolean>();
+    plans.forEach((plan) => {
+      const dayKey = format(new Date(plan.date), 'yyyy-MM-dd');
+      for (let hour = plan.startHour + 1; hour < plan.startHour + plan.duration; hour += 1) {
+        map.set(`${dayKey}#${hour}`, true);
+      }
+    });
+    return map;
+  }, [plans]);
 
   const clickCount = React.useRef(0);
   const clickTimer = React.useRef<NodeJS.Timeout | null>(null);
@@ -298,12 +319,9 @@ export function ScheduleGrid({
                 {hour}:00
               </td>
               {daysOfCurrentWeek.map((day, dayIndex) => {
-                const plan = plans.find(p => isSameDay(new Date(p.date), day) && p.startHour === hour);
-                const isPartofPreviousPlan = plans.some(p => 
-                  isSameDay(new Date(p.date), day) && 
-                  hour > p.startHour && 
-                  hour < p.startHour + p.duration
-                );
+                const dayKey = format(day, 'yyyy-MM-dd');
+                const plan = planMap.get(`${dayKey}#${hour}`);
+                const isPartofPreviousPlan = occupiedHoursMap.has(`${dayKey}#${hour}`);
 
                 if (isPartofPreviousPlan) return null;
 
@@ -526,3 +544,5 @@ export function ScheduleGrid({
     </div>
   );
 }
+
+export const ScheduleGrid = React.memo(ScheduleGridComponent);
