@@ -924,11 +924,12 @@ export default function App() {
                 onAddPlan={handleAddPlan}
                 onUpdatePlan={handleUpdatePlan}
                 onDeletePlan={handleDeletePlan}
-               onPlanTurnGreen={handlePlanTurnGreen}
+                onPlanTurnGreen={handlePlanTurnGreen}
                 language={settingsState.language}
                 theme={settingsState.theme}
                 startHour={settingsState.startHour}
                 endHour={settingsState.endHour}
+                showLunarCalendar={settingsState.showLunarCalendar ?? true}
              />
              <div className="p-4 border-t bg-muted/30">
                <Label className="text-[10px] font-bold uppercase mb-2 block opacity-50">{t('weekNote')}</Label>
@@ -1524,6 +1525,16 @@ export default function App() {
                             <Plus className="w-3 h-3" />
                           </Button>
                         </div>
+                      </div>
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div>
+                          <p className="text-sm font-semibold">{t('showLunarCalendar')}</p>
+                          <p className="text-xs text-muted-foreground">{t('showLunarCalendarDescription')}</p>
+                        </div>
+                        <Switch
+                          checked={settingsState.showLunarCalendar !== false}
+                          onCheckedChange={(checked) => handleUpdateSettings({ showLunarCalendar: checked })}
+                        />
                       </div>
                     </div>
                   )}

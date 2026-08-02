@@ -4,6 +4,7 @@ import {
   addDays, 
   isSameDay 
 } from 'date-fns';
+import { Solar } from 'lunar-javascript';
 import { Plan, PlanColor, Language, Theme, TaskApplyMode } from '../types';
 import { cn } from '@/lib/utils';
 import { Plus, Edit2, Trash2, Clock } from 'lucide-react';
@@ -116,6 +117,7 @@ interface ScheduleGridProps {
   theme: Theme;
   startHour: number;
   endHour: number;
+  showLunarCalendar: boolean;
 }
 
 function ScheduleGridComponent({ 
@@ -129,11 +131,22 @@ function ScheduleGridComponent({
   theme,
   startHour,
   endHour,
+  showLunarCalendar,
 }: ScheduleGridProps) {
 
   const t = React.useCallback((key: keyof typeof translations.en) => translations[language][key], [language]);
   const dayLabels = React.useMemo(() => [t('monday'), t('tuesday'), t('wednesday'), t('thursday'), t('friday'), t('saturday'), t('sunday')], [t]);
   const dayShortLabels = React.useMemo(() => [t('mon'), t('tue'), t('wed'), t('thu'), t('fri'), t('sat'), t('sun')], [t]);
+
+  const getLunarLabel = React.useCallback((date: Date) => {
+    try {
+      const solar = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate());
+      const lunar = solar.getLunar();
+      return `${lunar.getMonthInChinese()} ${lunar.getDayInChinese()}`;
+    } catch {
+      return '';
+    }
+  }, []);
 
   const HOURS = React.useMemo(
     () => Array.from({ length: endHour - startHour + 1 }, (_, i) => i + startHour),
@@ -375,6 +388,9 @@ function ScheduleGridComponent({
                 <span className="hidden md:inline">{dayLabels[i]}</span>
                 <span className="md:hidden">{dayShortLabels[i]}</span>
                 <div className="text-[10px] opacity-50">{format(day, 'd/M')}</div>
+                {showLunarCalendar && (
+                  <div className="text-[10px] text-slate-400 dark:text-slate-400 opacity-80">{getLunarLabel(day)}</div>
+                )}
               </th>
             ))}
           </tr>

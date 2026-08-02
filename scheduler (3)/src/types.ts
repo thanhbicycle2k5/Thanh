@@ -60,6 +60,7 @@ export interface AppSettings {
   gymRestDurationSeconds?: number;
   gymRestSoundEnabled?: boolean;
   gymRestVibrationEnabled?: boolean;
+  showLunarCalendar?: boolean;
   desktopSidebarEnabled?: boolean;
   desktopFontSize?: 'small' | 'medium' | 'large';
   desktopKeyboardShortcutsEnabled?: boolean;
