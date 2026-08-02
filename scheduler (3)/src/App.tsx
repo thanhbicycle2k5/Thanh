@@ -1644,13 +1644,13 @@ export default function App() {
                   {activeSettingsTab === 'account' && (
                     <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6">
                       {user ? (
-                        <div className="flex items-center gap-3">
-                          <img src={user.photoURL || ''} className="w-10 h-10 rounded-full" />
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold">{user.displayName}</p>
-                            <p className="text-xs opacity-70">{user.email}</p>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-3">
+                          <img src={user.photoURL || ''} className="w-12 h-12 rounded-full flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold truncate">{user.displayName}</p>
+                            <p className="text-xs opacity-70 truncate">{user.email}</p>
                           </div>
-                          <Button variant="outline" size="sm" onClick={() => signOutUser()}>{t('signOut')}</Button>
+                          <Button variant="outline" size="sm" onClick={() => signOutUser()} className="flex-shrink-0 whitespace-nowrap">{t('signOut')}</Button>
                         </div>
                       ) : (
                         <Button
