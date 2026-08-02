@@ -1496,6 +1496,10 @@ export default function App() {
                           />
                         </div>
                       </div>
+                      <div className="pt-2 text-center text-[11px] opacity-60">
+                        <div>Được tạo ra bởi ThànhBicycle</div>
+                        <div>Created by ThànhBicycle</div>
+                      </div>
                     </div>
                   )}
 
@@ -1653,6 +1657,10 @@ export default function App() {
                           {t('signIn')}
                         </Button>
                       )}
+                    </div>
+                    <div className="pt-3 text-center text-[11px] opacity-60">
+                      <div>Được tạo ra bởi ThànhBicycle</div>
+                      <div>Created by ThànhBicycle</div>
                     </div>
                   )}
                 </main>
