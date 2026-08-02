@@ -142,7 +142,7 @@ function ScheduleGridComponent({
     try {
       const solar = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate());
       const lunar = solar.getLunar();
-      return `Tháng ${lunar.getMonth()} Ngày ${lunar.getDay()}`;
+      return `${lunar.getDay()}/${lunar.getMonth()}`;
     } catch {
       return '';
     }
