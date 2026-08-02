@@ -373,7 +373,7 @@ function ScheduleGridComponent({
   const maxDuration = (hour: number) => Math.min(12, endHour - hour + 1);
 
   return (
-    <div className="w-full overflow-x-auto rounded-xl border transition-colors bg-card border-border">
+    <div id="schedule-scroll-container" className="w-full overflow-x-auto rounded-xl border transition-colors bg-card border-border">
       <table className="w-full border-collapse table-fixed min-w-[600px]">
         <thead className="sticky top-0 z-30">
           <tr className="bg-muted/95 backdrop-blur">

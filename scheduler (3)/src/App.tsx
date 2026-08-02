@@ -786,6 +786,7 @@ export default function App() {
   // Keyboard and touch navigation for week switching
   React.useEffect(() => {
     let touchStartX = 0;
+    let scrollContainerStartX = 0;
     
     const handleKeyDown = (e: KeyboardEvent) => {
       // Left arrow = previous week, Right arrow = next week
@@ -800,6 +801,8 @@ export default function App() {
 
     const handleTouchStart = (e: TouchEvent) => {
       touchStartX = e.touches[0].clientX;
+      const scrollContainer = document.getElementById('schedule-scroll-container');
+      scrollContainerStartX = scrollContainer?.scrollLeft ?? 0;
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
@@ -808,6 +811,17 @@ export default function App() {
       const threshold = 50; // minimum swipe distance in pixels
 
       if (Math.abs(diff) > threshold) {
+        const scrollContainer = document.getElementById('schedule-scroll-container');
+        
+        if (scrollContainer) {
+          const scrollContainerEndX = scrollContainer.scrollLeft;
+          
+          // If scroll position changed, browser handled the horizontal scroll - don't switch weeks
+          if (scrollContainerEndX !== scrollContainerStartX) {
+            return;
+          }
+        }
+
         if (diff > 0) {
           // Swipe left = next week
           setSelectedWeekStart(addWeeks(selectedWeekStart, 1));
