@@ -1400,7 +1400,7 @@ export default function App() {
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
          <DialogContent className={cn(
-           "w-full max-w-[calc(100vw-64px)] md:max-w-[1200px] xl:max-w-[1400px] max-h-[90vh] overflow-y-auto rounded-[32px] bg-popover p-0",
+           "w-full max-w-[calc(100vw-64px)] md:max-w-[1200px] xl:max-w-[1400px] h-[90vh] rounded-[32px] bg-popover p-0 flex flex-col",
            desktopFontClass
          )}>
             <SettingsErrorBoundary
@@ -1425,7 +1425,7 @@ export default function App() {
               }
             >
               <div className="flex h-full min-h-0 flex-col rounded-[32px] bg-card shadow-xl sm:flex-row">
-                <aside className="w-full sm:w-64 p-4 sm:p-6 sm:border-r bg-muted/50">
+                <aside className="w-full sm:w-64 p-4 sm:p-6 sm:border-r bg-muted/50 overflow-y-auto sm:overflow-y-auto">
                   <DialogHeader className="p-0">
                     <DialogTitle className="text-base md:text-lg">{t('settings')}</DialogTitle>
                   </DialogHeader>
@@ -1455,7 +1455,7 @@ export default function App() {
                   </div>
                 </aside>
 
-                <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+                <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 min-h-0">
                   {activeSettingsTab === 'general' && (
                     <div className="space-y-4">
                       <div className="rounded-2xl border border-border bg-muted/60 p-4">
