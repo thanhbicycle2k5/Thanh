@@ -783,6 +783,52 @@ export default function App() {
     return {};
   }, [settingsState.backgroundConfig]);
 
+  // Keyboard and touch navigation for week switching
+  React.useEffect(() => {
+    let touchStartX = 0;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Left arrow = previous week, Right arrow = next week
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setSelectedWeekStart(subWeeks(selectedWeekStart, 1));
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setSelectedWeekStart(addWeeks(selectedWeekStart, 1));
+      }
+    };
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartX = e.touches[0].clientX;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const diff = touchStartX - touchEndX;
+      const threshold = 50; // minimum swipe distance in pixels
+
+      if (Math.abs(diff) > threshold) {
+        if (diff > 0) {
+          // Swipe left = next week
+          setSelectedWeekStart(addWeeks(selectedWeekStart, 1));
+        } else {
+          // Swipe right = previous week
+          setSelectedWeekStart(subWeeks(selectedWeekStart, 1));
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [selectedWeekStart]);
+
   return (
     <div 
       className={cn(
