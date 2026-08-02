@@ -130,13 +130,6 @@ function WeekNoteEditor({ weekStart, initialNote, theme, placeholder, onSave, bt
       >
         {saved ? `✓ ${btnSavedText}` : btnSaveText}
       </Button>
-      <footer className="w-full text-center text-xs text-gray-400 py-2">
-        {settingsState.language === 'vi' ? (
-          <div>Được tạo ra bởi ThànhBicycle</div>
-        ) : (
-          <div>Created by ThànhBicycle</div>
-        )}
-      </footer>
     </div>
   );
 }
