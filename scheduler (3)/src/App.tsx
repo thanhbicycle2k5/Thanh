@@ -1400,7 +1400,7 @@ export default function App() {
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
          <DialogContent className={cn(
-           "w-full max-w-[calc(100vw-64px)] md:max-w-6xl h-[90vh] rounded-[32px] bg-popover p-0 flex flex-col",
+           "w-full max-w-[calc(100vw-64px)] md:max-w-6xl h-[90vh] rounded-[32px] bg-card dark:bg-card p-0 flex flex-col",
            desktopFontClass
          )}>
             <SettingsErrorBoundary
@@ -1425,7 +1425,7 @@ export default function App() {
               }
             >
               <div className="flex h-[90vh] min-h-0 flex-col rounded-[32px] bg-card shadow-xl sm:flex-row">
-                <aside className="w-full sm:w-[180px] md:w-[220px] max-h-[25vh] sm:max-h-none p-3 sm:p-4 md:p-5 sm:border-r bg-muted/50 overflow-y-auto flex-shrink-0">
+                <aside className="w-full sm:w-[180px] md:w-[220px] max-h-[25vh] sm:max-h-none p-3 sm:p-4 md:p-5 sm:border-r bg-muted/50 dark:bg-muted/20 overflow-y-auto flex-shrink-0">
                   <DialogHeader className="p-0">
                     <DialogTitle className="text-sm md:text-base">{t('settings')}</DialogTitle>
                   </DialogHeader>
@@ -1459,7 +1459,7 @@ export default function App() {
                   <div className="w-full max-w-2xl">
                   {activeSettingsTab === 'general' && (
                     <div className="space-y-4">
-                      <div className="rounded-2xl border border-border bg-muted/60 p-4">
+                      <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-semibold">{t('language')}</p>
@@ -1475,7 +1475,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-border bg-muted/60 p-4">
+                      <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-semibold">{t('theme')}</p>
@@ -1492,7 +1492,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-border bg-muted/60 p-4">
+                      <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-semibold">{t('cat')}</p>
@@ -1508,7 +1508,7 @@ export default function App() {
                   )}
 
                   {activeSettingsTab === 'schedule' && (
-                    <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6 space-y-4">
+                    <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6 space-y-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <span className="text-sm text-foreground">{t('startHour')}</span>
                         <div className="flex items-center gap-3">
@@ -1547,7 +1547,7 @@ export default function App() {
                   )}
 
                   {activeSettingsTab === 'sound' && (
-                    <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6 flex flex-col gap-4">
+                    <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6 flex flex-col gap-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-semibold">{t('notificationsLabel')}</p>
@@ -1631,7 +1631,7 @@ export default function App() {
                   )}
 
                   {activeSettingsTab === 'appearance' && (
-                    <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6">
+                    <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6">
                       <BackgroundCustomizer
                         config={settingsState.backgroundConfig}
                         onChange={(config) => handleUpdateSettings({ backgroundConfig: config })}
@@ -1642,7 +1642,7 @@ export default function App() {
                   )}
 
                   {activeSettingsTab === 'account' && (
-                    <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6">
+                    <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6">
                       {user ? (
                         <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-3">
                           <img src={user.photoURL || ''} className="w-12 h-12 rounded-full flex-shrink-0" />
