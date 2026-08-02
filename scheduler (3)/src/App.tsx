@@ -130,6 +130,10 @@ function WeekNoteEditor({ weekStart, initialNote, theme, placeholder, onSave, bt
       >
         {saved ? `✓ ${btnSavedText}` : btnSaveText}
       </Button>
+      <footer className="w-full text-center text-xs text-gray-400 py-2">
+        <div>Được tạo ra bởi ThànhBicycle</div>
+        <div>Created by ThànhBicycle</div>
+      </footer>
     </div>
   );
 }
@@ -1496,10 +1500,6 @@ export default function App() {
                           />
                         </div>
                       </div>
-                      <div className="pt-2 text-center text-[11px] opacity-60">
-                        <div>Được tạo ra bởi ThànhBicycle</div>
-                        <div>Created by ThànhBicycle</div>
-                      </div>
                     </div>
                   )}
 
@@ -1658,10 +1658,7 @@ export default function App() {
                         </Button>
                       )}
                     </div>
-                    <div className="pt-3 text-center text-[11px] opacity-60">
-                      <div>Được tạo ra bởi ThànhBicycle</div>
-                      <div>Created by ThànhBicycle</div>
-                    </div>
+                  
                   )}
                 </main>
               </div>
