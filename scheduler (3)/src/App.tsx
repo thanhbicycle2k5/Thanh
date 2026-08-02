@@ -1429,7 +1429,7 @@ export default function App() {
                   <DialogHeader className="p-0">
                     <DialogTitle className="text-sm md:text-base">{t('settings')}</DialogTitle>
                   </DialogHeader>
-                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">{t('appDescription')}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground dark:text-muted-foreground/80 line-clamp-2">{t('appDescription')}</p>
 
                   <div className="mt-3 grid gap-1.5">
                     {settingsTabs.map((tab) => (
@@ -1438,8 +1438,8 @@ export default function App() {
                         type="button"
                         onClick={() => { setActiveSettingsTab(tab.value); setMobileExpanded(null); }}
                         className={cn(
-                          "group flex items-center justify-between rounded-xl border border-transparent bg-background px-2.5 py-2 text-xs font-medium text-foreground transition hover:border-border hover:bg-muted gap-1.5",
-                          activeSettingsTab === tab.value && "bg-[#F8F9FD] shadow-sm"
+                          "group flex items-center justify-between rounded-xl border border-transparent bg-background dark:bg-muted/30 px-2.5 py-2 text-xs font-medium text-foreground dark:text-foreground transition hover:border-border hover:bg-muted dark:hover:bg-muted/50 gap-1.5",
+                          activeSettingsTab === tab.value && "bg-[#F8F9FD] dark:bg-[#107C41] text-foreground dark:text-white shadow-sm"
                         )}
                       >
                         <span className="flex items-center gap-2 min-w-0">
@@ -1447,8 +1447,8 @@ export default function App() {
                           <span className="truncate text-[11px] md:text-xs">{tab.label}</span>
                         </span>
                         <ChevronRight className={cn(
-                          "w-3 h-3 text-muted-foreground flex-shrink-0 transition-transform duration-200",
-                          activeSettingsTab === tab.value ? "rotate-90" : ""
+                          "w-3 h-3 text-muted-foreground dark:text-muted-foreground/70 flex-shrink-0 transition-transform duration-200",
+                          activeSettingsTab === tab.value ? "rotate-90 dark:text-white" : ""
                         )} />
                       </button>
                     ))}
@@ -1463,7 +1463,7 @@ export default function App() {
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-semibold">{t('language')}</p>
-                            <p className="text-xs text-muted-foreground">{t('language')}</p>
+                            <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('language')}</p>
                           </div>
                           <Select value={settingsState.language} onValueChange={(v: Language) => handleUpdateSettings({ language: v })}>
                             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
@@ -1479,7 +1479,7 @@ export default function App() {
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-semibold">{t('theme')}</p>
-                            <p className="text-xs text-muted-foreground">{t('theme')}</p>
+                            <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('theme')}</p>
                           </div>
                           <div className="flex items-center gap-2 rounded-full bg-background p-1">
                             <Button variant={settingsState.theme === 'light' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'light' })}>
@@ -1496,7 +1496,7 @@ export default function App() {
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-semibold">{t('cat')}</p>
-                            <p className="text-xs text-muted-foreground">{t('enableCat')}</p>
+                            <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('enableCat')}</p>
                           </div>
                           <Switch
                             checked={settingsState.catEnabled !== false}
@@ -1536,7 +1536,7 @@ export default function App() {
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
                           <p className="text-sm font-semibold">{t('showLunarCalendar')}</p>
-                          <p className="text-xs text-muted-foreground">{t('showLunarCalendarDescription')}</p>
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('showLunarCalendarDescription')}</p>
                         </div>
                         <Switch
                           checked={settingsState.showLunarCalendar !== false}
@@ -1551,7 +1551,7 @@ export default function App() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-semibold">{t('notificationsLabel')}</p>
-                          <p className="text-xs text-muted-foreground">{t('notificationSound')}</p>
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('notificationSound')}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <Switch checked={!!settingsState.notificationsEnabled} onCheckedChange={(v) => handleUpdateSettings({ notificationsEnabled: v })} />
@@ -1581,7 +1581,7 @@ export default function App() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-semibold">{t('music')}</p>
-                          <p className="text-xs text-muted-foreground">{t('musicTrack')}</p>
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('musicTrack')}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <Switch checked={!!settingsState.musicEnabled} onCheckedChange={(v) => handleUpdateSettings({ musicEnabled: v })} />
@@ -1609,7 +1609,7 @@ export default function App() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-semibold">{t('gymRestTimer')}</p>
-                          <p className="text-xs text-muted-foreground">{t('gymRestTimerDescription')}</p>
+                          <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('gymRestTimerDescription')}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <Switch checked={!!settingsState.gymRestEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestEnabled: v })} />
@@ -1648,7 +1648,7 @@ export default function App() {
                           <img src={user.photoURL || ''} className="w-12 h-12 rounded-full flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold truncate">{user.displayName}</p>
-                            <p className="text-xs opacity-70 truncate">{user.email}</p>
+                            <p className="text-xs opacity-70 dark:opacity-80 truncate">{user.email}</p>
                           </div>
                           <Button variant="outline" size="sm" onClick={() => signOutUser()} className="flex-shrink-0 whitespace-nowrap">{t('signOut')}</Button>
                         </div>
