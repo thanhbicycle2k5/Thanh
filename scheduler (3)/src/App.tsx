@@ -952,8 +952,8 @@ export default function App() {
 
              {/* Copyright Footer - inside the card */}
              <div className="border-t bg-muted/20 p-3 text-center">
-               <p className="text-xs text-gray-500 dark:text-gray-400">Được tạo ra bởi ThànhBicycle</p>
-               <p className="text-xs text-gray-400 dark:text-gray-500">Created by ThànhBicycle</p>
+               <p className="text-xs text-gray-600 dark:text-gray-300">Được tạo ra bởi ThànhBicycle</p>
+               <p className="text-xs text-gray-600 dark:text-gray-300">Created by ThànhBicycle</p>
              </div>
            </div>
 
@@ -1427,9 +1427,9 @@ export default function App() {
               <div className="flex h-[90vh] min-h-0 flex-col rounded-[32px] bg-card shadow-xl sm:flex-row">
                 <aside className="w-full sm:w-[180px] md:w-[220px] max-h-[25vh] sm:max-h-none p-3 sm:p-4 md:p-5 sm:border-r bg-muted/50 dark:bg-muted/20 overflow-y-auto flex-shrink-0">
                   <DialogHeader className="p-0">
-                    <DialogTitle className="text-sm md:text-base">{t('settings')}</DialogTitle>
+                    <DialogTitle className="text-sm md:text-base dark:text-white">{t('settings')}</DialogTitle>
                   </DialogHeader>
-                  <p className="mt-1 text-[11px] text-muted-foreground dark:text-muted-foreground/80 line-clamp-2">{t('appDescription')}</p>
+                  <p className="mt-1 text-[11px] text-muted-foreground dark:text-foreground/70 line-clamp-2">{t('appDescription')}</p>
 
                   <div className="mt-3 grid gap-1.5">
                     {settingsTabs.map((tab) => (
@@ -1462,8 +1462,8 @@ export default function App() {
                       <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
-                            <p className="text-sm font-semibold">{t('language')}</p>
-                            <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('language')}</p>
+                            <p className="text-sm font-semibold dark:text-white">{t('language')}</p>
+                            <p className="text-xs text-muted-foreground dark:text-foreground/70">{t('language')}</p>
                           </div>
                           <Select value={settingsState.language} onValueChange={(v: Language) => handleUpdateSettings({ language: v })}>
                             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
@@ -1478,8 +1478,8 @@ export default function App() {
                       <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
-                            <p className="text-sm font-semibold">{t('theme')}</p>
-                            <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('theme')}</p>
+                            <p className="text-sm font-semibold dark:text-white">{t('theme')}</p>
+                            <p className="text-xs text-muted-foreground dark:text-foreground/70">{t('theme')}</p>
                           </div>
                           <div className="flex items-center gap-2 rounded-full bg-background p-1">
                             <Button variant={settingsState.theme === 'light' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'light' })}>
@@ -1495,8 +1495,8 @@ export default function App() {
                       <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
-                            <p className="text-sm font-semibold">{t('cat')}</p>
-                            <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('enableCat')}</p>
+                            <p className="text-sm font-semibold dark:text-white">{t('cat')}</p>
+                            <p className="text-xs text-muted-foreground dark:text-foreground/70">{t('enableCat')}</p>
                           </div>
                           <Switch
                             checked={settingsState.catEnabled !== false}
@@ -1510,7 +1510,7 @@ export default function App() {
                   {activeSettingsTab === 'schedule' && (
                     <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6 space-y-4">
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <span className="text-sm text-foreground">{t('startHour')}</span>
+                        <span className="text-sm text-foreground dark:text-white">{t('startHour')}</span>
                         <div className="flex items-center gap-3">
                           <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.startHour > 0) handleUpdateSettings({ startHour: settingsState.startHour - 1 }); }}>
                             <Minus className="w-3 h-3" />
@@ -1522,7 +1522,7 @@ export default function App() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <span className="text-sm text-foreground">{t('endHour')}</span>
+                        <span className="text-sm text-foreground dark:text-white">{t('endHour')}</span>
                         <div className="flex items-center gap-3">
                           <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.endHour > settingsState.startHour + 1) handleUpdateSettings({ endHour: settingsState.endHour - 1 }); }}>
                             <Minus className="w-3 h-3" />
@@ -1535,8 +1535,8 @@ export default function App() {
                       </div>
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div>
-                          <p className="text-sm font-semibold">{t('showLunarCalendar')}</p>
-                          <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('showLunarCalendarDescription')}</p>
+                          <p className="text-sm font-semibold dark:text-white">{t('showLunarCalendar')}</p>
+                          <p className="text-xs text-muted-foreground dark:text-foreground/70">{t('showLunarCalendarDescription')}</p>
                         </div>
                         <Switch
                           checked={settingsState.showLunarCalendar !== false}
@@ -1550,8 +1550,8 @@ export default function App() {
                     <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6 flex flex-col gap-4">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-semibold">{t('notificationsLabel')}</p>
-                          <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('notificationSound')}</p>
+                          <p className="text-sm font-semibold dark:text-white">{t('notificationsLabel')}</p>
+                          <p className="text-xs text-muted-foreground dark:text-foreground/70">{t('notificationSound')}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <Switch checked={!!settingsState.notificationsEnabled} onCheckedChange={(v) => handleUpdateSettings({ notificationsEnabled: v })} />
@@ -1559,7 +1559,7 @@ export default function App() {
                       </div>
 
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <Label>{t('notificationSound')}</Label>
+                        <Label className="dark:text-white">{t('notificationSound')}</Label>
                         <div className="flex items-center gap-2">
                           <Select value={settingsState.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({ notificationSound: v })}>
                             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
@@ -1580,8 +1580,8 @@ export default function App() {
 
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-semibold">{t('music')}</p>
-                          <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('musicTrack')}</p>
+                          <p className="text-sm font-semibold dark:text-white">{t('music')}</p>
+                          <p className="text-xs text-muted-foreground dark:text-foreground/70">{t('musicTrack')}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <Switch checked={!!settingsState.musicEnabled} onCheckedChange={(v) => handleUpdateSettings({ musicEnabled: v })} />
@@ -1608,8 +1608,8 @@ export default function App() {
 
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-sm font-semibold">{t('gymRestTimer')}</p>
-                          <p className="text-xs text-muted-foreground dark:text-muted-foreground/90">{t('gymRestTimerDescription')}</p>
+                          <p className="text-sm font-semibold dark:text-white">{t('gymRestTimer')}</p>
+                          <p className="text-xs text-muted-foreground dark:text-foreground/70">{t('gymRestTimerDescription')}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <Switch checked={!!settingsState.gymRestEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestEnabled: v })} />
@@ -1620,11 +1620,11 @@ export default function App() {
                         <Input type="number" min={5} max={600} value={settingsState.gymRestDurationSeconds ?? 60} onChange={(e) => handleUpdateSettings({ gymRestDurationSeconds: Number(e.target.value) })} className="h-10 rounded-2xl border border-border" />
                         <div className="flex gap-2">
                           <Switch checked={!!settingsState.gymRestSoundEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestSoundEnabled: v })} />
-                          <Label className="text-xs">{t('gymRestSound')}</Label>
+                          <Label className="text-xs dark:text-white">{t('gymRestSound')}</Label>
                         </div>
                         <div className="flex gap-2 col-span-2 items-center">
                           <Switch checked={!!settingsState.gymRestVibrationEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestVibrationEnabled: v })} />
-                          <Label className="text-xs">{t('gymRestVibration')}</Label>
+                          <Label className="text-xs dark:text-white">{t('gymRestVibration')}</Label>
                         </div>
                       </div>
                     </div>
