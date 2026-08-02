@@ -1378,7 +1378,7 @@ export default function App() {
             initial={{ scale: 1 }}
             animate={catMoodOverride === 'celebrating' ? { scale: [1, 1.15, 0.95, 1.1, 1], rotate: [0, -10, 10, -8, 0] } : { scale: 1, rotate: 0 }}
             transition={{ duration: 2.5, ease: 'easeInOut' }}
-            className="fixed bottom-24 right-4 z-40 pointer-events-auto"
+            className="fixed top-20 right-4 z-50 pointer-events-auto"
           >
             <DynamicCat 
               mood={catMoodOverride ?? catMood}
