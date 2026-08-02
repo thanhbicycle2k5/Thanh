@@ -50,54 +50,45 @@ function QuickNoteEditorComponent({ isMobile, isOpen, onOpenChange }: QuickNoteE
   return (
     <>
       {isMobile ? (
-        <AnimatePresence>
-          {isOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
-                onClick={() => onOpenChange(false)}
-              />
-              <motion.div
-                initial={{ y: 200, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: 200, opacity: 0 }}
-                transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-                className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-xl rounded-t-3xl border border-border bg-card p-4 shadow-2xl shadow-black/10 pointer-events-auto"
-              >
-                <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-muted-foreground/40" />
-                <div className="flex items-center justify-between gap-3 pb-3">
-                  <div>
-                    <p className="text-sm font-bold">Ghi chú nhanh</p>
-                    <p className="text-[11px] opacity-70">Lưu tự động, không lo mất dữ liệu khi tải lại</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => onOpenChange(false)}
-                    className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-muted/80 text-foreground transition hover:bg-muted"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+        isOpen ? (
+          <>
+            <div
+              className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+              onClick={() => onOpenChange(false)}
+            />
+            <div
+              className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-xl rounded-t-3xl border border-border bg-card p-4 shadow-2xl shadow-black/10 pointer-events-auto transition-transform duration-200"
+            >
+              <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-muted-foreground/40" />
+              <div className="flex items-center justify-between gap-3 pb-3">
+                <div>
+                  <p className="text-sm font-bold">Ghi chú nhanh</p>
+                  <p className="text-[11px] opacity-70">Lưu tự động, không lo mất dữ liệu khi tải lại</p>
                 </div>
-                <Textarea
-                  value={value}
-                  onChange={handleChange}
-                  placeholder="Ghi gì đó..."
-                  rows={10}
-                  className="min-h-[14rem] resize-none bg-muted/70 border-border"
-                />
-                <Button
-                  className="mt-4 h-11 w-full rounded-2xl bg-[#107C41] text-white shadow-lg shadow-[#107C41]/20 hover:bg-[#0d6435]"
+                <button
+                  type="button"
                   onClick={() => onOpenChange(false)}
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-muted/80 text-foreground transition hover:bg-muted"
                 >
-                  Đóng
-                </Button>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <Textarea
+                value={value}
+                onChange={handleChange}
+                placeholder="Ghi gì đó..."
+                rows={10}
+                className="min-h-[14rem] resize-none bg-muted/70 border-border"
+              />
+              <Button
+                className="mt-4 h-11 w-full rounded-2xl bg-[#107C41] text-white shadow-lg shadow-[#107C41]/20 hover:bg-[#0d6435]"
+                onClick={() => onOpenChange(false)}
+              >
+                Đóng
+              </Button>
+            </div>
+          </>
+        ) : null
       ) : (
         <Popover open={isOpen} onOpenChange={onOpenChange}>
           <PopoverTrigger asChild>

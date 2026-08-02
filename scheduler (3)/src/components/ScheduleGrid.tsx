@@ -67,7 +67,7 @@ const ScheduleCell = React.memo(function ScheduleCell({
     <td
       rowSpan={plan?.duration || 1}
       className={cn(
-        "border p-0 relative group cursor-pointer transition-all duration-200 border-border",
+        "border p-0 relative group cursor-pointer transition-colors duration-150 border-border",
         plan ? COLOR_MAP[plan.color] : "bg-background/50 hover:bg-muted"
       )}
       onClick={() => handleUnifiedClick(day, hour)}
@@ -88,7 +88,7 @@ const ScheduleCell = React.memo(function ScheduleCell({
               playMusicalNote();
               handleOpenEdit(plan, e);
             }}
-            className="absolute bottom-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity bg-muted/40 p-1 rounded hover:bg-muted/60"
+            className="absolute bottom-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-muted/40 p-1 rounded hover:bg-muted/60"
           >
             <Edit2 className="w-2 md:w-3 h-2 md:h-3" />
           </button>

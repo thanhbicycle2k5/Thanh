@@ -574,6 +574,8 @@ export default function App() {
 
   // Cat auto-move: find empty schedule cells and teleport the cat there periodically
   React.useEffect(() => {
+    if (isMobile || settings.catEnabled === false) return;
+
     let running = true;
     const moveCatToRandomEmptyCell = () => {
       try {
@@ -596,7 +598,7 @@ export default function App() {
     const onResize = () => { moveCatToRandomEmptyCell(); };
     window.addEventListener('resize', onResize);
     return () => { running = false; window.clearInterval(id); window.removeEventListener('resize', onResize); };
-  }, [currentWeekPlans]);
+  }, [currentWeekPlans, isMobile, settings.catEnabled]);
 
   React.useEffect(() => {
     const timer = setTimeout(() => {
@@ -1296,7 +1298,7 @@ export default function App() {
         )}
         
         {/* Dynamic Cat */}
-        {settings.catEnabled !== false && (
+        {!isMobile && settings.catEnabled !== false && (
           <motion.div
             animate={{ x: [0, -8, 8, 0], y: [0, -6, 6, 0] }}
             transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
@@ -1318,7 +1320,7 @@ export default function App() {
         
       </div>
 
-      <CelebrationEffect trigger={showCelebration} count={25} />
+      {!isMobile && <CelebrationEffect trigger={showCelebration} count={25} />}
       <Toaster />
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
