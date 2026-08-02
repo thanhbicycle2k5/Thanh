@@ -126,7 +126,7 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
         isClicked
           ? { duration: 0.6, type: 'spring', stiffness: 200 }
           : isAnimating 
-            ? { duration: 0.6, repeat: Infinity, type: 'easeInOut' }
+            ? { duration: 0.6, repeat: Infinity, ease: 'easeInOut', type: 'tween' }
             : undefined
       }
       whileHover={{ scale: 1.1 }}

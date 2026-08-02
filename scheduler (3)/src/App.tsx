@@ -285,12 +285,18 @@ export default function App() {
   const [settings, setSettings] = React.useState<AppSettings>(() => storage.getSettings());
 
   const [isNoteOpen, setIsNoteOpen] = React.useState(false);
+  const [noteText, setNoteText] = React.useState('');
+  const [isMobile, setIsMobile] = React.useState(false);
   const [isMobileNote, setIsMobileNote] = React.useState(false);
 
   React.useEffect(() => {
     const query = window.matchMedia('(max-width: 768px)');
+    setIsMobile(query.matches);
     setIsMobileNote(query.matches);
-    const handleMediaChange = (event: MediaQueryListEvent) => setIsMobileNote(event.matches);
+    const handleMediaChange = (event: MediaQueryListEvent) => {
+      setIsMobile(event.matches);
+      setIsMobileNote(event.matches);
+    };
     query.addEventListener('change', handleMediaChange);
     return () => query.removeEventListener('change', handleMediaChange);
   }, []);

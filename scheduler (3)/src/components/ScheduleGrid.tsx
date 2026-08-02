@@ -29,6 +29,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const WEEK_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
+export type WeekDay = (typeof WEEK_DAYS)[number];
+
 const COLOR_MAP: Record<PlanColor, string> = {
   default: 'bg-card grayscale',
   green: 'bg-[#92D050] text-[#000]',
@@ -143,9 +146,9 @@ function ScheduleGridComponent({
   const [newColor, setNewColor] = React.useState<PlanColor>('yellow');
   const [newDuration, setNewDuration] = React.useState(1);
   const [newApplyMode, setNewApplyMode] = React.useState<TaskApplyMode>('none');
-  const [newApplyDays, setNewApplyDays] = React.useState<string[]>([]);
+  const [newApplyDays, setNewApplyDays] = React.useState<NonNullable<Plan['applyDays']>>([]);
   const [newApplyWeekInterval, setNewApplyWeekInterval] = React.useState<number>(1);
-  const [newApplyWeekDays, setNewApplyWeekDays] = React.useState<string[]>([]);
+  const [newApplyWeekDays, setNewApplyWeekDays] = React.useState<NonNullable<Plan['applyWeekDays']>>([]);
   const [newApplyUntil, setNewApplyUntil] = React.useState<string | undefined>(undefined);
   const [newNotes, setNewNotes] = React.useState('');
 
@@ -532,11 +535,11 @@ function ScheduleGridComponent({
                     {t('applyWeeklyTo')}
                   </Label>
                   <div className="col-span-3 flex gap-2 flex-wrap">
-                    {['mon','tue','wed','thu','fri','sat','sun'].map(d => (
+                    {WEEK_DAYS.map((d: WeekDay) => (
                       <button
                         key={d}
                         type="button"
-                        onClick={() => setNewApplyWeekDays(prev => prev.includes(d) ? prev.filter(x => x!==d) : [...prev, d])}
+                        onClick={() => setNewApplyWeekDays((prev) => prev.includes(d) ? prev.filter((x: WeekDay) => x !== d) : [...prev, d])}
                         className={cn("px-2 py-1 rounded-md border", newApplyWeekDays.includes(d) ? 'bg-primary text-primary-foreground' : 'bg-muted/50 border-border')}
                       >
                         {d.toUpperCase()}
