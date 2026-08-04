@@ -13,7 +13,7 @@ export const SpeechBubble: React.FC<SpeechBubbleProps> = ({ text, className }) =
       className
     )}>
       <div className="break-words whitespace-pre-wrap">{text}</div>
-      <div className="absolute left-[-0.55rem] top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border border-white/70 bg-white/95 dark:border-slate-700/80 dark:bg-slate-950/95" />
+      <div className="absolute right-[-0.55rem] top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 border border-white/70 bg-white/95 dark:border-slate-700/80 dark:bg-slate-950/95" />
     </div>
   );
 };
