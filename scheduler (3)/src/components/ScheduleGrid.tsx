@@ -427,8 +427,11 @@ function ScheduleGridComponent({
       </table>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:rounded-2xl border-none max-w-sm bg-card">
-            <DialogHeader>
+        <DialogContent
+          className="sm:rounded-2xl border-none max-w-sm bg-card"
+          onOpenAutoFocus={(event) => event.preventDefault()}
+        >
+          <DialogHeader>
             <DialogTitle className="text-foreground">
               {plans.some(p => p.id === editingPlan?.id) ? t('editPlan') : t('addPlan')}
             </DialogTitle>
@@ -447,7 +450,6 @@ function ScheduleGridComponent({
                 onChange={(e) => setNewTitle(e.target.value)}
                 className="col-span-3 font-semibold bg-muted/50 border-border"
                 placeholder={t('enterTask')}
-                autoFocus
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
               />
             </div>
