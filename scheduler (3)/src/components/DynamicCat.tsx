@@ -4,13 +4,13 @@
  */
 
 import React from 'react';
-import { CatMood } from '../types';
+import { CatMood, CatColor } from '../types';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
 
 interface DynamicCatProps {
   mood: CatMood;
-  color?: 'orange' | 'pink' | 'blue' | 'green' | 'purple';
+  color?: CatColor;
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   onClick?: () => void;

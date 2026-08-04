@@ -77,7 +77,6 @@ export function showImmediateNotification(taskName: string) {
     icon: '/favicon.svg',
     badge: '/favicon.svg',
     tag: `scheduly-${taskName}-${Date.now()}`,
-    renotify: false,
   });
 }
 
@@ -89,6 +88,40 @@ export async function clearScheduledNotifications(): Promise<void> {
   const registration = await getWorkerRegistration();
   if (registration?.active) {
     registration.active.postMessage({ type: SCHEDULY_CLEAR_ALL_NOTIFICATIONS });
+  }
+}
+
+export async function showNowNotification(title: string, body: string, tag?: string): Promise<void> {
+  if (typeof window === 'undefined' || !('Notification' in window)) return;
+  const permission = await requestUniversalNotificationPermission();
+  if (permission !== 'granted') return;
+
+  try {
+    const registration = await getWorkerRegistration();
+    if (registration?.showNotification) {
+      // Use the service worker to show the notification so it can appear when app is backgrounded
+      registration.showNotification(title, {
+        body,
+        icon: '/favicon.svg',
+        badge: '/favicon.svg',
+        tag: tag ?? `scheduly-${Date.now()}`,
+      });
+      return;
+    }
+  } catch (e) {
+    // ignore and fallback to window Notification
+  }
+
+  // Fallback to in-page Notification
+  try {
+    new Notification(title, {
+      body,
+      icon: '/favicon.svg',
+      badge: '/favicon.svg',
+      tag: tag ?? `scheduly-${Date.now()}`,
+    });
+  } catch (e) {
+    console.warn('showNowNotification failed', e);
   }
 }
 

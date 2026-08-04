@@ -18,9 +18,9 @@ import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged,
 import { doc, setDoc } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { playNotificationSound, playMusicalNote, playMeow } from './lib/sounds';
-import { getSchedulyMessage } from './lib/schedulyMessages';
+import { getSchedulyMessage, SchedulyStatus } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
-import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications } from './lib/notification';
+import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
 import { Toaster } from '@/components/ui/sonner';
@@ -1054,6 +1054,14 @@ export default function App() {
       });
       setShowCelebration(true);
       showSpeechBubbleText('complete', p.title || 'nhiệm vụ', p.id);
+
+      // Show an immediate system notification for completion (works via Service Worker when backgrounded)
+      try {
+        const taskName = p.title?.trim() || 'nhiệm vụ';
+        showNowNotification(buildNotificationTitle(), buildNotificationBody(taskName), `scheduly-complete-${p.id}`);
+      } catch (e) {
+        console.warn('Failed to show completion notification', e);
+      }
     }
 
     setPlans((prev) => {
