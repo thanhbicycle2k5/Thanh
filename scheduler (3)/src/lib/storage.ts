@@ -60,7 +60,7 @@ export const normalizeSettings = (raw: any): AppSettings => {
     desktopSidebarEnabled: typeof obj.desktopSidebarEnabled === 'boolean' ? obj.desktopSidebarEnabled : defaultSettings.desktopSidebarEnabled,
     desktopFontSize: obj.desktopFontSize === 'small' || obj.desktopFontSize === 'medium' || obj.desktopFontSize === 'large' ? obj.desktopFontSize : defaultSettings.desktopFontSize,
     desktopKeyboardShortcutsEnabled: typeof obj.desktopKeyboardShortcutsEnabled === 'boolean' ? obj.desktopKeyboardShortcutsEnabled : defaultSettings.desktopKeyboardShortcutsEnabled,
-    catColor: obj.catColor === 'orange' || obj.catColor === 'pink' || obj.catColor === 'blue' || obj.catColor === 'green' || obj.catColor === 'purple' ? obj.catColor : defaultSettings.catColor,
+    catColor: obj.catColor === 'orange' || obj.catColor === 'pink' || obj.catColor === 'blue' || obj.catColor === 'green' || obj.catColor === 'purple' || obj.catColor === 'yellow' || obj.catColor === 'teal' || obj.catColor === 'red' || obj.catColor === 'gray' || obj.catColor === 'black' || obj.catColor === 'white' ? obj.catColor : defaultSettings.catColor,
   };
 };
 

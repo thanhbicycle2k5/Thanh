@@ -42,6 +42,42 @@ const getColorStyles = (color: NonNullable<DynamicCatProps['color']>) => {
         stroke: '#6d28d9',
         tail: '#8b5cf6'
       };
+    case 'yellow':
+      return {
+        fill: '#fde047',
+        stroke: '#f59e0b',
+        tail: '#fde047'
+      };
+    case 'teal':
+      return {
+        fill: '#14b8a6',
+        stroke: '#0f766e',
+        tail: '#14b8a6'
+      };
+    case 'red':
+      return {
+        fill: '#ef4444',
+        stroke: '#b91c1c',
+        tail: '#ef4444'
+      };
+    case 'gray':
+      return {
+        fill: '#6b7280',
+        stroke: '#374151',
+        tail: '#6b7280'
+      };
+    case 'black':
+      return {
+        fill: '#111827',
+        stroke: '#000000',
+        tail: '#111827'
+      };
+    case 'white':
+      return {
+        fill: '#f8fafc',
+        stroke: '#d1d5db',
+        tail: '#f8fafc'
+      };
     case 'orange':
     default:
       return {

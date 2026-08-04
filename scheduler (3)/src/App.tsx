@@ -1774,7 +1774,7 @@ export default function App() {
                             <p className="text-sm font-semibold dark:text-white">{t('catColor')}</p>
                             <p className="text-xs text-muted-foreground dark:text-foreground/70">{t('catColorDescription')}</p>
                             <div className="flex flex-wrap gap-2">
-                              {(['orange', 'pink', 'blue', 'green', 'purple'] as CatColor[]).map((color) => (
+                              {(['orange', 'pink', 'blue', 'green', 'purple', 'yellow', 'teal', 'red', 'gray', 'black', 'white'] as CatColor[]).map((color) => (
                                 <button
                                   key={color}
                                   type="button"
@@ -1789,7 +1789,13 @@ export default function App() {
                                       color === 'pink' ? '#ec4899' :
                                       color === 'blue' ? '#3b82f6' :
                                       color === 'green' ? '#22c55e' :
-                                      '#8b5cf6'
+                                      color === 'purple' ? '#8b5cf6' :
+                                      color === 'yellow' ? '#fde047' :
+                                      color === 'teal' ? '#14b8a6' :
+                                      color === 'red' ? '#ef4444' :
+                                      color === 'gray' ? '#6b7280' :
+                                      color === 'black' ? '#111827' :
+                                      '#f8fafc'
                                   }}
                                   aria-label={`Select ${color} cat`}
                                 />

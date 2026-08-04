@@ -27,7 +27,7 @@ export type Language = 'en' | 'vi';
 export type Theme = 'light' | 'dark';
 export type NotificationSound = 'bird' | 'wind' | 'bell' | 'chime';
 export type CatMood = 'idle' | 'work' | 'gym' | 'medical' | 'shortBreak' | 'longBreak' | 'celebrating' | 'tired' | 'happy';
-export type CatColor = 'orange' | 'pink' | 'blue' | 'green' | 'purple';
+export type CatColor = 'orange' | 'pink' | 'blue' | 'green' | 'purple' | 'yellow' | 'teal' | 'red' | 'gray' | 'black' | 'white';
 export type BackgroundType = 'color' | 'gradient' | 'image';
 
 export interface MusicTrack {
