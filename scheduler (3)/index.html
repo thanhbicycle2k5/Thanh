@@ -24,6 +24,44 @@
         }
       })();
     </script>
+    <style>
+      #splash-screen {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle at top, #22c55e 0%, #0f172a 55%);
+        color: #f8fafc;
+        z-index: 99999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        text-align: center;
+        transition: opacity 0.6s ease, visibility 0.6s ease;
+        font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
+      #splash-screen.hide {
+        opacity: 0;
+        visibility: hidden;
+      }
+      .splash-screen__content {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      .splash-screen__title {
+        font-size: clamp(2.5rem, 10vw, 5rem);
+        font-weight: 900;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        margin: 0;
+        text-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+      }
+      .splash-screen__subtitle {
+        opacity: 0.72;
+        margin: 0;
+        font-size: clamp(0.95rem, 3vw, 1.3rem);
+      }
+    </style>
     <title>Scheduler — Professional Weekly Planner</title>
   </head>
   <body>
