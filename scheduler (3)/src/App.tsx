@@ -578,9 +578,7 @@ export default function App() {
     const title = '🐱 Scheduly nhắc nhở nè!';
     const body = `Đến giờ thực hiện "${taskName}" rồi, bắt đầu cùng Scheduly thôi!`;
 
-    if (settingsState.catEnabled !== false) {
-      playMeow();
-    }
+    playMeow();
 
     try {
       new Notification(title, {
