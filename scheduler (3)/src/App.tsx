@@ -582,6 +582,7 @@ export default function App() {
 
         const title = '🐱 Scheduly nhắc nhở nè!';
         const body = `Đến giờ thực hiện "${taskName}" rồi, bắt đầu cùng Scheduly thôi!`;
+        playMeow();
         new Notification(title, {
           body,
           tag: notificationId,
@@ -1740,7 +1741,10 @@ export default function App() {
                       </div>
 
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <Label className="dark:text-white">{t('notificationSound')}</Label>
+                        <div className="space-y-1">
+                          <Label className="dark:text-white">{t('completionSoundLabel')}</Label>
+                          <p className="text-[10px] text-muted-foreground dark:text-foreground/70">{t('completionSoundDescription')}</p>
+                        </div>
                         <div className="flex items-center gap-2">
                           <Select value={settingsState.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({ notificationSound: v })}>
                             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
