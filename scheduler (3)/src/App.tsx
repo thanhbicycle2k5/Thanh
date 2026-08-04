@@ -536,6 +536,7 @@ export default function App() {
                const plansToMigrate = localPlansForUid.length > 0 ? localPlansForUid : anonymousPlans;
                if (plansToMigrate.length > 0) {
                  await cloudStorage.savePlans(firebaseUser.uid, plansToMigrate);
+                 storage.savePlans(plansToMigrate, firebaseUser.uid, false);
                  toast.success(t('dataSynced'));
                }
              }
@@ -544,7 +545,15 @@ export default function App() {
                const metasToMigrate = Object.keys(localMetasForUid).length > 0 ? localMetasForUid : anonymousWeekMetas;
                if (Object.keys(metasToMigrate).length > 0) {
                  await setDoc(doc(db, "users", firebaseUser.uid, "meta", "weekMetas"), metasToMigrate);
+                 Object.entries(metasToMigrate).forEach(([weekStart, meta]) => {
+                   storage.saveWeekMeta(weekStart, meta, firebaseUser.uid, false);
+                 });
                }
+             }
+
+             if (Object.keys(cloudSettings).length === 0 && Object.keys(localSettingsForUid).length === 0 && Object.keys(anonymousSettings).length > 0) {
+               await cloudStorage.saveSettings(firebaseUser.uid, anonymousSettings);
+               storage.saveSettings(anonymousSettings, firebaseUser.uid, false);
              }
 
              const initialPlans = hasPendingSync
@@ -566,9 +575,10 @@ export default function App() {
              }
 
              unsubPlans = subscribePlans(firebaseUser.uid, p => {
-                if (p.length > 0 || initialPlans.length === 0) {
+                const shouldApplyCloudSnapshot = p.length > 0 || initialPlans.length === 0 || !hasPendingSync;
+                if (shouldApplyCloudSnapshot) {
                   setPlans(p);
-                  storage.savePlans(p, firebaseUser.uid);
+                  storage.savePlans(p, firebaseUser.uid, false);
                 }
                 setSyncing(false);
              });
@@ -599,7 +609,13 @@ export default function App() {
     const updated = normalizeSettings({ ...settingsState, ...newSettings });
     setSettings(updated);
     storage.saveSettings(newSettings, user?.uid);
-    if (user) cloudStorage.saveSettings(user.uid, newSettings);
+    if (user) {
+      cloudStorage.saveSettings(user.uid, newSettings)
+        .then(() => storage.setPendingSync(user.uid, false))
+        .catch((error) => {
+          console.warn('Cloud settings save failed:', error);
+        });
+    }
   }, [settingsState, user]);
 
   React.useEffect(() => {
@@ -942,9 +958,13 @@ export default function App() {
     });
 
     if (user) {
-      cloudStorage.savePlan(user.uid, p).catch((error) => {
-        console.warn('Cloud save failed, local change persisted:', error);
-      });
+      cloudStorage.savePlan(user.uid, p)
+        .then(() => {
+          storage.setPendingSync(user.uid, false);
+        })
+        .catch((error) => {
+          console.warn('Cloud save failed, local change persisted:', error);
+        });
     }
   }, [user, settingsState.notificationSound, t, showSpeechBubbleText]);
 
@@ -956,9 +976,13 @@ export default function App() {
     });
 
     if (user) {
-      cloudStorage.savePlan(user.uid, p).catch((error) => {
-        console.warn('Cloud save failed, local change persisted:', error);
-      });
+      cloudStorage.savePlan(user.uid, p)
+        .then(() => {
+          storage.setPendingSync(user.uid, false);
+        })
+        .catch((error) => {
+          console.warn('Cloud save failed, local change persisted:', error);
+        });
     }
   }, [user]);
 
@@ -970,9 +994,13 @@ export default function App() {
     });
 
     if (user) {
-      cloudStorage.deletePlan(user.uid, id).catch((error) => {
-        console.warn('Cloud delete failed, local change persisted:', error);
-      });
+      cloudStorage.deletePlan(user.uid, id)
+        .then(() => {
+          storage.setPendingSync(user.uid, false);
+        })
+        .catch((error) => {
+          console.warn('Cloud delete failed, local change persisted:', error);
+        });
     }
   }, [user]);
 

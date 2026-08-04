@@ -78,9 +78,17 @@ export const storage = {
       return [];
     }
   },
-  savePlans: (plans: Plan[], uid?: string | null) => {
+  setPendingSync: (uid: string, pending: boolean) => {
+    if (!uid) return;
+    if (pending) {
+      localStorage.setItem(pendingSyncKey(uid), '1');
+    } else {
+      localStorage.removeItem(pendingSyncKey(uid));
+    }
+  },
+  savePlans: (plans: Plan[], uid?: string | null, markPending = true) => {
     localStorage.setItem(keyFor('chronos_excel_plans', uid), JSON.stringify(plans));
-    if (uid) {
+    if (uid && markPending) {
       localStorage.setItem(pendingSyncKey(uid), '1');
     }
   },
@@ -92,11 +100,11 @@ export const storage = {
       return {};
     }
   },
-  saveWeekMeta: (weekStart: string, meta: any, uid?: string | null) => {
+  saveWeekMeta: (weekStart: string, meta: any, uid?: string | null, markPending = true) => {
     const metas = storage.getWeekMetas(uid);
     metas[weekStart] = { ...metas[weekStart], ...meta };
     localStorage.setItem(keyFor('chronos_week_meta', uid), JSON.stringify(metas));
-    if (uid) {
+    if (uid && markPending) {
       localStorage.setItem(pendingSyncKey(uid), '1');
     }
   },
@@ -109,12 +117,12 @@ export const storage = {
       return defaultSettings;
     }
   },
-  saveSettings: (settings: Partial<AppSettings>, uid?: string | null) => {
+  saveSettings: (settings: Partial<AppSettings>, uid?: string | null, markPending = true) => {
     const current = storage.getSettings(uid);
     const normalized = normalizeSettings({ ...current, ...settings });
     localStorage.setItem(keyFor('chronos_settings', uid), JSON.stringify(normalized));
     localStorage.setItem(themeKey, normalized.theme);
-    if (uid) {
+    if (uid && markPending) {
       localStorage.setItem(pendingSyncKey(uid), '1');
     }
   },

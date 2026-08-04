@@ -182,6 +182,11 @@ export const cloudStorage = {
   },
 
   savePlans: async (uid: string, plans: Plan[]): Promise<void> => {
+    const plansCol = collection(db, "users", uid, "plans");
+    const existingSnapshot = await getDocs(plansCol);
+    const existingIds = new Set(existingSnapshot.docs.map((doc) => doc.id));
+    const newIds = new Set(plans.map((plan) => plan.id));
+
     const batch = writeBatch(db);
     plans.forEach((plan) => {
       const planRef = doc(db, "users", uid, "plans", plan.id);
@@ -191,6 +196,13 @@ export const cloudStorage = {
       });
       batch.set(planRef, cleaned);
     });
+
+    existingSnapshot.docs.forEach((docSnapshot) => {
+      if (!newIds.has(docSnapshot.id)) {
+        batch.delete(docSnapshot.ref);
+      }
+    });
+
     try {
       await batch.commit();
     } catch (e) {
