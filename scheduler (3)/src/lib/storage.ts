@@ -125,6 +125,9 @@ export const storage = {
       return defaultSettings;
     }
   },
+  hasStoredSettings: (uid?: string | null) => {
+    return localStorage.getItem(keyFor('chronos_settings', uid)) !== null;
+  },
   saveSettings: (settings: Partial<AppSettings>, uid?: string | null, markPending = true) => {
     const current = storage.getSettings(uid);
     const normalized = normalizeSettings({ ...current, ...settings });
@@ -171,15 +174,6 @@ export const storage = {
       localStorage.getItem(pendingSyncKey(uid, 'week_meta')) === '1' ||
       localStorage.getItem(pendingSyncKey(uid, 'settings')) === '1'
     );
-  },
-  hasPendingSyncFor: (uid?: string | null, scope?: PendingSyncScope) => {
-    if (!uid) {
-      return false;
-    }
-    if (scope) {
-      return localStorage.getItem(pendingSyncKey(uid, scope)) === '1';
-    }
-    return storage.hasPendingSync(uid);
   },
   clearPendingSync: (uid?: string | null, scope?: PendingSyncScope) => {
     if (!uid) {

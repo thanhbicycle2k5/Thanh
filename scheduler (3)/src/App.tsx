@@ -521,18 +521,62 @@ export default function App() {
         const anonymousWeekMetas = storage.getWeekMetas();
         const anonymousSettings = normalizeSettings(storage.getSettings());
 
-        if (firebaseUser) {
-           const localPlansForUid = storage.getPlans(firebaseUser.uid);
-           const localMetasForUid = storage.getWeekMetas(firebaseUser.uid);
-           const localSettingsForUid = normalizeSettings(storage.getSettings(firebaseUser.uid));
-           const hasPendingSync = storage.hasPendingSync(firebaseUser.uid);
+        const localPlansForUid = firebaseUser ? storage.getPlans(firebaseUser.uid) : [];
+        const localMetasForUid = firebaseUser ? storage.getWeekMetas(firebaseUser.uid) : {};
+        const rawLocalSettingsForUid = firebaseUser && storage.hasStoredSettings(firebaseUser.uid)
+          ? storage.getSettings(firebaseUser.uid)
+          : undefined;
+        const anonymousSettingsFromStorage = storage.hasStoredSettings() ? storage.getSettings() : undefined;
+        const hasPendingSync = firebaseUser ? storage.hasPendingSync(firebaseUser.uid) : false;
 
-           setPlans(localPlansForUid.length > 0 ? localPlansForUid : anonymousPlans);
-           setWeekMetas(Object.keys(localMetasForUid).length > 0 ? localMetasForUid : anonymousWeekMetas);
-           setSettings(prev => normalizeSettings({ ...prev, ...localSettingsForUid }));
+        if (firebaseUser) {
+           const mergePlans = (base: Plan[], extra: Plan[]) => {
+             const map = new Map<string, Plan>();
+             base.forEach((plan) => map.set(plan.id, plan));
+             extra.forEach((plan) => {
+               if (!map.has(plan.id)) {
+                 map.set(plan.id, plan);
+               }
+             });
+             return Array.from(map.values());
+           };
+
+           const mergedPlans = mergePlans(localPlansForUid, anonymousPlans);
+           const localPlanIds = new Set(localPlansForUid.map((plan) => plan.id));
+           const planMergeNeeded = mergedPlans.length !== localPlansForUid.length || mergedPlans.some((plan) => !localPlanIds.has(plan.id));
+           if (planMergeNeeded) {
+             storage.savePlans(mergedPlans, firebaseUser.uid);
+             storage.setPendingSync(firebaseUser.uid, 'plans', true);
+           }
+
+           const mergedWeekMetas = { ...localMetasForUid, ...anonymousWeekMetas };
+           const weekMetaChanged = Object.keys(mergedWeekMetas).some((key) => {
+             const existing = localMetasForUid[key];
+             const incoming = anonymousWeekMetas[key];
+             return incoming && JSON.stringify(existing) !== JSON.stringify(incoming);
+           });
+           if (weekMetaChanged) {
+             Object.entries(anonymousWeekMetas).forEach(([weekStart, meta]) => {
+               storage.saveWeekMeta(weekStart, meta, firebaseUser.uid);
+             });
+             storage.setPendingSync(firebaseUser.uid, 'week_meta', true);
+           }
+
+           const mergedSettings = normalizeSettings({ ...(rawLocalSettingsForUid ?? {}), ...(anonymousSettingsFromStorage ?? {}) });
+           const settingsFromUidExist = storage.hasStoredSettings(firebaseUser.uid);
+           const settingsFromAnonExist = storage.hasStoredSettings();
+           if (settingsFromAnonExist) {
+             storage.saveSettings(mergedSettings, firebaseUser.uid);
+             storage.setPendingSync(firebaseUser.uid, 'settings', true);
+           }
+
+           const initialPlans = mergedPlans.length > 0 ? mergedPlans : anonymousPlans;
+           setPlans(initialPlans);
+           setWeekMetas(Object.keys(mergedWeekMetas).length > 0 ? mergedWeekMetas : anonymousWeekMetas);
+           setSettings(prev => normalizeSettings({ ...prev, ...mergedSettings }));
            setSyncing(true);
 
-           if (navigator.onLine && hasPendingSync) {
+           if (navigator.onLine && (hasPendingSync || anonymousPlans.length > 0 || Object.keys(anonymousWeekMetas).length > 0 || settingsFromAnonExist)) {
              await syncPendingUserData(firebaseUser.uid);
            }
 
@@ -572,9 +616,9 @@ export default function App() {
                }
              }
 
-             if (Object.keys(cloudSettings).length === 0 && Object.keys(localSettingsForUid).length === 0 && Object.keys(anonymousSettings).length > 0) {
-               await cloudStorage.saveSettings(firebaseUser.uid, anonymousSettings);
-               storage.saveSettings(anonymousSettings, firebaseUser.uid, false);
+               if (Object.keys(cloudSettings).length === 0 && Object.keys(rawLocalSettingsForUid ?? {}).length === 0 && Object.keys(anonymousSettingsFromStorage ?? {}).length > 0) {
+               await cloudStorage.saveSettings(firebaseUser.uid, anonymousSettingsFromStorage!);
+               storage.saveSettings(anonymousSettingsFromStorage!, firebaseUser.uid, false);
              }
 
              const initialPlans = hasPendingSync
@@ -609,7 +653,7 @@ export default function App() {
              setSyncing(false);
              setPlans(localPlansForUid.length > 0 ? localPlansForUid : anonymousPlans);
              setWeekMetas(Object.keys(localMetasForUid).length > 0 ? localMetasForUid : anonymousWeekMetas);
-             setSettings(prev => normalizeSettings({ ...prev, ...localSettingsForUid }));
+             setSettings(prev => normalizeSettings({ ...prev, ...(rawLocalSettingsForUid ?? {}) }));
            }
         } else {
            setPlans(anonymousPlans);
