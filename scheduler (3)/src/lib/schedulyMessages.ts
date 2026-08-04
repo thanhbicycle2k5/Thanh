@@ -41,6 +41,24 @@ const remindMessages: string[] = [
   'Lần này thì bạn là nhân vật chính, [Tên nhiệm vụ] đang chờ bạn tỏa sáng!',
   'Sắp thiệt rồi đó, [Tên nhiệm vụ] sẽ trở thành kỷ niệm ngoạn mục vì bạn!',
   'Giờ làm việc vàng đã đến, [Tên nhiệm vụ] chỉ chờ bạn thôi 💪',
+  'Ủa, [Tên nhiệm vụ] đang gọi bạn bằng giọng rất cute, làm liền đi nhé!',
+  'Bật mode siêu nhân một chút, [Tên nhiệm vụ] sẽ dễ dàng bị chinh phục thôi!',
+  'Gừng càng đâm càng ngọt, còn [Tên nhiệm vụ] thì càng làm càng xịn đó!',
+  'Đừng để [Tên nhiệm vụ] đứng đó chờ mình mãi, vào làm thôi bạn ê!',
+  'Nhịp tim đang tăng, [Tên nhiệm vụ] cần một cú bứt phá ngay lúc này!',
+  'Từ cái nhìn đầu tiên tới hành động đầu tiên, [Tên nhiệm vụ] đang chờ bạn rồi!',
+  'Meow meow meow, [Tên nhiệm vụ] đang kêu bạn quá, đừng ngơ ngác nữa!',
+  'Sắp tới giờ rồi, không cần lo lắng, chỉ cần bắt đầu [Tên nhiệm vụ] thôi!',
+  'Đến lúc dùng hết “công lực” cho [Tên nhiệm vụ] rồi đó, cố lên nào!',
+  'Mèo mèo ghiền chạy deadline, [Tên nhiệm vụ] hiện đang chờ bạn chốt luôn!',
+  'Mình nghiêng đầu nhìn bạn, vẻ mặt nói rõ: [Tên nhiệm vụ] cần bạn ngay lập tức!',
+  'Đừng để việc hôm nay kéo dài thành việc mai, ra tay với [Tên nhiệm vụ] nào!',
+  'Hôm nay không cần perfect, chỉ cần bắt đầu [Tên nhiệm vụ] thôi!',
+  'Báo động cute đã kêu, đừng làm [Tên nhiệm vụ] chờ thêm nữa nhé!',
+  'Tụ năng lượng một nhịp nữa thôi, [Tên nhiệm vụ] sẽ được “đập tan” ngay!',
+  'Có một nguồn sức mạnh bé nhỏ đang gọi tên bạn: [Tên nhiệm vụ] đó!',
+  'Làm một chút thôi, rồi [Tên nhiệm vụ] sẽ cảm thấy mình được yêu thương lắm!',
+  'Đã đến thời khắc xanh chín của [Tên nhiệm vụ], lên đường thôi bạn ơi!',
 ];
 
 const completeMessages: string[] = [
@@ -84,6 +102,18 @@ const completeMessages: string[] = [
   'Trên thang điểm “cute năng suất”, bạn đạt 10/10 rồi!',
   'Đúng là “người hùng ngày thường”, bạn đã vượt qua [Tên nhiệm vụ] rồi!',
   'Khen ngợi bạn 1000 lần luôn, hi vọng bạn nghe thấy tim Scheduly đang rung rinh!',
+  'Bạn vừa làm [Tên nhiệm vụ] xong mà còn có thời gian nhìn ngầu ngầu nữa, ôi thôi!',
+  'Một cú làm xong mà còn đẹp như tranh, đúng là thần tượng quá bạn ơi!',
+  'Nhiệm vụ [Tên nhiệm vụ] đã biến mất khỏi bản đồ, thật là một kỳ tích!',
+  'Cho mình nói thật: bạn vừa làm nên một điều vô cùng đỉnh, không ai phủ nhận đâu!',
+  'Từ góc nhìn của Scheduly, bạn vừa thành công cực kỳ ngầu và cực kỳ đáng yêu!',
+  'Đúng là “đã hoàn thành rồi mà vẫn muốn làm thêm một cái nữa” chất lượng quá!',
+  'Đừng nói gì, mình chỉ biết ôm bạn thật chặt vì đã làm xong [Tên nhiệm vụ]!',
+  'Lần này là chiến thắng trọn vẹn, [Tên nhiệm vụ] đã bị chinh phục rồi!',
+  'Đỉnh của đỉnh, điều này xứng đáng được treo ở bảng vàng của bạn!',
+  'Sáng nay bạn đã làm nên điều gì đó thật tuyệt, mình khen bạn mấy tiếng rồi!',
+  'Ngầu tới mức cả mèo cũng phải đứng ngồi không yên vì bạn quá đỉnh!',
+  'Việc này xong rồi, bạn có thể tự thưởng một cái ôm thật lớn nữa đó!',
 ];
 
 const goodnightMessages: string[] = [
@@ -107,6 +137,11 @@ const goodnightMessages: string[] = [
   'Ngày hôm nay đã đủ hoàn hảo, giờ mình cần một giấc ngủ thật êm.',
   'Ngủ ngon nha, Scheduly sẽ giữ hộ giấc mơ cho bạn thật dịu dàng.',
   'Chúc bạn một đêm an lành, mai lại tiếp tục cùng nhau chiến nhé!',
+  'Đêm nay hãy để mọi bộn bề rơi khỏi vai, Scheduly sẽ đợi bạn trong giấc mơ nhẹ nhàng.',
+  'Cứ để mắt mình khép lại thôi, đừng nghĩ gì cả, chỉ cần ngủ thật sâu và ấm áp.',
+  'Mỗi hơi thở nhẹ là một lời chúc cho bạn, ngủ ngon và bình yên nhé.',
+  'Sáng mai sẽ đến với một nụ cười, nên tối nay hãy thư giãn và nghỉ ngơi.',
+  'Đừng quên ôm một chút bình yên trước khi ngủ, Scheduly sẽ giữ cho bạn một đêm thật dễ thương.',
 ];
 
 const messagesByStatus: Record<SchedulyStatus, string[]> = {
