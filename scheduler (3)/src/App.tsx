@@ -531,14 +531,18 @@ export default function App() {
   const notificationTimeoutsRef = React.useRef<number[]>([]);
   const notificationScannerRef = React.useRef<number | null>(null);
 
-  const clearAllScheduledNotifications = React.useCallback(() => {
+  const clearScheduledTimeouts = React.useCallback(() => {
     notificationTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
     notificationTimeoutsRef.current = [];
+  }, []);
+
+  const clearAllScheduledNotifications = React.useCallback(() => {
+    clearScheduledTimeouts();
     if (notificationScannerRef.current !== null) {
       window.clearInterval(notificationScannerRef.current);
       notificationScannerRef.current = null;
     }
-  }, []);
+  }, [clearScheduledTimeouts]);
 
   const getNotificationPermission = React.useCallback(async (): Promise<NotificationPermission> => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -553,7 +557,7 @@ export default function App() {
   }, []);
 
   const scheduleUpcomingNotifications = React.useCallback(() => {
-    clearAllScheduledNotifications();
+    clearScheduledTimeouts();
     const now = Date.now();
 
     plansRef.current.forEach((plan) => {
@@ -579,7 +583,7 @@ export default function App() {
 
       notificationTimeoutsRef.current.push(timeout);
     });
-  }, [clearAllScheduledNotifications]);
+  }, [clearScheduledTimeouts]);
 
   React.useEffect(() => {
     if (!settingsState.notificationsEnabled) {
