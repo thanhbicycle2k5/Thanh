@@ -839,8 +839,10 @@ export default function App() {
       fireAt: remindAt,
     };
 
-    playMeow();
-    showSpeechBubbleText('remind', taskName, notificationId);
+    if (settingsState.catEnabled !== false) {
+      playMeow();
+      showSpeechBubbleText('remind', taskName, notificationId);
+    }
 
     try {
       if (remindAt <= Date.now()) {
@@ -855,7 +857,7 @@ export default function App() {
 
     firedNotificationIdsRef.current.add(notificationId);
     storage.addFiredNotificationId(notificationId, user?.uid);
-  }, [makeNotificationId, user, showSpeechBubbleText, getEventDate, getMinutesUntilStart, isWithinReminderWindow, isOnline]);
+  }, [makeNotificationId, user, showSpeechBubbleText, getEventDate, getMinutesUntilStart, isWithinReminderWindow, isOnline, settingsState]);
 
   const scheduleUpcomingNotifications = React.useCallback(async () => {
     if (!isOnline || !settingsState.notificationsEnabled) {
@@ -1196,10 +1198,12 @@ export default function App() {
 
   const handlePlanTurnGreen = React.useCallback((p: Plan) => {
     setCatMoodOverride('celebrating');
-    playMeow();
+    if (settingsState.catEnabled !== false) {
+      playMeow();
+    }
     setShowCelebration(true);
     window.setTimeout(() => setCatMoodOverride(null), 3000);
-  }, []);
+  }, [settingsState.catEnabled]);
 
   const totalPlansCount = currentWeekPlans.length;
   const completedPlansCount = currentWeekPlans.filter(p => p.color === 'green').length;
@@ -2004,7 +2008,9 @@ export default function App() {
                   onClick={() => {
                     playMusicalNote();
                     setCatMoodOverride('celebrating');
-                    playMeow();
+                    if (settingsState.catEnabled !== false) {
+                      playMeow();
+                    }
                     setTimeout(() => setCatMoodOverride(null), 3000);
                   }}
                 />
