@@ -21,14 +21,18 @@
           const theme = window.localStorage.getItem('chronos_theme');
           if (theme === 'dark') {
             document.documentElement.classList.add('dark');
-            document.documentElement.style.colorScheme = 'dark';
-            document.body.style.backgroundColor = '#111827';
-            document.body.style.color = '#f8fafc';
+            if (document.documentElement) document.documentElement.style.colorScheme = 'dark';
+            if (document.body) {
+              document.body.style.backgroundColor = '#111827';
+              document.body.style.color = '#f8fafc';
+            }
           } else {
             document.documentElement.classList.remove('dark');
-            document.documentElement.style.colorScheme = 'light';
-            document.body.style.backgroundColor = '#ffffff';
-            document.body.style.color = '#111827';
+            if (document.documentElement) document.documentElement.style.colorScheme = 'light';
+            if (document.body) {
+              document.body.style.backgroundColor = '#ffffff';
+              document.body.style.color = '#111827';
+            }
           }
         } catch (error) {
           console.warn('Theme preload failed', error);

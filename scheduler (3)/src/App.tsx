@@ -306,9 +306,6 @@ export default function App() {
   React.useEffect(() => {
     weekMetasRef.current = weekMetas;
   }, [weekMetas]);
-  React.useEffect(() => {
-    settingsRef.current = settingsState;
-  }, [settingsState]);
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const [gymRestOpen, setGymRestOpen] = React.useState(false);
   const [gymRestRunning, setGymRestRunning] = React.useState(false);
@@ -327,6 +324,10 @@ export default function App() {
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(storage.getSettings()));
   const [settingsError, setSettingsError] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    settingsRef.current = settingsState;
+  }, [settingsState]);
 
   const [isNoteOpen, setIsNoteOpen] = React.useState(false);
   const [noteText, setNoteText] = React.useState('');
