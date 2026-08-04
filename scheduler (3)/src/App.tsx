@@ -18,6 +18,7 @@ import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged,
 import { doc, setDoc } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { playNotificationSound, playMusicalNote, playMeow } from './lib/sounds';
+import { getSchedulyMessage } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
@@ -60,9 +61,10 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Card, CardContent } from '@/components/ui/card';
 import { translations, TranslationKey } from './lib/i18n';
-import { AppSettings, Language, Theme, CatMood, BackgroundConfig } from './types';
+import { AppSettings, Language, Theme, CatMood, CatColor, BackgroundConfig } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 import { DynamicCat } from './components/DynamicCat';
+import { SpeechBubbleOverlay } from './components/SpeechBubbleOverlay';
 import { BackgroundCustomizer } from './components/BackgroundCustomizer';
 import { CelebrationEffect } from './components/CelebrationEffect';
 import { QuickNoteEditor } from './components/QuickNoteEditor';
@@ -349,6 +351,8 @@ export default function App() {
   const [pomodoroSessions, setPomodoroSessions] = React.useState(0);
   const [showCelebration, setShowCelebration] = React.useState(false);
   const [catMoodOverride, setCatMoodOverride] = React.useState<CatMood | null>(null);
+  const [speechBubble, setSpeechBubble] = React.useState<{ id: string; text: string; status: SchedulyStatus } | null>(null);
+  const speechBubbleTimeoutRef = React.useRef<number | null>(null);
   const [catPosition, setCatPosition] = React.useState<{ left: number; top: number } | null>(null);
 
   React.useEffect(() => {
@@ -563,6 +567,19 @@ export default function App() {
     firedNotificationIdsRef.current = new Set(storage.getFiredNotificationIds(user?.uid));
   }, [user]);
 
+  const showSpeechBubbleText = React.useCallback((status: SchedulyStatus, taskName?: string, id?: string) => {
+    if (speechBubbleTimeoutRef.current !== null) {
+      window.clearTimeout(speechBubbleTimeoutRef.current);
+    }
+
+    const text = getSchedulyMessage(status, taskName);
+    setSpeechBubble({ id: id ?? crypto.randomUUID(), text, status });
+    speechBubbleTimeoutRef.current = window.setTimeout(() => {
+      setSpeechBubble(null);
+      speechBubbleTimeoutRef.current = null;
+    }, 5000);
+  }, []);
+
   const getNotificationPermission = React.useCallback(async (): Promise<NotificationPermission> => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
       return 'denied';
@@ -583,9 +600,10 @@ export default function App() {
 
     const taskName = plan.title?.trim() || 'công việc';
     const title = '🐱 Scheduly nhắc nhở nè!';
-    const body = `Đến giờ thực hiện "${taskName}" rồi, bắt đầu cùng Scheduly thôi!`;
+    const body = getSchedulyMessage('remind', taskName);
 
     playMeow();
+    showSpeechBubbleText('remind', taskName, notificationId);
 
     try {
       new Notification(title, {
@@ -600,7 +618,7 @@ export default function App() {
     firedNotificationIdsRef.current.add(notificationId);
     storage.addFiredNotificationId(notificationId, user?.uid);
     scheduledNotificationTimeoutsRef.current.delete(notificationId);
-  }, [makeNotificationId, user]);
+  }, [makeNotificationId, user, showSpeechBubbleText]);
 
   const scheduleUpcomingNotifications = React.useCallback(() => {
     clearScheduledTimeouts();
@@ -838,13 +856,14 @@ export default function App() {
         duration: 3000 
       });
       setShowCelebration(true);
+      showSpeechBubbleText('complete', p.title || 'nhiệm vụ', p.id);
     }
     if (user) {
       cloudStorage.savePlan(user.uid, p);
     } else {
       setPlans(prev => prev.map(x => x.id === p.id ? p : x));
     }
-  }, [user, settingsState.notificationSound, t]);
+  }, [user, settingsState.notificationSound, t, showSpeechBubbleText]);
 
   const handleAddPlan = React.useCallback((p: Plan) => {
     if (user) {
@@ -1606,23 +1625,38 @@ export default function App() {
         
         {/* Celebration Cat - Fixed position */}
         {settingsState.catEnabled !== false && (
-          <motion.div
-            initial={{ scale: 1 }}
-            animate={catMoodOverride === 'celebrating' ? { scale: [1, 1.15, 0.95, 1.1, 1], rotate: [0, -10, 10, -8, 0] } : { scale: 1, rotate: 0 }}
-            transition={{ duration: 2.5, ease: 'easeInOut' }}
-            className="fixed top-20 right-4 z-50 pointer-events-auto"
-          >
-            <DynamicCat 
-              mood={catMoodOverride ?? catMood}
-              size="sm"
-              onClick={() => {
-                playMusicalNote();
-                setCatMoodOverride('celebrating');
-                playMeow();
-                setTimeout(() => setCatMoodOverride(null), 3000);
-              }}
-            />
-          </motion.div>
+          <div className="fixed top-20 right-4 z-50 pointer-events-none">
+            <div className="relative">
+              {speechBubble && (
+                <div className="absolute top-1/2 right-full mr-3 -translate-y-1/2">
+                  <SpeechBubbleOverlay
+                    text={speechBubble.text}
+                    duration={5000}
+                    className=""
+                    onClose={() => setSpeechBubble(null)}
+                  />
+                </div>
+              )}
+              <motion.div
+                initial={{ scale: 1 }}
+                animate={catMoodOverride === 'celebrating' ? { scale: [1, 1.15, 0.95, 1.1, 1], rotate: [0, -10, 10, -8, 0] } : { scale: 1, rotate: 0 }}
+                transition={{ duration: 2.5, ease: 'easeInOut' }}
+                className="pointer-events-auto"
+              >
+                <DynamicCat 
+                  mood={catMoodOverride ?? catMood}
+                  color={settingsState.catColor ?? 'orange'}
+                  size="sm"
+                  onClick={() => {
+                    playMusicalNote();
+                    setCatMoodOverride('celebrating');
+                    playMeow();
+                    setTimeout(() => setCatMoodOverride(null), 3000);
+                  }}
+                />
+              </motion.div>
+            </div>
+          </div>
         )}
         
       </div>
@@ -1724,7 +1758,7 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4">
+                      <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 space-y-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div>
                             <p className="text-sm font-semibold dark:text-white">{t('cat')}</p>
@@ -1735,6 +1769,34 @@ export default function App() {
                             onCheckedChange={(checked) => handleUpdateSettings({ catEnabled: checked })}
                           />
                         </div>
+                        {settingsState.catEnabled !== false && (
+                          <div className="space-y-3">
+                            <p className="text-sm font-semibold dark:text-white">{t('catColor')}</p>
+                            <p className="text-xs text-muted-foreground dark:text-foreground/70">{t('catColorDescription')}</p>
+                            <div className="flex flex-wrap gap-2">
+                              {(['orange', 'pink', 'blue', 'green', 'purple'] as CatColor[]).map((color) => (
+                                <button
+                                  key={color}
+                                  type="button"
+                                  onClick={() => handleUpdateSettings({ catColor: color })}
+                                  className={cn(
+                                    'h-9 w-9 rounded-full border-2 transition-transform duration-200 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary',
+                                    settingsState.catColor === color ? 'scale-110 border-white shadow-lg' : 'border-transparent hover:scale-105'
+                                  )}
+                                  style={{
+                                    backgroundColor:
+                                      color === 'orange' ? '#f59e0b' :
+                                      color === 'pink' ? '#ec4899' :
+                                      color === 'blue' ? '#3b82f6' :
+                                      color === 'green' ? '#22c55e' :
+                                      '#8b5cf6'
+                                  }}
+                                  aria-label={`Select ${color} cat`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   )}

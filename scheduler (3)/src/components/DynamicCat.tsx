@@ -10,10 +10,47 @@ import { cn } from '@/lib/utils';
 
 interface DynamicCatProps {
   mood: CatMood;
+  color?: 'orange' | 'pink' | 'blue' | 'green' | 'purple';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   onClick?: () => void;
 }
+
+const getColorStyles = (color: NonNullable<DynamicCatProps['color']>) => {
+  switch (color) {
+    case 'pink':
+      return {
+        fill: '#ec4899',
+        stroke: '#db2777',
+        tail: '#ec4899'
+      };
+    case 'blue':
+      return {
+        fill: '#3b82f6',
+        stroke: '#1d4ed8',
+        tail: '#3b82f6'
+      };
+    case 'green':
+      return {
+        fill: '#22c55e',
+        stroke: '#15803d',
+        tail: '#22c55e'
+      };
+    case 'purple':
+      return {
+        fill: '#8b5cf6',
+        stroke: '#6d28d9',
+        tail: '#8b5cf6'
+      };
+    case 'orange':
+    default:
+      return {
+        fill: '#f59e0b',
+        stroke: '#ff8c00',
+        tail: '#f59e0b'
+      };
+  }
+};
 
 const CatPoses: Record<CatMood, { body: string; ears: string; eyes: string; mouth: string; accessories?: string }> = {
   idle: {
@@ -95,6 +132,7 @@ const viewBoxMap = {
 
 export const DynamicCat: React.FC<DynamicCatProps> = ({ 
   mood, 
+  color = 'orange',
   size = 'md',
   className,
   onClick
@@ -102,6 +140,7 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
   const [isClicked, setIsClicked] = React.useState(false);
   const pose = CatPoses[mood];
   const isAnimating = mood === 'gym' || mood === 'celebrating';
+  const colorStyles = getColorStyles(color);
 
   const handleClick = () => {
     setIsClicked(true);
@@ -144,7 +183,7 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
           {/* Tail */}
           <motion.path
             d={mood === 'happy' ? 'M15,20 Q30,35 35,50' : 'M15,20 Q20,35 15,50'}
-            stroke="#FFA500"
+            stroke={colorStyles.tail}
             strokeWidth="6"
             fill="none"
             strokeLinecap="round"
@@ -153,18 +192,18 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
           />
 
           {/* Body */}
-          <ellipse cx="0" cy="15" rx="16" ry="20" fill="#FFA500" stroke="#FF8C00" strokeWidth="1" />
+          <ellipse cx="0" cy="15" rx="16" ry="20" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="1" />
 
           {/* Head */}
-          <circle cx="0" cy="-8" r="15" fill="#FFA500" stroke="#FF8C00" strokeWidth="1" />
+          <circle cx="0" cy="-8" r="15" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="1" />
 
           {/* Ears */}
           <motion.g
             animate={{ rotate: pose.ears }}
             transition={{ type: 'spring', stiffness: 100, damping: 15 }}
           >
-            <path d="M-8,-18 L-10,-35 L-2,-20 Z" fill="#FFA500" stroke="#FF8C00" strokeWidth="1" />
-            <path d="M8,-18 L10,-35 L2,-20 Z" fill="#FFA500" stroke="#FF8C00" strokeWidth="1" />
+            <path d="M-8,-18 L-10,-35 L-2,-20 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="1" />
+            <path d="M8,-18 L10,-35 L2,-20 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="1" />
             {/* Inner ear */}
             <path d="M-6,-22 L-8,-30 L-4,-23 Z" fill="#FFB6C1" />
             <path d="M6,-22 L8,-30 L4,-23 Z" fill="#FFB6C1" />
@@ -211,8 +250,8 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
           <line x1="16" y1="2" x2="25" y2="4" stroke="#000" strokeWidth="0.8" />
 
           {/* Front Paws */}
-          <ellipse cx="-8" cy="30" rx="5" ry="8" fill="#FFA500" stroke="#FF8C00" strokeWidth="1" />
-          <ellipse cx="8" cy="30" rx="5" ry="8" fill="#FFA500" stroke="#FF8C00" strokeWidth="1" />
+          <ellipse cx="-8" cy="30" rx="5" ry="8" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="1" />
+          <ellipse cx="8" cy="30" rx="5" ry="8" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="1" />
 
           {/* Accessories for special moods */}
           {pose.accessories && (
