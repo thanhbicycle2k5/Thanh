@@ -51,6 +51,9 @@
         opacity: 0;
         visibility: hidden;
       }
+      body.splash-hidden #root {
+        visibility: hidden;
+      }
       .splash-screen__content {
         display: flex;
         flex-direction: column;
@@ -72,7 +75,7 @@
     </style>
     <title>Scheduler — Professional Weekly Planner</title>
   </head>
-  <body>
+  <body class="splash-hidden">
     <div id="root"></div>
     <div id="splash-screen" class="splash-screen">
       <div class="splash-screen__content">
@@ -85,18 +88,19 @@
         const splash = document.getElementById('splash-screen');
         if (!splash) return;
 
-        const isMobile = window.matchMedia('(max-width: 768px)').matches;
-        const customSplashDuration = isMobile ? 2000 : 1500;
-        const nativeTransitionBuffer = isMobile ? 800 : 150;
+        const customSplashDuration = 3000;
+        const nativeTransitionBuffer = window.matchMedia('(max-width: 768px)').matches ? 800 : 150;
 
         // Delay custom splash appearance so the default mobile PWA splash can finish.
         setTimeout(() => {
+          document.body.classList.remove('splash-hidden');
           splash.classList.add('visible');
           splash.classList.remove('hide');
           splash.addEventListener('transitionend', () => splash.remove(), { once: true });
 
           window.setTimeout(() => {
             splash.classList.add('hide');
+            document.body.classList.remove('splash-hidden');
           }, customSplashDuration);
         }, nativeTransitionBuffer);
       });
