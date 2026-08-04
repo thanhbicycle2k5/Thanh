@@ -529,7 +529,18 @@ export default function App() {
   }, [settingsState.theme]);
 
   const scheduledNotificationTimeoutsRef = React.useRef<Map<string, number>>(new Map());
+  const firedNotificationIdsRef = React.useRef<Set<string>>(new Set());
   const notificationScannerRef = React.useRef<number | null>(null);
+
+  const makeNotificationId = React.useCallback((plan: Plan) => {
+    return plan.id || `${plan.date}-${plan.startHour}`;
+  }, []);
+
+  const getEventDate = React.useCallback((plan: Plan) => {
+    const eventDate = new Date(plan.date);
+    eventDate.setHours(plan.startHour, 0, 0, 0);
+    return eventDate;
+  }, []);
 
   const clearScheduledTimeouts = React.useCallback(() => {
     scheduledNotificationTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
@@ -538,6 +549,7 @@ export default function App() {
 
   const clearAllScheduledNotifications = React.useCallback(() => {
     clearScheduledTimeouts();
+    firedNotificationIdsRef.current.clear();
     if (notificationScannerRef.current !== null) {
       window.clearInterval(notificationScannerRef.current);
       notificationScannerRef.current = null;
@@ -556,6 +568,31 @@ export default function App() {
     return Notification.permission;
   }, []);
 
+  const sendReminderNotification = React.useCallback((plan: Plan) => {
+    const notificationId = makeNotificationId(plan);
+    if (firedNotificationIdsRef.current.has(notificationId)) {
+      return;
+    }
+
+    const taskName = plan.title?.trim() || 'công việc';
+    const title = '🐱 Scheduly nhắc nhở nè!';
+    const body = `Đến giờ thực hiện "${taskName}" rồi, bắt đầu cùng Scheduly thôi!`;
+
+    playMeow();
+    try {
+      new Notification(title, {
+        body,
+        tag: notificationId,
+        renotify: false,
+      });
+    } catch (error) {
+      console.error('Failed to create notification', error);
+    }
+
+    firedNotificationIdsRef.current.add(notificationId);
+    scheduledNotificationTimeoutsRef.current.delete(notificationId);
+  }, [makeNotificationId]);
+
   const scheduleUpcomingNotifications = React.useCallback(() => {
     clearScheduledTimeouts();
     if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') {
@@ -564,36 +601,51 @@ export default function App() {
 
     const now = Date.now();
     plansRef.current.forEach((plan) => {
-      const notificationId = plan.id || `${plan.date}-${plan.startHour}`;
-      const taskName = plan.title?.trim() || 'công việc';
-      const eventDate = new Date(plan.date);
-      eventDate.setHours(plan.startHour, 0, 0, 0);
+      const notificationId = makeNotificationId(plan);
+      if (firedNotificationIdsRef.current.has(notificationId)) {
+        return;
+      }
+
+      const eventDate = getEventDate(plan);
       const remindAt = eventDate.getTime() - 15 * 60 * 1000;
       const delay = remindAt - now;
 
+      if (eventDate.getTime() <= now) {
+        return;
+      }
+
       if (delay <= 0) {
+        sendReminderNotification(plan);
         return;
       }
 
       const timeout = window.setTimeout(() => {
-        if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') {
-          return;
-        }
-
-        const title = '🐱 Scheduly nhắc nhở nè!';
-        const body = `Đến giờ thực hiện "${taskName}" rồi, bắt đầu cùng Scheduly thôi!`;
-        playMeow();
-        new Notification(title, {
-          body,
-          tag: notificationId,
-          renotify: false,
-        });
-        scheduledNotificationTimeoutsRef.current.delete(notificationId);
+        sendReminderNotification(plan);
       }, delay);
 
       scheduledNotificationTimeoutsRef.current.set(notificationId, timeout);
     });
-  }, [clearScheduledTimeouts]);
+  }, [clearScheduledTimeouts, getEventDate, makeNotificationId, sendReminderNotification]);
+
+  const scanForMissedNotifications = React.useCallback(() => {
+    if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') {
+      return;
+    }
+
+    const now = Date.now();
+    plansRef.current.forEach((plan) => {
+      const notificationId = makeNotificationId(plan);
+      if (firedNotificationIdsRef.current.has(notificationId)) {
+        return;
+      }
+
+      const eventDate = getEventDate(plan);
+      const remindAt = eventDate.getTime() - 15 * 60 * 1000;
+      if (remindAt <= now && now < eventDate.getTime()) {
+        sendReminderNotification(plan);
+      }
+    });
+  }, [getEventDate, makeNotificationId, sendReminderNotification]);
 
   const startNotifications = React.useCallback(async () => {
     const permission = await getNotificationPermission();
@@ -603,12 +655,13 @@ export default function App() {
       return;
     }
 
+    clearAllScheduledNotifications();
     scheduleUpcomingNotifications();
     if (notificationScannerRef.current !== null) {
       window.clearInterval(notificationScannerRef.current);
     }
-    notificationScannerRef.current = window.setInterval(scheduleUpcomingNotifications, 60_000);
-  }, [getNotificationPermission, handleUpdateSettings, scheduleUpcomingNotifications]);
+    notificationScannerRef.current = window.setInterval(scanForMissedNotifications, 30_000);
+  }, [clearAllScheduledNotifications, getNotificationPermission, scheduleUpcomingNotifications, scanForMissedNotifications, handleUpdateSettings]);
 
   React.useEffect(() => {
     if (!settingsState.notificationsEnabled) {
