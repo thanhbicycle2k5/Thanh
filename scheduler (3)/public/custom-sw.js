@@ -164,7 +164,14 @@ self.addEventListener('message', async (event) => {
     await closeActiveNotifications();
     return;
   }
-
+  if (message.type === 'SCHEDULY_CANCEL_NOTIFICATION') {
+    const payload = message.payload;
+    if (payload?.id) {
+      await removeScheduledPayload(new Request(`/scheduly-notification/${payload.id}`));
+      await closeActiveNotifications();
+    }
+    return;
+  }
   if (message.type !== SCHEDULY_NOTIFICATION_MESSAGE) {
     return;
   }

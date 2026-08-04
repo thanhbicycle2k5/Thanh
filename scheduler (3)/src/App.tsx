@@ -20,7 +20,7 @@ import { PRESET_TRACKS } from './lib/musicTracks';
 import { playNotificationSound, playMusicalNote, playMeow } from './lib/sounds';
 import { getSchedulyMessage, SchedulyStatus } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
-import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
+import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
 import { Toaster } from '@/components/ui/sonner';
@@ -773,7 +773,7 @@ export default function App() {
   }, []);
 
   const sendReminderNotification = React.useCallback(async (plan: Plan) => {
-    if (!isOnline) {
+    if (!isOnline || plan.color === 'green') {
       return;
     }
 
@@ -823,6 +823,10 @@ export default function App() {
 
     const now = Date.now();
     plansRef.current.forEach((plan) => {
+      if (plan.color === 'green') {
+        return;
+      }
+
       const notificationId = makeNotificationId(plan);
       if (firedNotificationIdsRef.current.has(notificationId)) {
         return;
@@ -857,6 +861,10 @@ export default function App() {
 
     const now = Date.now();
     plansRef.current.forEach((plan) => {
+      if (plan.color === 'green') {
+        return;
+      }
+
       const notificationId = makeNotificationId(plan);
       if (firedNotificationIdsRef.current.has(notificationId)) {
         return;
@@ -1045,7 +1053,8 @@ export default function App() {
   const handleUpdatePlan = React.useCallback((p: Plan) => {
     const oldPlan = plansRef.current.find(x => x.id === p.id);
     if (oldPlan && oldPlan.color !== 'green' && p.color === 'green') {
-      playNotificationSound(settingsState.notificationSound);
+        void cancelScheduledNotificationById(makeNotificationId(p));
+
       const motivators = [t('motivate1'), t('motivate2'), t('motivate3'), t('motivate4'), t('motivate5')];
       const message = motivators[Math.floor(Math.random() * motivators.length)];
       toast.success(message, {
@@ -1118,6 +1127,8 @@ export default function App() {
           console.warn('Cloud delete failed, local change persisted:', error);
         });
     }
+
+    void cancelScheduledNotificationById(id);
   }, [user]);
 
   const handlePlanTurnGreen = React.useCallback((p: Plan) => {

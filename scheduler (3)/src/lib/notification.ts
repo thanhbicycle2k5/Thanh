@@ -8,7 +8,10 @@ export type ScheduledNotificationPayload = {
 const NOTIFICATION_SW_PATH = '/custom-sw.js';
 const SCHEDULY_NOTIFICATION_MESSAGE = 'SCHEDULY_SCHEDULE_NOTIFICATION';
 const SCHEDULY_CLEAR_ALL_NOTIFICATIONS = 'SCHEDULY_CLEAR_ALL_NOTIFICATIONS';
+const SCHEDULY_CANCEL_NOTIFICATION = 'SCHEDULY_CANCEL_NOTIFICATION';
 const DEFAULT_TASK_LABEL = 'công việc';
+
+const fallbackTimeouts = new Map<string, number>();
 
 const normalizeTaskName = (taskName: string) => taskName?.trim() || DEFAULT_TASK_LABEL;
 
@@ -102,9 +105,31 @@ export async function clearScheduledNotifications(): Promise<void> {
     return;
   }
 
+  fallbackTimeouts.forEach((timeoutId) => {
+    window.clearTimeout(timeoutId);
+  });
+  fallbackTimeouts.clear();
+
   const registration = await getWorkerRegistration();
   if (registration?.active) {
     registration.active.postMessage({ type: SCHEDULY_CLEAR_ALL_NOTIFICATIONS });
+  }
+}
+
+export async function cancelScheduledNotificationById(id: string): Promise<void> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    return;
+  }
+
+  const timeoutId = fallbackTimeouts.get(id);
+  if (timeoutId !== undefined) {
+    window.clearTimeout(timeoutId);
+    fallbackTimeouts.delete(id);
+  }
+
+  const registration = await getWorkerRegistration();
+  if (registration?.active) {
+    registration.active.postMessage({ type: SCHEDULY_CANCEL_NOTIFICATION, payload: { id } });
   }
 }
 
@@ -142,7 +167,7 @@ export async function showNowNotification(title: string, body: string, tag?: str
   }
 }
 
-export async function scheduleTaskNotification(payload: ScheduledNotificationPayload): Promise<void> {
+export async function scheduleTaskNotification(payload: ScheduledNotificationPayload): Promise<number | null> {
   const permission = await requestUniversalNotificationPermission();
   if (permission !== 'granted') {
     throw new Error('Notification permission not granted.');
@@ -154,16 +179,19 @@ export async function scheduleTaskNotification(payload: ScheduledNotificationPay
       type: SCHEDULY_NOTIFICATION_MESSAGE,
       payload,
     });
-    return;
+    return null;
   }
 
   // Fallback if service worker is not available.
   const delay = payload.fireAt - Date.now();
   if (delay <= 0) {
-    return;
+    return null;
   }
 
-  window.setTimeout(() => {
+  const timeoutId = window.setTimeout(() => {
     showImmediateNotification(payload.title);
+    fallbackTimeouts.delete(payload.id);
   }, delay);
+  fallbackTimeouts.set(payload.id, timeoutId);
+  return timeoutId;
 }
