@@ -10,7 +10,8 @@ import {
   addWeeks, 
   subWeeks, 
   isSameDay,
-  isSameWeek 
+  isSameWeek,
+  startOfDay,
 } from 'date-fns';
 import { Plan, NotificationSound } from './types';
 import { storage, normalizeSettings } from './lib/storage';
@@ -785,6 +786,11 @@ export default function App() {
       return;
     }
 
+    const today = startOfDay(new Date());
+    if (!isSameDay(new Date(plan.date), today)) {
+      return;
+    }
+
     const notificationId = makeNotificationId(plan);
     if (firedNotificationIdsRef.current.has(notificationId)) {
       return;
@@ -838,8 +844,16 @@ export default function App() {
     }
 
     const now = Date.now();
+    const today = startOfDay(new Date());
+
     plansRef.current.forEach((plan) => {
       if (plan.color === 'green') {
+        return;
+      }
+      if (!isSameWeek(new Date(plan.date), selectedWeekStart, { weekStartsOn: 1 })) {
+        return;
+      }
+      if (!isSameDay(new Date(plan.date), today)) {
         return;
       }
 
@@ -871,7 +885,7 @@ export default function App() {
         });
       }
     });
-  }, [clearAllScheduledNotifications, getEventDate, makeNotificationId, sendReminderNotification, getNotificationPermission]);
+  }, [clearAllScheduledNotifications, getEventDate, makeNotificationId, sendReminderNotification, getNotificationPermission, selectedWeekStart, settingsState.notificationsEnabled, isOnline]);
 
   const scanForMissedNotifications = React.useCallback(() => {
     if (!isOnline || !settingsState.notificationsEnabled || typeof window === 'undefined') {
@@ -879,8 +893,16 @@ export default function App() {
     }
 
     const now = Date.now();
+    const today = startOfDay(new Date());
+
     plansRef.current.forEach((plan) => {
       if (plan.color === 'green') {
+        return;
+      }
+      if (!isSameWeek(new Date(plan.date), selectedWeekStart, { weekStartsOn: 1 })) {
+        return;
+      }
+      if (!isSameDay(new Date(plan.date), today)) {
         return;
       }
 
@@ -895,7 +917,7 @@ export default function App() {
         void sendReminderNotification(plan);
       }
     });
-  }, [getEventDate, makeNotificationId, sendReminderNotification]);
+  }, [getEventDate, makeNotificationId, sendReminderNotification, selectedWeekStart, settingsState.notificationsEnabled, isOnline]);
 
   const startNotifications = React.useCallback(async () => {
     const permission = await getNotificationPermission();
