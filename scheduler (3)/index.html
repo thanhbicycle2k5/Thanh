@@ -7,14 +7,17 @@
     <script>
       (function () {
         try {
-          const raw = window.localStorage.getItem('chronos_settings');
-          if (raw) {
-            const settings = JSON.parse(raw);
-            if (settings?.theme === 'dark') {
-              document.documentElement.classList.add('dark');
-            } else {
-              document.documentElement.classList.remove('dark');
-            }
+          const theme = window.localStorage.getItem('chronos_theme');
+          if (theme === 'dark') {
+            document.documentElement.classList.add('dark');
+            document.documentElement.style.colorScheme = 'dark';
+            document.body.style.backgroundColor = '#111827';
+            document.body.style.color = '#f8fafc';
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.style.colorScheme = 'light';
+            document.body.style.backgroundColor = '#ffffff';
+            document.body.style.color = '#111827';
           }
         } catch (error) {
           console.warn('Theme preload failed', error);

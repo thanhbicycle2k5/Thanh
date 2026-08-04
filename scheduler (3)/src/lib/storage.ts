@@ -25,6 +25,7 @@ const defaultSettings: AppSettings = {
 
 const keyFor = (key: string, uid?: string | null) => uid ? `${key}_${uid}` : key;
 const pendingSyncKey = (uid?: string | null) => keyFor('chronos_pending_sync', uid);
+const themeKey = 'chronos_theme';
 
 const isBackgroundConfig = (value: any): value is AppSettings['backgroundConfig'] => {
   return (
@@ -112,6 +113,7 @@ export const storage = {
     const current = storage.getSettings(uid);
     const normalized = normalizeSettings({ ...current, ...settings });
     localStorage.setItem(keyFor('chronos_settings', uid), JSON.stringify(normalized));
+    localStorage.setItem(themeKey, normalized.theme);
     if (uid) {
       localStorage.setItem(pendingSyncKey(uid), '1');
     }
