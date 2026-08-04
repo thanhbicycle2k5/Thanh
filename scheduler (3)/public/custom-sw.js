@@ -104,14 +104,19 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.mode === 'navigate') {
+    // Network-first for navigations so reload/F5 fetches the latest index.html.
     event.respondWith(
-      caches.match(request).then((cachedResponse) => {
-        return cachedResponse || fetch(request).then(async (response) => {
-          const cache = await openAppShellCache();
-          cache.put(request, response.clone());
+      fetch(request)
+        .then(async (response) => {
+          try {
+            const cache = await openAppShellCache();
+            cache.put(request, response.clone());
+          } catch (e) {
+            // ignore cache write failures
+          }
           return response;
-        });
-      }).catch(() => caches.match('/'))
+        })
+        .catch(() => caches.match(request).then((cachedResponse) => cachedResponse || caches.match('/')))
     );
     return;
   }
@@ -144,6 +149,13 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('message', async (event) => {
   const message = event.data;
   if (!message) {
+    return;
+  }
+
+  if (message.type === 'SCHEDULY_SKIP_WAITING') {
+    try {
+      await self.skipWaiting();
+    } catch (e) {}
     return;
   }
 
