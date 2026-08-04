@@ -84,11 +84,12 @@
       window.addEventListener('load', () => {
         const splash = document.getElementById('splash-screen');
         if (!splash) return;
-        const baseDuration = 1000;
-        const isMobile = window.matchMedia('(max-width: 768px)').matches;
-        const duration = isMobile ? 2000 : baseDuration;
 
-        // Show the custom splash only after the default PWA splash has finished.
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        const customSplashDuration = isMobile ? 2000 : 1500;
+        const nativeTransitionBuffer = isMobile ? 800 : 150;
+
+        // Delay custom splash appearance so the default mobile PWA splash can finish.
         setTimeout(() => {
           splash.classList.add('visible');
           splash.classList.remove('hide');
@@ -96,8 +97,8 @@
 
           window.setTimeout(() => {
             splash.classList.add('hide');
-          }, duration);
-        }, 100);
+          }, customSplashDuration);
+        }, nativeTransitionBuffer);
       });
     </script>
     <script type="module" src="/src/main.tsx"></script>
