@@ -48,6 +48,23 @@ export async function registerNotificationWorker(): Promise<ServiceWorkerRegistr
 
   try {
     const registration = await navigator.serviceWorker.register(NOTIFICATION_SW_PATH);
+    // If a new SW is waiting, ask it to skip waiting so the client can be controlled by the new SW.
+    if (registration.waiting) {
+      try {
+        registration.waiting.postMessage({ type: 'SCHEDULY_SKIP_WAITING' });
+      } catch (e) {}
+    }
+
+    registration.addEventListener('updatefound', () => {
+      const newWorker = registration.installing;
+      if (!newWorker) return;
+      newWorker.addEventListener('statechange', () => {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          try { newWorker.postMessage({ type: 'SCHEDULY_SKIP_WAITING' }); } catch (e) {}
+        }
+      });
+    });
+
     await navigator.serviceWorker.ready;
     return registration;
   } catch (error) {
