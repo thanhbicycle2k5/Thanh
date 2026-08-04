@@ -68,6 +68,8 @@ export function showImmediateNotification(taskName: string) {
 
   new Notification(buildNotificationTitle(), {
     body: buildNotificationBody(taskName),
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
     tag: `scheduly-${taskName}-${Date.now()}`,
     renotify: false,
   });

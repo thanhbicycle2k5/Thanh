@@ -43,6 +43,8 @@ function showNotification(payload) {
     body: payload.body,
     tag: payload.id,
     renotify: false,
+    icon: '/favicon.svg',
+    badge: '/favicon.svg',
     data: payload,
   });
 }
