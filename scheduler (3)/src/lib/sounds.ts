@@ -185,7 +185,9 @@ export async function playMusicalNote() {
   }
 }
 
-export async function playMeow() {
+let meowAudio: HTMLAudioElement | null = null;
+
+async function playFallbackMeow() {
   try {
     const ctx = await getAudioContext();
     const now = ctx.currentTime;
@@ -206,6 +208,22 @@ export async function playMeow() {
     osc.start(now);
     osc.stop(now + 0.5);
   } catch (e) {
-    console.error('Failed to play meow', e);
+    console.error('Failed to play fallback meow', e);
+  }
+}
+
+export async function playMeow() {
+  try {
+    if (!meowAudio) {
+      meowAudio = new Audio('/cat-meow.ogg');
+      meowAudio.preload = 'auto';
+    }
+    if (meowAudio.paused === false) {
+      meowAudio.currentTime = 0;
+    }
+    await meowAudio.play();
+  } catch (e) {
+    console.warn('Failed to play cat meow audio asset, falling back to synth.', e);
+    await playFallbackMeow();
   }
 }
