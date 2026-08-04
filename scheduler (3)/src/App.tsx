@@ -516,17 +516,107 @@ export default function App() {
      };
   }, []);
 
-  React.useEffect(() => {
-    if (settingsState.theme === 'dark') document.documentElement.classList.add('dark');
-    else document.documentElement.classList.remove('dark');
-  }, [settingsState.theme]);
-
   const handleUpdateSettings = (newSettings: Partial<AppSettings>) => {
     const updated = normalizeSettings({ ...settingsState, ...newSettings });
     setSettings(updated);
     storage.saveSettings(newSettings, user?.uid);
     if (user) cloudStorage.saveSettings(user.uid, newSettings);
   };
+
+  React.useEffect(() => {
+    if (settingsState.theme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [settingsState.theme]);
+
+  const notificationTimeoutsRef = React.useRef<number[]>([]);
+  const notificationScannerRef = React.useRef<number | null>(null);
+
+  const clearAllScheduledNotifications = React.useCallback(() => {
+    notificationTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
+    notificationTimeoutsRef.current = [];
+    if (notificationScannerRef.current !== null) {
+      window.clearInterval(notificationScannerRef.current);
+      notificationScannerRef.current = null;
+    }
+  }, []);
+
+  const getNotificationPermission = React.useCallback(async (): Promise<NotificationPermission> => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      return 'denied';
+    }
+
+    if (Notification.permission === 'default') {
+      return await Notification.requestPermission();
+    }
+
+    return Notification.permission;
+  }, []);
+
+  const scheduleUpcomingNotifications = React.useCallback(() => {
+    clearAllScheduledNotifications();
+    const now = Date.now();
+
+    plansRef.current.forEach((plan) => {
+      const eventDate = new Date(plan.date);
+      eventDate.setHours(plan.startHour, 0, 0, 0);
+      const remindAt = eventDate.getTime() - 15 * 60 * 1000;
+
+      if (remindAt <= now) {
+        return;
+      }
+
+      const timeout = window.setTimeout(() => {
+        if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') {
+          return;
+        }
+
+        const title = '🐱 Scheduly nhắc nhở nè!';
+        const body = `Đến giờ học ${plan.title} rồi, vào bàn cùng Scheduly thôi bạn ơi!`;
+        new Notification(title, {
+          body,
+        });
+      }, remindAt - now);
+
+      notificationTimeoutsRef.current.push(timeout);
+    });
+  }, [clearAllScheduledNotifications]);
+
+  React.useEffect(() => {
+    if (!settingsState.notificationsEnabled) {
+      clearAllScheduledNotifications();
+      return;
+    }
+
+    let cancelled = false;
+
+    const initializeNotifications = async () => {
+      const permission = await getNotificationPermission();
+      if (cancelled) return;
+
+      if (permission !== 'granted') {
+        toast.error('Notification permission denied.');
+        handleUpdateSettings({ notificationsEnabled: false });
+        return;
+      }
+
+      scheduleUpcomingNotifications();
+      notificationScannerRef.current = window.setInterval(scheduleUpcomingNotifications, 60_000);
+    };
+
+    initializeNotifications();
+
+    return () => {
+      cancelled = true;
+      clearAllScheduledNotifications();
+    };
+  }, [settingsState.notificationsEnabled, clearAllScheduledNotifications, getNotificationPermission, scheduleUpcomingNotifications]);
+
+  React.useEffect(() => {
+    if (!settingsState.notificationsEnabled) {
+      return;
+    }
+    scheduleUpcomingNotifications();
+  }, [plans, settingsState.notificationsEnabled, scheduleUpcomingNotifications]);
 
   const formatSeconds = (seconds: number) => {
     const min = Math.floor(seconds / 60);
@@ -888,11 +978,18 @@ export default function App() {
                  <span className="sm:hidden text-[11px] font-bold">{t('login')}</span>
                </Button>
              )}
-             <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
-                playMusicalNote();
-                handleUpdateSettings({ notificationsEnabled: !settingsState.notificationsEnabled });
-              }}>
-                {settingsState.notificationsEnabled ? <Bell className="w-4 h-4 text-[#107C41]" /> : <BellOff className="w-4 h-4" />}
+             <Button
+               variant="ghost"
+               size="icon"
+               className="h-9 w-9 shrink-0"
+               onClick={() => {
+                 playMusicalNote();
+                 handleUpdateSettings({ notificationsEnabled: !settingsState.notificationsEnabled });
+               }}
+               title={settingsState.notificationsEnabled ? 'Tắt nhắc nhở thông minh' : 'Bật nhắc nhở thông minh'}
+               aria-label={settingsState.notificationsEnabled ? 'Disable smart reminders' : 'Enable smart reminders'}
+             >
+               {settingsState.notificationsEnabled ? <Bell className="w-4 h-4 text-[#107C41]" /> : <BellOff className="w-4 h-4" />}
              </Button>
 
              <Popover>
