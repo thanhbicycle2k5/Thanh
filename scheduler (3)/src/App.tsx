@@ -11,9 +11,10 @@ import {
   subWeeks, 
   isSameDay,
   isSameWeek,
+  isAfter,
   startOfDay,
 } from 'date-fns';
-import { Plan, NotificationSound } from './types';
+import { Plan, NotificationSound, WeekTransitionEffect } from './types';
 import { storage, normalizeSettings } from './lib/storage';
 import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, settleRedirectAuth } from './lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
@@ -334,6 +335,7 @@ export default function App() {
   const [noteText, setNoteText] = React.useState('');
   const [isMobile, setIsMobile] = React.useState(false);
   const [isMobileNote, setIsMobileNote] = React.useState(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
 
   React.useEffect(() => {
     const query = window.matchMedia('(max-width: 768px)');
@@ -344,7 +346,16 @@ export default function App() {
       setIsMobileNote(event.matches);
     };
     query.addEventListener('change', handleMediaChange);
-    return () => query.removeEventListener('change', handleMediaChange);
+
+    const motionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const motionChange = () => setPrefersReducedMotion(motionQuery.matches);
+    motionChange();
+    motionQuery.addEventListener('change', motionChange);
+
+    return () => {
+      query.removeEventListener('change', handleMediaChange);
+      motionQuery.removeEventListener('change', motionChange);
+    };
   }, []);
 
   React.useEffect(() => {
@@ -433,6 +444,24 @@ export default function App() {
   const [selectedWeekStart, setSelectedWeekStart] = React.useState(() => 
     startOfWeek(new Date(), { weekStartsOn: 1 })
   );
+  const previousWeekStartRef = React.useRef<Date>(selectedWeekStart);
+
+  const weekTransitionDirection = React.useMemo(() => {
+    const previous = previousWeekStartRef.current;
+    if (previous.getTime() === selectedWeekStart.getTime()) return 'forward';
+    return isAfter(selectedWeekStart, previous) ? 'forward' : 'backward';
+  }, [selectedWeekStart]);
+
+  React.useEffect(() => {
+    previousWeekStartRef.current = selectedWeekStart;
+  }, [selectedWeekStart]);
+
+  const actualWeekTransitionEffect: WeekTransitionEffect = React.useMemo(() => {
+    if (prefersReducedMotion && settingsState.weekTransitionEffect === 'slide') {
+      return 'fade';
+    }
+    return settingsState.weekTransitionEffect ?? 'slide';
+  }, [prefersReducedMotion, settingsState.weekTransitionEffect]);
 
   const [loginLoading, setLoginLoading] = React.useState(false);
 
@@ -1453,20 +1482,39 @@ export default function App() {
            </div>
 
            <div className="bg-card dark:border-white/10 rounded-xl border shadow-xl overflow-hidden">
-             <ScheduleGrid 
-                currentWeekStart={selectedWeekStart}
-                plans={currentWeekPlans}
-                onAddPlan={handleAddPlan}
-                onUpdatePlan={handleUpdatePlan}
-                onDeletePlan={handleDeletePlan}
-                onPlanTurnGreen={handlePlanTurnGreen}
-                language={settingsState.language}
-                theme={settingsState.theme}
-                startHour={settingsState.startHour}
-                endHour={settingsState.endHour}
-                showLunarCalendar={settingsState.showLunarCalendar ?? true}
-             />
-             <div className="p-4 border-t bg-muted/30">
+             <AnimatePresence mode="wait">
+               <motion.div
+                 key={format(selectedWeekStart, 'yyyy-MM-dd')}
+                 initial={actualWeekTransitionEffect === 'slide'
+                   ? { opacity: 0, x: weekTransitionDirection === 'forward' ? 40 : -40 }
+                   : actualWeekTransitionEffect === 'fade'
+                     ? { opacity: 0 }
+                     : { opacity: 1, x: 0 }
+                 }
+                 animate={{ opacity: 1, x: 0 }}
+                 exit={actualWeekTransitionEffect === 'slide'
+                   ? { opacity: 0, x: weekTransitionDirection === 'forward' ? -40 : 40 }
+                   : actualWeekTransitionEffect === 'fade'
+                     ? { opacity: 0 }
+                     : { opacity: 1, x: 0 }
+                 }
+                 transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+                 className="overflow-hidden"
+               >
+                 <ScheduleGrid 
+                    currentWeekStart={selectedWeekStart}
+                    plans={currentWeekPlans}
+                    onAddPlan={handleAddPlan}
+                    onUpdatePlan={handleUpdatePlan}
+                    onDeletePlan={handleDeletePlan}
+                    onPlanTurnGreen={handlePlanTurnGreen}
+                    language={settingsState.language}
+                    theme={settingsState.theme}
+                    startHour={settingsState.startHour}
+                    endHour={settingsState.endHour}
+                    showLunarCalendar={settingsState.showLunarCalendar ?? true}
+                 />
+                 <div className="p-4 border-t bg-muted/30">
                <Label className="text-[10px] font-bold uppercase mb-2 block opacity-50">{t('weekNote')}</Label>
                <WeekNoteEditor 
                   weekStart={selectedWeekStart}
@@ -1494,6 +1542,8 @@ export default function App() {
                <p className="text-xs text-gray-600 dark:text-gray-300">Được tạo ra bởi ThànhBicycle</p>
                <p className="text-xs text-gray-600 dark:text-gray-300">Created by ThànhBicycle</p>
              </div>
+           </motion.div>
+         </AnimatePresence>
            </div>
 
            <div className="mt-8 flex justify-between items-center bg-[#107C41] text-white p-6 rounded-xl">
@@ -2250,13 +2300,29 @@ export default function App() {
                   )}
 
                   {activeSettingsTab === 'appearance' && (
-                    <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6">
-                      <BackgroundCustomizer
-                        config={settingsState.backgroundConfig}
-                        onChange={(config) => handleUpdateSettings({ backgroundConfig: config })}
-                        t={t}
-                        theme={settingsState.theme}
-                      />
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6">
+                        <div className="mb-4">
+                          <p className="text-sm font-semibold dark:text-white">{t('weekTransitionEffect')}</p>
+                          <p className="text-xs text-muted-foreground dark:text-foreground/70">{t('weekTransitionEffectDescription')}</p>
+                        </div>
+                        <Select value={settingsState.weekTransitionEffect} onValueChange={(v: WeekTransitionEffect) => handleUpdateSettings({ weekTransitionEffect: v })}>
+                          <SelectTrigger className="w-full sm:w-80"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="slide">{t('transitionSlide')}</SelectItem>
+                            <SelectItem value="fade">{t('transitionFade')}</SelectItem>
+                            <SelectItem value="none">{t('transitionNone')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6">
+                        <BackgroundCustomizer
+                          config={settingsState.backgroundConfig}
+                          onChange={(config) => handleUpdateSettings({ backgroundConfig: config })}
+                          t={t}
+                          theme={settingsState.theme}
+                        />
+                      </div>
                     </div>
                   )}
 

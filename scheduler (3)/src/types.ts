@@ -32,6 +32,7 @@ export type NotificationSound = 'bird' | 'wind' | 'bell' | 'chime';
 export type CatMood = 'idle' | 'work' | 'gym' | 'medical' | 'shortBreak' | 'longBreak' | 'celebrating' | 'tired' | 'happy';
 export type CatColor = 'orange' | 'pink' | 'blue' | 'green' | 'purple' | 'yellow' | 'teal' | 'red' | 'gray' | 'black' | 'white';
 export type BackgroundType = 'color' | 'gradient' | 'image';
+export type WeekTransitionEffect = 'none' | 'fade' | 'slide';
 
 export interface MusicTrack {
   id: string;
@@ -69,6 +70,7 @@ export interface AppSettings {
   desktopFontSize?: 'small' | 'medium' | 'large';
   desktopKeyboardShortcutsEnabled?: boolean;
   catColor?: CatColor;
+  weekTransitionEffect?: WeekTransitionEffect;
 }
 
 export interface WeeklySchedule {
