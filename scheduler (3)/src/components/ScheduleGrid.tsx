@@ -164,6 +164,7 @@ function ScheduleGridComponent({
   const [newApplyWeekDays, setNewApplyWeekDays] = React.useState<NonNullable<Plan['applyWeekDays']>>([]);
   const [newApplyUntil, setNewApplyUntil] = React.useState<string | undefined>(undefined);
   const [newNotes, setNewNotes] = React.useState('');
+  const [allowTextInput, setAllowTextInput] = React.useState(false);
 
   const daysOfCurrentWeek = React.useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
@@ -192,6 +193,38 @@ function ScheduleGridComponent({
 
   const clickCount = React.useRef(0);
   const clickTimer = React.useRef<NodeJS.Timeout | null>(null);
+
+  React.useEffect(() => {
+    if (!isDialogOpen) return;
+
+    if (typeof window === 'undefined') return;
+
+    const isMobile = window.matchMedia('(max-width: 767px)').matches;
+    if (!isMobile) {
+      setAllowTextInput(true);
+      return;
+    }
+
+    setAllowTextInput(false);
+
+    const timer = window.setTimeout(() => {
+      const activeElement = document.activeElement as HTMLElement | null;
+      if (activeElement instanceof HTMLInputElement || activeElement instanceof HTMLTextAreaElement || activeElement instanceof HTMLButtonElement) {
+        activeElement.blur();
+      }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [isDialogOpen]);
+
+  const handleTextFieldInteraction = React.useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const isMobile = window.matchMedia('(max-width: 767px)').matches;
+    if (isMobile) {
+      setAllowTextInput(true);
+    }
+  }, []);
 
   const handleUnifiedClick = React.useCallback((date: Date, hour: number, existingPlan?: Plan) => {
     playMusicalNote();
@@ -450,6 +483,9 @@ function ScheduleGridComponent({
                 onChange={(e) => setNewTitle(e.target.value)}
                 className="col-span-3 font-semibold bg-muted/50 border-border"
                 placeholder={t('enterTask')}
+                readOnly={typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches && !allowTextInput}
+                onPointerDown={handleTextFieldInteraction}
+                onFocus={handleTextFieldInteraction}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
               />
             </div>
@@ -576,6 +612,9 @@ function ScheduleGridComponent({
                 onChange={(e) => setNewNotes(e.target.value)}
                 placeholder={t('notesPlaceholder')}
                 rows={2}
+                readOnly={typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches && !allowTextInput}
+                onPointerDown={handleTextFieldInteraction}
+                onFocus={handleTextFieldInteraction}
                 className="col-span-3 text-xs resize-none bg-muted/50 border-border placeholder:text-muted-foreground"
               />
             </div>
