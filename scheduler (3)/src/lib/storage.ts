@@ -24,12 +24,22 @@ const defaultSettings: AppSettings = {
 };
 
 type PendingSyncScope = 'plans' | 'week_meta' | 'settings';
+const PLANS_KEY = 'chronos_excel_plans';
+const DELETED_PLANS_KEY = 'chronos_deleted_plans';
 const keyFor = (key: string, uid?: string | null) => uid ? `${key}_${uid}` : key;
 const pendingSyncKey = (uid?: string | null, scope?: PendingSyncScope) => {
   const base = 'chronos_pending_sync';
   return scope ? keyFor(`${base}_${scope}`, uid) : keyFor(base, uid);
 };
 const themeKey = 'chronos_theme';
+
+export type DeletedPlanRecord = {
+  id: string;
+  deletedAt: string;
+  isSynced: boolean;
+};
+
+const nowIso = () => new Date().toISOString();
 
 const isBackgroundConfig = (value: any): value is AppSettings['backgroundConfig'] => {
   return (
@@ -75,7 +85,7 @@ const FIRED_NOTIFICATION_IDS_KEY = 'chronos_fired_notification_ids';
 export const storage = {
   getPlans: (uid?: string | null): Plan[] => {
     try {
-      const data = localStorage.getItem(keyFor('chronos_excel_plans', uid));
+      const data = localStorage.getItem(keyFor(PLANS_KEY, uid));
       return data ? JSON.parse(data) : [];
     } catch (e) {
       console.error('Failed to load plans', e);
@@ -95,7 +105,31 @@ export const storage = {
     return localStorage.getItem(pendingSyncKey(uid, scope)) === '1';
   },
   savePlans: (plans: Plan[], uid?: string | null, markPending = true) => {
-    localStorage.setItem(keyFor('chronos_excel_plans', uid), JSON.stringify(plans));
+    const stamped = plans.map((plan) => ({
+      ...plan,
+      updatedAt: plan.updatedAt ?? nowIso(),
+      isSynced: plan.isSynced ?? !markPending,
+    }));
+    localStorage.setItem(keyFor(PLANS_KEY, uid), JSON.stringify(stamped));
+    if (uid && markPending) {
+      localStorage.setItem(pendingSyncKey(uid, 'plans'), '1');
+    }
+  },
+  getDeletedPlans: (uid?: string | null): DeletedPlanRecord[] => {
+    try {
+      const data = localStorage.getItem(keyFor(DELETED_PLANS_KEY, uid));
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.error('Failed to load deleted plans', e);
+      return [];
+    }
+  },
+  saveDeletedPlans: (deletedPlans: DeletedPlanRecord[], uid?: string | null, markPending = true) => {
+    const stamped = deletedPlans.map((deletedPlan) => ({
+      ...deletedPlan,
+      isSynced: deletedPlan.isSynced ?? !markPending,
+    }));
+    localStorage.setItem(keyFor(DELETED_PLANS_KEY, uid), JSON.stringify(stamped));
     if (uid && markPending) {
       localStorage.setItem(pendingSyncKey(uid, 'plans'), '1');
     }
@@ -139,15 +173,41 @@ export const storage = {
   },
   addPlan: (plan: Plan, uid?: string | null) => {
     const plans = storage.getPlans(uid);
-    storage.savePlans([...plans, plan], uid);
+    storage.savePlans([
+      ...plans,
+      {
+        ...plan,
+        updatedAt: nowIso(),
+        isSynced: false,
+      },
+    ], uid);
   },
   updatePlan: (updatedPlan: Plan, uid?: string | null) => {
     const plans = storage.getPlans(uid);
-    storage.savePlans(plans.map(p => p.id === updatedPlan.id ? updatedPlan : p), uid);
+    storage.savePlans(plans.map((p) => p.id === updatedPlan.id ? {
+      ...updatedPlan,
+      updatedAt: nowIso(),
+      isSynced: false,
+    } : p), uid);
   },
   deletePlan: (id: string, uid?: string | null) => {
     const plans = storage.getPlans(uid);
-    storage.savePlans(plans.filter(p => p.id !== id), uid);
+    const deletedAt = nowIso();
+    const deletedPlans = storage.getDeletedPlans(uid);
+    storage.savePlans(plans.filter((p) => p.id !== id), uid);
+    storage.saveDeletedPlans([
+      ...deletedPlans.filter((d) => d.id !== id),
+      { id, deletedAt, isSynced: false },
+    ], uid);
+  },
+  markPlansSynced: (planIds: string[], uid?: string | null) => {
+    const plans = storage.getPlans(uid);
+    storage.savePlans(plans.map((plan) => planIds.includes(plan.id) ? { ...plan, isSynced: true } : plan), uid, false);
+  },
+  clearSyncedDeletedPlans: (uid?: string | null, force = false) => {
+    const deletedPlans = storage.getDeletedPlans(uid);
+    const remaining = force ? [] : deletedPlans.filter((d) => !d.isSynced);
+    storage.saveDeletedPlans(remaining, uid, false);
   },
   getFiredNotificationIds: (uid?: string | null): string[] => {
     try {

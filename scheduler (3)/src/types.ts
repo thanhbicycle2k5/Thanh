@@ -14,6 +14,9 @@ export interface Plan {
   applyWeekInterval?: number; // repeat every N weeks when applyMode === 'week'
   applyWeekDays?: ('mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun')[]; // which weekdays to apply on weekly mode
   applyUntil?: string; // ISO date string: apply until this date (inclusive)
+  updatedAt?: string;
+  isSynced?: boolean;
+  deletedAt?: string;
 }
 
 export interface WeekMetadata {

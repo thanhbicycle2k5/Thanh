@@ -454,6 +454,8 @@ export default function App() {
       if (pendingPlans) {
         const localPlans = storage.getPlans(uid);
         await cloudStorage.savePlans(uid, localPlans);
+        storage.markPlansSynced(localPlans.map((plan) => plan.id), uid);
+        storage.clearSyncedDeletedPlans(uid, true);
         storage.clearPendingSync(uid, 'plans');
         syncedAny = true;
       }
@@ -1127,7 +1129,7 @@ export default function App() {
   const handleDeletePlan = React.useCallback((id: string) => {
     setPlans((prev) => {
       const next = prev.filter(x => x.id !== id);
-      storage.savePlans(next, user?.uid);
+      storage.deletePlan(id, user?.uid);
       return next;
     });
 
@@ -1135,6 +1137,7 @@ export default function App() {
       cloudStorage.deletePlan(user.uid, id)
         .then(() => {
           storage.setPendingSync(user.uid, 'plans', false);
+          storage.clearSyncedDeletedPlans(user.uid, true);
         })
         .catch((error) => {
           storage.setPendingSync(user.uid, 'plans', true);
