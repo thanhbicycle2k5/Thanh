@@ -19,7 +19,7 @@ import { storage, normalizeSettings } from './lib/storage';
 import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, settleRedirectAuth } from './lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
-import { playNotificationSound, playMusicalNote, playMeow } from './lib/sounds';
+import { playNotificationSound, playMusicalNote, playCompletionMelody, playMeow } from './lib/sounds';
 import { getSchedulyMessage, SchedulyStatus } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
@@ -1198,7 +1198,7 @@ export default function App() {
 
   const handlePlanTurnGreen = React.useCallback((p: Plan) => {
     setCatMoodOverride('celebrating');
-    playMusicalNote();
+    playCompletionMelody();
     if (settingsState.catEnabled !== false) {
       playMeow();
     }

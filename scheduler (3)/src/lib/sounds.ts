@@ -185,6 +185,36 @@ export async function playMusicalNote() {
   }
 }
 
+export async function playCompletionMelody() {
+  try {
+    const ctx = await getAudioContext();
+    const now = ctx.currentTime;
+    const melody = [261.63, 293.66, 329.63, 349.23, 392.0, 440.0, 493.88];
+    const stepDuration = 0.28;
+    const gap = 0.05;
+
+    melody.forEach((frequency, index) => {
+      const startTime = now + index * (stepDuration + gap);
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(frequency, startTime);
+
+      gain.gain.setValueAtTime(0, startTime);
+      gain.gain.linearRampToValueAtTime(0.16, startTime + 0.01);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + stepDuration);
+
+      osc.start(startTime);
+      osc.stop(startTime + stepDuration + gap);
+    });
+  } catch (e) {
+    console.error('Failed to play completion melody', e);
+  }
+}
+
 let meowAudio: HTMLAudioElement | null = null;
 
 async function playFallbackMeow() {
