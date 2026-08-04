@@ -96,7 +96,7 @@
   </head>
   <body class="splash-hidden">
     <div id="root"></div>
-    <div id="splash-screen" class="splash-screen">
+    <div id="splash-screen" class="splash-screen visible">
       <div class="splash-screen__content">
         <div class="splash-screen__logo">
           <img src="/favicon.svg" alt="Scheduler logo" />
@@ -106,12 +106,9 @@
       </div>
     </div>
     <script>
-      window.addEventListener('load', () => {
-        const splash = document.getElementById('splash-screen');
-        if (!splash) return;
-
+      const splash = document.getElementById('splash-screen');
+      if (splash) {
         const customSplashDuration = 3000;
-        const nativeTransitionBuffer = window.matchMedia('(max-width: 768px)').matches ? 1200 : 300;
 
         function hideSplash() {
           splash.classList.add('hide');
@@ -125,19 +122,11 @@
           );
         }
 
-        // Delay custom splash appearance so the default mobile PWA splash can finish.
-        setTimeout(() => {
-          splash.style.transition = 'none';
-          splash.classList.add('visible');
-          splash.classList.remove('hide');
+        splash.classList.add('visible');
+        splash.classList.remove('hide');
 
-          requestAnimationFrame(() => {
-            splash.style.transition = 'opacity 0.6s ease, visibility 0.6s ease';
-          });
-
-          window.setTimeout(hideSplash, customSplashDuration);
-        }, nativeTransitionBuffer);
-      });
+        window.setTimeout(hideSplash, customSplashDuration);
+      }
     </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
