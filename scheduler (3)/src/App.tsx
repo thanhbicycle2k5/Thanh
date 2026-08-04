@@ -1198,6 +1198,7 @@ export default function App() {
 
   const handlePlanTurnGreen = React.useCallback((p: Plan) => {
     setCatMoodOverride('celebrating');
+    playMusicalNote();
     if (settingsState.catEnabled !== false) {
       playMeow();
     }
