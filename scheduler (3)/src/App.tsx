@@ -516,24 +516,24 @@ export default function App() {
      };
   }, []);
 
-  const handleUpdateSettings = (newSettings: Partial<AppSettings>) => {
+  const handleUpdateSettings = React.useCallback((newSettings: Partial<AppSettings>) => {
     const updated = normalizeSettings({ ...settingsState, ...newSettings });
     setSettings(updated);
     storage.saveSettings(newSettings, user?.uid);
     if (user) cloudStorage.saveSettings(user.uid, newSettings);
-  };
+  }, [settingsState, user]);
 
   React.useEffect(() => {
     if (settingsState.theme === 'dark') document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [settingsState.theme]);
 
-  const notificationTimeoutsRef = React.useRef<number[]>([]);
+  const scheduledNotificationTimeoutsRef = React.useRef<Map<string, number>>(new Map());
   const notificationScannerRef = React.useRef<number | null>(null);
 
   const clearScheduledTimeouts = React.useCallback(() => {
-    notificationTimeoutsRef.current.forEach((id) => window.clearTimeout(id));
-    notificationTimeoutsRef.current = [];
+    scheduledNotificationTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
+    scheduledNotificationTimeoutsRef.current.clear();
   }, []);
 
   const clearAllScheduledNotifications = React.useCallback(() => {
@@ -558,14 +558,20 @@ export default function App() {
 
   const scheduleUpcomingNotifications = React.useCallback(() => {
     clearScheduledTimeouts();
-    const now = Date.now();
+    if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') {
+      return;
+    }
 
+    const now = Date.now();
     plansRef.current.forEach((plan) => {
+      const notificationId = plan.id || `${plan.date}-${plan.startHour}`;
+      const taskName = plan.title?.trim() || 'công việc';
       const eventDate = new Date(plan.date);
       eventDate.setHours(plan.startHour, 0, 0, 0);
       const remindAt = eventDate.getTime() - 15 * 60 * 1000;
+      const delay = remindAt - now;
 
-      if (remindAt <= now) {
+      if (delay <= 0) {
         return;
       }
 
@@ -575,50 +581,52 @@ export default function App() {
         }
 
         const title = '🐱 Scheduly nhắc nhở nè!';
-        const body = `Đến giờ học ${plan.title} rồi, vào bàn cùng Scheduly thôi bạn ơi!`;
+        const body = `Đến giờ thực hiện "${taskName}" rồi, bắt đầu cùng Scheduly thôi!`;
         new Notification(title, {
           body,
+          tag: notificationId,
+          renotify: false,
         });
-      }, remindAt - now);
+        scheduledNotificationTimeoutsRef.current.delete(notificationId);
+      }, delay);
 
-      notificationTimeoutsRef.current.push(timeout);
+      scheduledNotificationTimeoutsRef.current.set(notificationId, timeout);
     });
   }, [clearScheduledTimeouts]);
 
+  const startNotifications = React.useCallback(async () => {
+    const permission = await getNotificationPermission();
+    if (permission !== 'granted') {
+      toast.error('Notification permission denied.');
+      handleUpdateSettings({ notificationsEnabled: false });
+      return;
+    }
+
+    scheduleUpcomingNotifications();
+    if (notificationScannerRef.current !== null) {
+      window.clearInterval(notificationScannerRef.current);
+    }
+    notificationScannerRef.current = window.setInterval(scheduleUpcomingNotifications, 60_000);
+  }, [getNotificationPermission, handleUpdateSettings, scheduleUpcomingNotifications]);
+
   React.useEffect(() => {
     if (!settingsState.notificationsEnabled) {
       clearAllScheduledNotifications();
       return;
     }
 
-    let cancelled = false;
-
-    const initializeNotifications = async () => {
-      const permission = await getNotificationPermission();
-      if (cancelled) return;
-
-      if (permission !== 'granted') {
-        toast.error('Notification permission denied.');
-        handleUpdateSettings({ notificationsEnabled: false });
-        return;
-      }
-
-      scheduleUpcomingNotifications();
-      notificationScannerRef.current = window.setInterval(scheduleUpcomingNotifications, 60_000);
-    };
-
-    initializeNotifications();
+    startNotifications();
 
     return () => {
-      cancelled = true;
       clearAllScheduledNotifications();
     };
-  }, [settingsState.notificationsEnabled, clearAllScheduledNotifications, getNotificationPermission, scheduleUpcomingNotifications]);
+  }, [settingsState.notificationsEnabled, clearAllScheduledNotifications, startNotifications]);
 
   React.useEffect(() => {
     if (!settingsState.notificationsEnabled) {
       return;
     }
+
     scheduleUpcomingNotifications();
   }, [plans, settingsState.notificationsEnabled, scheduleUpcomingNotifications]);
 
