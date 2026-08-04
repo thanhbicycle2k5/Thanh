@@ -20,6 +20,7 @@ import { PRESET_TRACKS } from './lib/musicTracks';
 import { playNotificationSound, playMusicalNote, playMeow } from './lib/sounds';
 import { getSchedulyMessage } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
+import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, showImmediateNotification, buildNotificationTitle, buildNotificationBody } from './lib/notification';
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
 import { Toaster } from '@/components/ui/sonner';
@@ -581,48 +582,47 @@ export default function App() {
   }, []);
 
   const getNotificationPermission = React.useCallback(async (): Promise<NotificationPermission> => {
-    if (typeof window === 'undefined' || !('Notification' in window)) {
-      return 'denied';
-    }
-
-    if (Notification.permission === 'default') {
-      return await Notification.requestPermission();
-    }
-
-    return Notification.permission;
+    return await requestUniversalNotificationPermission();
   }, []);
 
-  const sendReminderNotification = React.useCallback((plan: Plan) => {
+  const sendReminderNotification = React.useCallback(async (plan: Plan) => {
     const notificationId = makeNotificationId(plan);
     if (firedNotificationIdsRef.current.has(notificationId)) {
       return;
     }
 
     const taskName = plan.title?.trim() || 'công việc';
-    const title = '🐱 Scheduly nhắc nhở nè!';
-    const body = getSchedulyMessage('remind', taskName);
+    const remindAt = getEventDate(plan).getTime() - 15 * 60 * 1000;
+    const payload = {
+      id: notificationId,
+      title: buildNotificationTitle(),
+      body: buildNotificationBody(taskName),
+      fireAt: remindAt,
+    };
 
     playMeow();
     showSpeechBubbleText('remind', taskName, notificationId);
 
     try {
-      new Notification(title, {
-        body,
-        tag: notificationId,
-        renotify: false,
-      });
+      await scheduleTaskNotification(payload);
     } catch (error) {
-      console.error('Failed to create notification', error);
+      console.error('Failed to schedule notification', error);
+      showImmediateNotification(taskName);
     }
 
     firedNotificationIdsRef.current.add(notificationId);
     storage.addFiredNotificationId(notificationId, user?.uid);
     scheduledNotificationTimeoutsRef.current.delete(notificationId);
-  }, [makeNotificationId, user, showSpeechBubbleText]);
+  }, [makeNotificationId, user, showSpeechBubbleText, getEventDate]);
 
-  const scheduleUpcomingNotifications = React.useCallback(() => {
+  const scheduleUpcomingNotifications = React.useCallback(async () => {
     clearScheduledTimeouts();
-    if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const permission = await getNotificationPermission();
+    if (permission !== 'granted') {
       return;
     }
 
@@ -635,27 +635,28 @@ export default function App() {
 
       const eventDate = getEventDate(plan);
       const remindAt = eventDate.getTime() - 15 * 60 * 1000;
-      const delay = remindAt - now;
-
       if (eventDate.getTime() <= now) {
         return;
       }
 
-      if (delay <= 0) {
+      if (remindAt <= now) {
         sendReminderNotification(plan);
         return;
       }
 
-      const timeout = window.setTimeout(() => {
-        sendReminderNotification(plan);
-      }, delay);
-
-      scheduledNotificationTimeoutsRef.current.set(notificationId, timeout);
+      scheduleTaskNotification({
+        id: notificationId,
+        title: buildNotificationTitle(),
+        body: buildNotificationBody(plan.title?.trim() || 'công việc'),
+        fireAt: remindAt,
+      }).catch((error) => {
+        console.error('Failed to schedule task notification', error);
+      });
     });
-  }, [clearScheduledTimeouts, getEventDate, makeNotificationId, sendReminderNotification]);
+  }, [clearScheduledTimeouts, getEventDate, makeNotificationId, sendReminderNotification, getNotificationPermission]);
 
   const scanForMissedNotifications = React.useCallback(() => {
-    if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') {
+    if (typeof window === 'undefined') {
       return;
     }
 
@@ -683,12 +684,13 @@ export default function App() {
     }
 
     clearAllScheduledNotifications();
+    await registerNotificationWorker();
     scheduleUpcomingNotifications();
     if (notificationScannerRef.current !== null) {
       window.clearInterval(notificationScannerRef.current);
     }
     notificationScannerRef.current = window.setInterval(scanForMissedNotifications, 30_000);
-  }, [clearAllScheduledNotifications, getNotificationPermission, scheduleUpcomingNotifications, scanForMissedNotifications, handleUpdateSettings]);
+  }, [clearAllScheduledNotifications, getNotificationPermission, registerNotificationWorker, scheduleUpcomingNotifications, scanForMissedNotifications, handleUpdateSettings]);
 
   React.useEffect(() => {
     if (!settingsState.notificationsEnabled) {
