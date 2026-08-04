@@ -76,10 +76,13 @@
       window.addEventListener('load', () => {
         const splash = document.getElementById('splash-screen');
         if (!splash) return;
+        const baseDuration = 1000;
+        const isMobile = window.matchMedia('(max-width: 768px)').matches;
+        const duration = isMobile ? 2000 : baseDuration;
         window.setTimeout(() => {
           splash.classList.add('hide');
           splash.addEventListener('transitionend', () => splash.remove(), { once: true });
-        }, 1000);
+        }, duration);
       });
     </script>
     <script type="module" src="/src/main.tsx"></script>
