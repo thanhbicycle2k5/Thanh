@@ -132,7 +132,12 @@ export async function cancelScheduledNotificationById(id: string): Promise<void>
     fallbackTimeouts.delete(id);
   }
 
-  const registration = await getWorkerRegistration();
+  let registration = await getWorkerRegistration();
+  if (!registration) {
+    await registerNotificationWorker();
+    registration = await getWorkerRegistration();
+  }
+
   if (registration?.active) {
     registration.active.postMessage({ type: SCHEDULY_CANCEL_NOTIFICATION, payload: { id } });
   }

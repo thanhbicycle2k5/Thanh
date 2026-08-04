@@ -179,7 +179,12 @@ self.addEventListener('message', async (event) => {
         self.clearTimeout(timeoutId);
         fallbackScheduledTimeouts.delete(payload.id);
       }
-      await closeActiveNotifications();
+      try {
+        const notifications = await self.registration.getNotifications({ tag: payload.id });
+        notifications.forEach((notification) => notification.close());
+      } catch (error) {
+        console.warn('Failed to close notification by tag', error);
+      }
     }
     return;
   }
