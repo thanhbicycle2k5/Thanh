@@ -28,6 +28,22 @@
   </head>
   <body>
     <div id="root"></div>
+    <div id="splash-screen" class="splash-screen">
+      <div class="splash-screen__content">
+        <h1 class="splash-screen__title">Scheduler</h1>
+        <p class="splash-screen__subtitle">by ThànhBicycle</p>
+      </div>
+    </div>
+    <script>
+      window.addEventListener('load', () => {
+        const splash = document.getElementById('splash-screen');
+        if (!splash) return;
+        window.setTimeout(() => {
+          splash.classList.add('hide');
+          splash.addEventListener('transitionend', () => splash.remove(), { once: true });
+        }, 1000);
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
