@@ -20,7 +20,7 @@ import { PRESET_TRACKS } from './lib/musicTracks';
 import { playNotificationSound, playMusicalNote, playMeow } from './lib/sounds';
 import { getSchedulyMessage } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
-import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, showImmediateNotification, buildNotificationTitle, buildNotificationBody } from './lib/notification';
+import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications } from './lib/notification';
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
 import { Toaster } from '@/components/ui/sonner';
@@ -694,7 +694,8 @@ export default function App() {
   const notificationScannerRef = React.useRef<number | null>(null);
 
   const makeNotificationId = React.useCallback((plan: Plan) => {
-    return plan.id || `${plan.date}-${plan.startHour}`;
+    const fallbackBase = `${plan.date}-${plan.startHour}-${plan.title?.trim() || 'task'}`;
+    return `scheduly-${plan.id || fallbackBase}`;
   }, []);
 
   const getEventDate = React.useCallback((plan: Plan) => {
@@ -708,16 +709,17 @@ export default function App() {
     scheduledNotificationTimeoutsRef.current.clear();
   }, []);
 
-  const clearAllScheduledNotifications = React.useCallback(() => {
+  const clearAllScheduledNotifications = React.useCallback(async () => {
     clearScheduledTimeouts();
     if (notificationScannerRef.current !== null) {
       window.clearInterval(notificationScannerRef.current);
       notificationScannerRef.current = null;
     }
+    await clearAllWorkerNotifications();
   }, [clearScheduledTimeouts]);
 
   const stopNotifications = React.useCallback(() => {
-    clearAllScheduledNotifications();
+    void clearAllScheduledNotifications();
   }, [clearAllScheduledNotifications]);
 
   React.useEffect(() => {
@@ -780,7 +782,7 @@ export default function App() {
       return;
     }
 
-    clearScheduledTimeouts();
+    await clearAllScheduledNotifications();
     if (typeof window === 'undefined') {
       return;
     }
@@ -817,7 +819,7 @@ export default function App() {
         console.error('Failed to schedule task notification', error);
       });
     });
-  }, [clearScheduledTimeouts, getEventDate, makeNotificationId, sendReminderNotification, getNotificationPermission]);
+  }, [clearAllScheduledNotifications, getEventDate, makeNotificationId, sendReminderNotification, getNotificationPermission]);
 
   const scanForMissedNotifications = React.useCallback(() => {
     if (!isOnline || typeof window === 'undefined') {
@@ -847,9 +849,9 @@ export default function App() {
       return;
     }
 
-    clearAllScheduledNotifications();
+    await clearAllScheduledNotifications();
     await registerNotificationWorker();
-    scheduleUpcomingNotifications();
+    void scheduleUpcomingNotifications();
     if (notificationScannerRef.current !== null) {
       window.clearInterval(notificationScannerRef.current);
     }
@@ -858,14 +860,14 @@ export default function App() {
 
   React.useEffect(() => {
     if (!settingsState.notificationsEnabled || !isOnline) {
-      clearAllScheduledNotifications();
+      void clearAllScheduledNotifications();
       return;
     }
 
-    startNotifications();
+    void startNotifications();
 
     return () => {
-      clearAllScheduledNotifications();
+      void clearAllScheduledNotifications();
     };
   }, [settingsState.notificationsEnabled, isOnline, clearAllScheduledNotifications, startNotifications]);
 
@@ -874,7 +876,7 @@ export default function App() {
       return;
     }
 
-    scheduleUpcomingNotifications();
+    void scheduleUpcomingNotifications();
   }, [plans, settingsState.notificationsEnabled, isOnline, scheduleUpcomingNotifications]);
 
   const formatSeconds = (seconds: number) => {

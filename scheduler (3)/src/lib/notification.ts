@@ -7,10 +7,16 @@ export type ScheduledNotificationPayload = {
 
 const NOTIFICATION_SW_PATH = '/custom-sw.js';
 const SCHEDULY_NOTIFICATION_MESSAGE = 'SCHEDULY_SCHEDULE_NOTIFICATION';
+const SCHEDULY_CLEAR_ALL_NOTIFICATIONS = 'SCHEDULY_CLEAR_ALL_NOTIFICATIONS';
+const DEFAULT_TASK_LABEL = 'công việc';
+
+const normalizeTaskName = (taskName: string) => taskName?.trim() || DEFAULT_TASK_LABEL;
 
 export const buildNotificationTitle = () => '🐱 Scheduly nhắc nhở nè!';
-export const buildNotificationBody = (taskName: string) =>
-  `Đến giờ thực hiện nhiệm vụ "${taskName}" rồi, bắt đầu cùng Scheduly thôi!`;
+export const buildNotificationBody = (taskName: string) => {
+  const label = normalizeTaskName(taskName);
+  return `Đến giờ thực hiện nhiệm vụ "${label}" rồi, bắt đầu cùng Scheduly thôi!`;
+};
 
 export async function requestUniversalNotificationPermission(): Promise<NotificationPermission> {
   if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -73,6 +79,17 @@ export function showImmediateNotification(taskName: string) {
     tag: `scheduly-${taskName}-${Date.now()}`,
     renotify: false,
   });
+}
+
+export async function clearScheduledNotifications(): Promise<void> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    return;
+  }
+
+  const registration = await getWorkerRegistration();
+  if (registration?.active) {
+    registration.active.postMessage({ type: SCHEDULY_CLEAR_ALL_NOTIFICATIONS });
+  }
 }
 
 export async function scheduleTaskNotification(payload: ScheduledNotificationPayload): Promise<void> {

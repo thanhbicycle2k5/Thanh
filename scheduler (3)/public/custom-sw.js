@@ -1,6 +1,7 @@
 const APP_SHELL_CACHE = 'scheduly-app-shell-v1';
 const SCHEDULE_CACHE_NAME = 'scheduly-notifications-v1';
 const SCHEDULY_NOTIFICATION_MESSAGE = 'SCHEDULY_SCHEDULE_NOTIFICATION';
+const SCHEDULY_CLEAR_ALL_NOTIFICATIONS = 'SCHEDULY_CLEAR_ALL_NOTIFICATIONS';
 const APP_SHELL_URLS = ['/', '/index.html', '/favicon.svg', '/manifest.webmanifest'];
 
 async function openScheduleCache() {
@@ -36,6 +37,21 @@ async function readScheduledPayloads() {
 async function removeScheduledPayload(request) {
   const cache = await openScheduleCache();
   await cache.delete(request);
+}
+
+async function clearScheduledPayloads() {
+  const cache = await openScheduleCache();
+  const requests = await cache.keys();
+  await Promise.all(requests.map((request) => cache.delete(request)));
+}
+
+async function closeActiveNotifications() {
+  try {
+    const notifications = await self.registration.getNotifications();
+    notifications.forEach((notification) => notification.close());
+  } catch (error) {
+    console.warn('Failed to close scheduled notifications', error);
+  }
 }
 
 function showNotification(payload) {
@@ -127,7 +143,17 @@ self.addEventListener('fetch', (event) => {
 
 self.addEventListener('message', async (event) => {
   const message = event.data;
-  if (!message || message.type !== SCHEDULY_NOTIFICATION_MESSAGE) {
+  if (!message) {
+    return;
+  }
+
+  if (message.type === SCHEDULY_CLEAR_ALL_NOTIFICATIONS) {
+    await clearScheduledPayloads();
+    await closeActiveNotifications();
+    return;
+  }
+
+  if (message.type !== SCHEDULY_NOTIFICATION_MESSAGE) {
     return;
   }
 
