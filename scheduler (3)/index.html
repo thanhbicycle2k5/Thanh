@@ -28,8 +28,8 @@
       #splash-screen {
         position: fixed;
         inset: 0;
-        background: radial-gradient(circle at top, #22c55e 0%, #0f172a 55%);
-        color: #f8fafc;
+        background: #ffffff;
+        color: #0f172a;
         z-index: 99999;
         display: flex;
         align-items: center;
@@ -57,20 +57,39 @@
       .splash-screen__content {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 1rem;
+        align-items: center;
+        max-width: min(90vw, 380px);
+      }
+      .splash-screen__logo {
+        width: 90px;
+        height: 90px;
+        border-radius: 24px;
+        background: #f8fafc;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 18px 40px rgba(15, 23, 42, 0.12);
+      }
+      .splash-screen__logo img {
+        width: 60%;
+        height: auto;
       }
       .splash-screen__title {
-        font-size: clamp(2.5rem, 10vw, 5rem);
+        font-size: clamp(2rem, 8vw, 4rem);
         font-weight: 900;
-        letter-spacing: 0.16em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
         margin: 0;
-        text-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+        line-height: 1.05;
+        color: #111827;
       }
       .splash-screen__subtitle {
-        opacity: 0.72;
+        opacity: 0.76;
         margin: 0;
-        font-size: clamp(0.95rem, 3vw, 1.3rem);
+        font-size: clamp(1rem, 3vw, 1.2rem);
+        letter-spacing: 0.02em;
+        max-width: 320px;
       }
     </style>
     <title>Scheduler — Professional Weekly Planner</title>
@@ -79,8 +98,11 @@
     <div id="root"></div>
     <div id="splash-screen" class="splash-screen">
       <div class="splash-screen__content">
+        <div class="splash-screen__logo">
+          <img src="/favicon.svg" alt="Scheduler logo" />
+        </div>
         <h1 class="splash-screen__title">Scheduler</h1>
-        <p class="splash-screen__subtitle">by ThànhBicycle</p>
+        <p class="splash-screen__subtitle">Smart planner for every day</p>
       </div>
     </div>
     <script>
@@ -89,19 +111,31 @@
         if (!splash) return;
 
         const customSplashDuration = 3000;
-        const nativeTransitionBuffer = window.matchMedia('(max-width: 768px)').matches ? 800 : 150;
+        const nativeTransitionBuffer = window.matchMedia('(max-width: 768px)').matches ? 1200 : 300;
+
+        function hideSplash() {
+          splash.classList.add('hide');
+          splash.addEventListener(
+            'transitionend',
+            () => {
+              splash.remove();
+              document.body.classList.remove('splash-hidden');
+            },
+            { once: true }
+          );
+        }
 
         // Delay custom splash appearance so the default mobile PWA splash can finish.
         setTimeout(() => {
-          document.body.classList.remove('splash-hidden');
+          splash.style.transition = 'none';
           splash.classList.add('visible');
           splash.classList.remove('hide');
-          splash.addEventListener('transitionend', () => splash.remove(), { once: true });
 
-          window.setTimeout(() => {
-            splash.classList.add('hide');
-            document.body.classList.remove('splash-hidden');
-          }, customSplashDuration);
+          requestAnimationFrame(() => {
+            splash.style.transition = 'opacity 0.6s ease, visibility 0.6s ease';
+          });
+
+          window.setTimeout(hideSplash, customSplashDuration);
         }, nativeTransitionBuffer);
       });
     </script>
