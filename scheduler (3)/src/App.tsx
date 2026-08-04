@@ -431,25 +431,45 @@ export default function App() {
       return;
     }
 
-    if (!storage.hasPendingSync(uid)) {
+    const pendingPlans = storage.hasPendingSyncFor(uid, 'plans');
+    const pendingWeekMeta = storage.hasPendingSyncFor(uid, 'week_meta');
+    const pendingSettings = storage.hasPendingSyncFor(uid, 'settings');
+
+    if (!pendingPlans && !pendingWeekMeta && !pendingSettings) {
       return;
     }
 
     setSyncing(true);
+    let syncedAny = false;
     try {
-      const localPlans = storage.getPlans(uid);
-      const localMetas = storage.getWeekMetas(uid);
-      const localSettings = storage.getSettings(uid);
+      if (pendingPlans) {
+        const localPlans = storage.getPlans(uid);
+        await cloudStorage.savePlans(uid, localPlans);
+        storage.clearPendingSync(uid, 'plans');
+        syncedAny = true;
+      }
 
-      await cloudStorage.savePlans(uid, localPlans);
-      await Promise.all(
-        Object.entries(localMetas).map(([weekStart, meta]) =>
-          cloudStorage.saveWeekMeta(uid, weekStart, meta)
-        )
-      );
-      await cloudStorage.saveSettings(uid, localSettings);
-      storage.clearPendingSync(uid);
-      toast.success(t('offlineSyncRestored'));
+      if (pendingWeekMeta) {
+        const localMetas = storage.getWeekMetas(uid);
+        await Promise.all(
+          Object.entries(localMetas).map(([weekStart, meta]) =>
+            cloudStorage.saveWeekMeta(uid, weekStart, meta)
+          )
+        );
+        storage.clearPendingSync(uid, 'week_meta');
+        syncedAny = true;
+      }
+
+      if (pendingSettings) {
+        const localSettings = storage.getSettings(uid);
+        await cloudStorage.saveSettings(uid, localSettings);
+        storage.clearPendingSync(uid, 'settings');
+        syncedAny = true;
+      }
+
+      if (syncedAny) {
+        toast.success(t('offlineSyncRestored'));
+      }
     } catch (error) {
       console.warn('Pending sync failed:', error);
     } finally {
@@ -466,6 +486,7 @@ export default function App() {
     };
     const handleOffline = () => {
       setIsOnline(false);
+      clearAllScheduledNotifications();
     };
 
     window.addEventListener('online', handleOnline);
@@ -677,6 +698,10 @@ export default function App() {
   }, []);
 
   const sendReminderNotification = React.useCallback(async (plan: Plan) => {
+    if (!isOnline) {
+      return;
+    }
+
     const notificationId = makeNotificationId(plan);
     if (firedNotificationIdsRef.current.has(notificationId)) {
       return;
@@ -704,9 +729,13 @@ export default function App() {
     firedNotificationIdsRef.current.add(notificationId);
     storage.addFiredNotificationId(notificationId, user?.uid);
     scheduledNotificationTimeoutsRef.current.delete(notificationId);
-  }, [makeNotificationId, user, showSpeechBubbleText, getEventDate]);
+  }, [makeNotificationId, user, showSpeechBubbleText, getEventDate, isOnline]);
 
   const scheduleUpcomingNotifications = React.useCallback(async () => {
+    if (!isOnline) {
+      return;
+    }
+
     clearScheduledTimeouts();
     if (typeof window === 'undefined') {
       return;
@@ -747,7 +776,7 @@ export default function App() {
   }, [clearScheduledTimeouts, getEventDate, makeNotificationId, sendReminderNotification, getNotificationPermission]);
 
   const scanForMissedNotifications = React.useCallback(() => {
-    if (typeof window === 'undefined') {
+    if (!isOnline || typeof window === 'undefined') {
       return;
     }
 
@@ -784,7 +813,7 @@ export default function App() {
   }, [clearAllScheduledNotifications, getNotificationPermission, registerNotificationWorker, scheduleUpcomingNotifications, scanForMissedNotifications, handleUpdateSettings]);
 
   React.useEffect(() => {
-    if (!settingsState.notificationsEnabled) {
+    if (!settingsState.notificationsEnabled || !isOnline) {
       clearAllScheduledNotifications();
       return;
     }
@@ -794,15 +823,15 @@ export default function App() {
     return () => {
       clearAllScheduledNotifications();
     };
-  }, [settingsState.notificationsEnabled, clearAllScheduledNotifications, startNotifications]);
+  }, [settingsState.notificationsEnabled, isOnline, clearAllScheduledNotifications, startNotifications]);
 
   React.useEffect(() => {
-    if (!settingsState.notificationsEnabled) {
+    if (!settingsState.notificationsEnabled || !isOnline) {
       return;
     }
 
     scheduleUpcomingNotifications();
-  }, [plans, settingsState.notificationsEnabled, scheduleUpcomingNotifications]);
+  }, [plans, settingsState.notificationsEnabled, isOnline, scheduleUpcomingNotifications]);
 
   const formatSeconds = (seconds: number) => {
     const min = Math.floor(seconds / 60);
