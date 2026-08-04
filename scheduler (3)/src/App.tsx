@@ -1727,6 +1727,18 @@ export default function App() {
                         </div>
                       </div>
 
+                      <div className="mt-3 rounded-2xl border border-border bg-background/80 p-3 text-xs">
+                        <p className={cn(
+                          "font-semibold",
+                          settingsState.notificationsEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
+                        )}>
+                          {settingsState.notificationsEnabled ? t('notificationsStatusOn') : t('notificationsStatusOff')}
+                        </p>
+                        <p className="mt-1 text-[11px] text-muted-foreground dark:text-foreground/70">
+                          {settingsState.notificationsEnabled ? t('notificationsStatusOnDescription') : t('notificationsStatusOffDescription')}
+                        </p>
+                      </div>
+
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <Label className="dark:text-white">{t('notificationSound')}</Label>
                         <div className="flex items-center gap-2">
