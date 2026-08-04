@@ -100,6 +100,7 @@ export const translations = {
     signedInAs: "Signed in as",
     syncingData: "Syncing data to cloud...",
     dataSynced: "Data synced to cloud",
+    offlineSyncRestored: "Offline changes were synced successfully.",
     syncError: "Sync error, using local data",
     loginToSync: "Sign in to sync across devices",
     cloudSync: "Cloud Sync",

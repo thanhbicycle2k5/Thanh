@@ -1,8 +1,14 @@
+const APP_SHELL_CACHE = 'scheduly-app-shell-v1';
 const SCHEDULE_CACHE_NAME = 'scheduly-notifications-v1';
 const SCHEDULY_NOTIFICATION_MESSAGE = 'SCHEDULY_SCHEDULE_NOTIFICATION';
+const APP_SHELL_URLS = ['/', '/index.html', '/favicon.svg', '/manifest.webmanifest'];
 
 async function openScheduleCache() {
   return await caches.open(SCHEDULE_CACHE_NAME);
+}
+
+async function openAppShellCache() {
+  return await caches.open(APP_SHELL_CACHE);
 }
 
 async function storeScheduledPayload(payload) {
@@ -42,11 +48,79 @@ function showNotification(payload) {
 }
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(self.skipWaiting());
+  event.waitUntil(
+    (async () => {
+      const cache = await openAppShellCache();
+      await cache.addAll(APP_SHELL_URLS);
+      await self.skipWaiting();
+    })()
+  );
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      const cacheNames = await caches.keys();
+      await Promise.all(
+        cacheNames.map((cacheName) => {
+          if (![APP_SHELL_CACHE, SCHEDULE_CACHE_NAME].includes(cacheName)) {
+            return caches.delete(cacheName);
+          }
+          return Promise.resolve();
+        })
+      );
+      await self.clients.claim();
+    })()
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  if (request.method !== 'GET') {
+    return;
+  }
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      caches.match(request).then((cachedResponse) => {
+        return cachedResponse || fetch(request).then(async (response) => {
+          const cache = await openAppShellCache();
+          cache.put(request, response.clone());
+          return response;
+        });
+      }).catch(() => caches.match('/'))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(request).then((cachedResponse) => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      return fetch(request)
+        .then(async (response) => {
+          if (!response || response.status !== 200 || response.type !== 'basic') {
+            return response;
+          }
+          const cache = await openAppShellCache();
+          cache.put(request, response.clone());
+          return response;
+        })
+        .catch(() => {
+          if (request.destination === 'image') {
+            return new Response('', { status: 503, statusText: 'Offline' });
+          }
+          return caches.match('/');
+        });
+    })
+  );
 });
 
 self.addEventListener('message', async (event) => {

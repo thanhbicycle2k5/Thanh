@@ -11,8 +11,7 @@ export default defineConfig(({ mode }) => {
       react(),
       tailwindcss(),
       VitePWA({
-        registerType: 'prompt',
-        injectRegister: 'auto',
+        injectRegister: null,
         includeAssets: ['favicon.svg'],
         manifest: {
           name: 'Scheduler — Weekly Planner',
@@ -33,7 +32,7 @@ export default defineConfig(({ mode }) => {
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           cleanupOutdatedCaches: true,
-          skipWaiting: false,
+          skipWaiting: true,
         },
         devOptions: {
           enabled: false,

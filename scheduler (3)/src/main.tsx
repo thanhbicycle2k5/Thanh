@@ -2,6 +2,13 @@ import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
 import App from './App.tsx';
 import './index.css';
+import { registerNotificationWorker } from './lib/notification';
+
+if ('serviceWorker' in navigator) {
+  registerNotificationWorker().catch((error) => {
+    console.warn('Offline service worker registration failed:', error);
+  });
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

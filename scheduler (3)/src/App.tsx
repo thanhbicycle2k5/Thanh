@@ -426,6 +426,57 @@ export default function App() {
 
   const [loginLoading, setLoginLoading] = React.useState(false);
 
+  const syncPendingUserData = React.useCallback(async (uid: string) => {
+    if (typeof window === 'undefined' || !('navigator' in window) || !navigator.onLine) {
+      return;
+    }
+
+    if (!storage.hasPendingSync(uid)) {
+      return;
+    }
+
+    setSyncing(true);
+    try {
+      const localPlans = storage.getPlans(uid);
+      const localMetas = storage.getWeekMetas(uid);
+      const localSettings = storage.getSettings(uid);
+
+      await cloudStorage.savePlans(uid, localPlans);
+      await Promise.all(
+        Object.entries(localMetas).map(([weekStart, meta]) =>
+          cloudStorage.saveWeekMeta(uid, weekStart, meta)
+        )
+      );
+      await cloudStorage.saveSettings(uid, localSettings);
+      storage.clearPendingSync(uid);
+      toast.success(t('offlineSyncRestored'));
+    } catch (error) {
+      console.warn('Pending sync failed:', error);
+    } finally {
+      setSyncing(false);
+    }
+  }, [t]);
+
+  React.useEffect(() => {
+    const handleOnline = async () => {
+      setIsOnline(true);
+      if (user) {
+        await syncPendingUserData(user.uid);
+      }
+    };
+    const handleOffline = () => {
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [user, syncPendingUserData]);
+
   // Data Migration / Initial Fetch
   React.useEffect(() => {
      settleRedirectAuth()
@@ -444,12 +495,29 @@ export default function App() {
 
         setUser(firebaseUser);
         setAuthLoading(false);
+
+        const anonymousPlans = storage.getPlans();
+        const anonymousWeekMetas = storage.getWeekMetas();
+        const anonymousSettings = normalizeSettings(storage.getSettings());
+
         if (firebaseUser) {
+           const localPlansForUid = storage.getPlans(firebaseUser.uid);
+           const localMetasForUid = storage.getWeekMetas(firebaseUser.uid);
+           const localSettingsForUid = normalizeSettings(storage.getSettings(firebaseUser.uid));
+           const hasPendingSync = storage.hasPendingSync(firebaseUser.uid);
+
+           setPlans(localPlansForUid.length > 0 ? localPlansForUid : anonymousPlans);
+           setWeekMetas(Object.keys(localMetasForUid).length > 0 ? localMetasForUid : anonymousWeekMetas);
+           setSettings(prev => normalizeSettings({ ...prev, ...localSettingsForUid }));
            setSyncing(true);
-           
+
+           if (navigator.onLine && hasPendingSync) {
+             await syncPendingUserData(firebaseUser.uid);
+           }
+
            try {
              console.log("Starting cloud sync for user:", firebaseUser.uid);
-             
+
              if (!auth.currentUser) {
                await new Promise(r => setTimeout(r, 500));
              }
@@ -464,9 +532,6 @@ export default function App() {
                cloudStorage.getSettings(firebaseUser.uid).catch(() => ({}))
              ]);
 
-             const localPlansForUid = storage.getPlans(firebaseUser.uid);
-             const anonymousPlans = storage.getPlans();
-             
              if (cloudPlans.length === 0) {
                const plansToMigrate = localPlansForUid.length > 0 ? localPlansForUid : anonymousPlans;
                if (plansToMigrate.length > 0) {
@@ -475,40 +540,49 @@ export default function App() {
                }
              }
 
-             const localMetasForUid = storage.getWeekMetas(firebaseUser.uid);
-             const anonymousMetas = storage.getWeekMetas();
              if (Object.keys(cloudWeekMetas).length === 0) {
-               const metasToMigrate = Object.keys(localMetasForUid).length > 0 ? localMetasForUid : anonymousMetas;
+               const metasToMigrate = Object.keys(localMetasForUid).length > 0 ? localMetasForUid : anonymousWeekMetas;
                if (Object.keys(metasToMigrate).length > 0) {
                  await setDoc(doc(db, "users", firebaseUser.uid, "meta", "weekMetas"), metasToMigrate);
                }
              }
 
-             const initialPlans = cloudPlans.length > 0 ? cloudPlans : (localPlansForUid.length > 0 ? localPlansForUid : anonymousPlans);
+             const initialPlans = hasPendingSync
+               ? localPlansForUid
+               : cloudPlans.length > 0
+                 ? cloudPlans
+                 : (localPlansForUid.length > 0 ? localPlansForUid : anonymousPlans);
              setPlans(initialPlans);
-             
-             const initialMetas = Object.keys(cloudWeekMetas).length > 0 ? cloudWeekMetas : (Object.keys(localMetasForUid).length > 0 ? localMetasForUid : anonymousMetas);
+
+             const initialMetas = hasPendingSync
+               ? localMetasForUid
+               : Object.keys(cloudWeekMetas).length > 0
+                 ? cloudWeekMetas
+                 : (Object.keys(localMetasForUid).length > 0 ? localMetasForUid : anonymousWeekMetas);
              setWeekMetas(initialMetas);
 
-             if (Object.keys(cloudSettings).length > 0) {
+             if (!hasPendingSync && Object.keys(cloudSettings).length > 0) {
                setSettings(prev => normalizeSettings({ ...prev, ...cloudSettings }));
              }
 
-             unsubPlans = subscribePlans(firebaseUser.uid, p => { 
+             unsubPlans = subscribePlans(firebaseUser.uid, p => {
                 if (p.length > 0 || initialPlans.length === 0) {
-                  setPlans(p); 
+                  setPlans(p);
                   storage.savePlans(p, firebaseUser.uid);
                 }
-                setSyncing(false); 
+                setSyncing(false);
              });
            } catch (e) {
              console.error("Failed to sync/migrate data:", e);
              setSyncing(false);
+             setPlans(localPlansForUid.length > 0 ? localPlansForUid : anonymousPlans);
+             setWeekMetas(Object.keys(localMetasForUid).length > 0 ? localMetasForUid : anonymousWeekMetas);
+             setSettings(prev => normalizeSettings({ ...prev, ...localSettingsForUid }));
            }
         } else {
-           setPlans(storage.getPlans());
-           setWeekMetas(storage.getWeekMetas());
-           setSettings(normalizeSettings(storage.getSettings()));
+           setPlans(anonymousPlans);
+           setWeekMetas(anonymousWeekMetas);
+           setSettings(anonymousSettings);
            setSyncing(false);
         }
      });
@@ -853,33 +927,52 @@ export default function App() {
       playNotificationSound(settingsState.notificationSound);
       const motivators = [t('motivate1'), t('motivate2'), t('motivate3'), t('motivate4'), t('motivate5')];
       const message = motivators[Math.floor(Math.random() * motivators.length)];
-      toast.success(message, { 
+      toast.success(message, {
         icon: <Trophy className="w-4 h-4 text-yellow-500" />,
-        duration: 3000 
+        duration: 3000
       });
       setShowCelebration(true);
       showSpeechBubbleText('complete', p.title || 'nhiệm vụ', p.id);
     }
+
+    setPlans((prev) => {
+      const next = prev.map(x => x.id === p.id ? p : x);
+      storage.savePlans(next, user?.uid);
+      return next;
+    });
+
     if (user) {
-      cloudStorage.savePlan(user.uid, p);
-    } else {
-      setPlans(prev => prev.map(x => x.id === p.id ? p : x));
+      cloudStorage.savePlan(user.uid, p).catch((error) => {
+        console.warn('Cloud save failed, local change persisted:', error);
+      });
     }
   }, [user, settingsState.notificationSound, t, showSpeechBubbleText]);
 
   const handleAddPlan = React.useCallback((p: Plan) => {
+    setPlans((prev) => {
+      const next = [...prev, p];
+      storage.savePlans(next, user?.uid);
+      return next;
+    });
+
     if (user) {
-      cloudStorage.savePlan(user.uid, p);
-    } else {
-      setPlans(prev => [...prev, p]);
+      cloudStorage.savePlan(user.uid, p).catch((error) => {
+        console.warn('Cloud save failed, local change persisted:', error);
+      });
     }
   }, [user]);
 
   const handleDeletePlan = React.useCallback((id: string) => {
+    setPlans((prev) => {
+      const next = prev.filter(x => x.id !== id);
+      storage.savePlans(next, user?.uid);
+      return next;
+    });
+
     if (user) {
-      cloudStorage.deletePlan(user.uid, id);
-    } else {
-      setPlans(prev => prev.filter(x => x.id !== id));
+      cloudStorage.deletePlan(user.uid, id).catch((error) => {
+        console.warn('Cloud delete failed, local change persisted:', error);
+      });
     }
   }, [user]);
 

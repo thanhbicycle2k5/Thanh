@@ -24,6 +24,7 @@ const defaultSettings: AppSettings = {
 };
 
 const keyFor = (key: string, uid?: string | null) => uid ? `${key}_${uid}` : key;
+const pendingSyncKey = (uid?: string | null) => keyFor('chronos_pending_sync', uid);
 
 const isBackgroundConfig = (value: any): value is AppSettings['backgroundConfig'] => {
   return (
@@ -78,6 +79,9 @@ export const storage = {
   },
   savePlans: (plans: Plan[], uid?: string | null) => {
     localStorage.setItem(keyFor('chronos_excel_plans', uid), JSON.stringify(plans));
+    if (uid) {
+      localStorage.setItem(pendingSyncKey(uid), '1');
+    }
   },
   getWeekMetas: (uid?: string | null): Record<string, any> => {
     try {
@@ -91,6 +95,9 @@ export const storage = {
     const metas = storage.getWeekMetas(uid);
     metas[weekStart] = { ...metas[weekStart], ...meta };
     localStorage.setItem(keyFor('chronos_week_meta', uid), JSON.stringify(metas));
+    if (uid) {
+      localStorage.setItem(pendingSyncKey(uid), '1');
+    }
   },
   getSettings: (uid?: string | null): AppSettings => {
     try {
@@ -105,6 +112,9 @@ export const storage = {
     const current = storage.getSettings(uid);
     const normalized = normalizeSettings({ ...current, ...settings });
     localStorage.setItem(keyFor('chronos_settings', uid), JSON.stringify(normalized));
+    if (uid) {
+      localStorage.setItem(pendingSyncKey(uid), '1');
+    }
   },
   addPlan: (plan: Plan, uid?: string | null) => {
     const plans = storage.getPlans(uid);
@@ -133,6 +143,18 @@ export const storage = {
       ids.push(notificationId);
       localStorage.setItem(keyFor(FIRED_NOTIFICATION_IDS_KEY, uid), JSON.stringify(ids));
     }
+  },
+  hasPendingSync: (uid?: string | null) => {
+    if (!uid) {
+      return false;
+    }
+    return localStorage.getItem(pendingSyncKey(uid)) === '1';
+  },
+  clearPendingSync: (uid?: string | null) => {
+    if (!uid) {
+      return;
+    }
+    localStorage.removeItem(pendingSyncKey(uid));
   },
   clearFiredNotificationIds: (uid?: string | null) => {
     localStorage.removeItem(keyFor(FIRED_NOTIFICATION_IDS_KEY, uid));
