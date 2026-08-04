@@ -139,6 +139,12 @@ export async function cancelScheduledNotificationById(id: string): Promise<void>
   }
 
   if (registration?.active) {
+    try {
+      const notifications = await registration.getNotifications({ tag: id });
+      notifications.forEach((notification) => notification.close());
+    } catch (error) {
+      console.warn('Failed to close active notifications for cancelled task', error);
+    }
     registration.active.postMessage({ type: SCHEDULY_CANCEL_NOTIFICATION, payload: { id } });
   }
 }

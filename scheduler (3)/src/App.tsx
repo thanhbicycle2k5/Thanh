@@ -1104,14 +1104,6 @@ export default function App() {
       });
       setShowCelebration(true);
       showSpeechBubbleText('complete', p.title || 'nhiệm vụ', p.id);
-
-      // Show an immediate system notification for completion (works via Service Worker when backgrounded)
-      try {
-        const taskName = p.title?.trim() || 'nhiệm vụ';
-        showNowNotification(buildNotificationTitle(), buildNotificationBody(taskName), `scheduly-complete-${p.id}`);
-      } catch (e) {
-        console.warn('Failed to show completion notification', e);
-      }
     }
 
     setPlans((prev) => {
