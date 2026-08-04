@@ -298,9 +298,17 @@ export default function App() {
   const [weekMetas, setWeekMetas] = React.useState<Record<string, any>>(() => storage.getWeekMetas());
   const [isSummaryOpen, setIsSummaryOpen] = React.useState(false);
   const plansRef = React.useRef<Plan[]>(plans);
+  const weekMetasRef = React.useRef<Record<string, any>>(weekMetas);
+  const settingsRef = React.useRef<AppSettings>(normalizeSettings(storage.getSettings()));
   React.useEffect(() => {
     plansRef.current = plans;
   }, [plans]);
+  React.useEffect(() => {
+    weekMetasRef.current = weekMetas;
+  }, [weekMetas]);
+  React.useEffect(() => {
+    settingsRef.current = settingsState;
+  }, [settingsState]);
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const [gymRestOpen, setGymRestOpen] = React.useState(false);
   const [gymRestRunning, setGymRestRunning] = React.useState(false);
@@ -528,6 +536,12 @@ export default function App() {
           : undefined;
         const anonymousSettingsFromStorage = storage.hasStoredSettings() ? storage.getSettings() : undefined;
         const hasPendingSync = firebaseUser ? storage.hasPendingSync(firebaseUser.uid) : false;
+        const hasExistingLocalData = anonymousPlans.length > 0 || Object.keys(anonymousWeekMetas).length > 0 || storage.hasStoredSettings() || (firebaseUser ? storage.hasStoredSettings(firebaseUser.uid) : false);
+        const currentPlansFallback = plansRef.current.length > 0 ? plansRef.current : anonymousPlans;
+        const currentWeekMetasFallback = Object.keys(weekMetasRef.current).length > 0 ? weekMetasRef.current : anonymousWeekMetas;
+        const currentSettingsFallback = Object.keys(settingsRef.current).length > 0 && JSON.stringify(settingsRef.current) !== JSON.stringify(anonymousSettings)
+          ? settingsRef.current
+          : anonymousSettings;
 
         if (firebaseUser) {
            const mergePlans = (base: Plan[], extra: Plan[]) => {
@@ -570,10 +584,12 @@ export default function App() {
              storage.setPendingSync(firebaseUser.uid, 'settings', true);
            }
 
-           const initialPlans = mergedPlans.length > 0 ? mergedPlans : anonymousPlans;
+           const initialPlans = mergedPlans.length > 0 ? mergedPlans : currentPlansFallback;
+           const initialWeekMetas = Object.keys(mergedWeekMetas).length > 0 ? mergedWeekMetas : currentWeekMetasFallback;
+           const initialSettings = normalizeSettings({ ...currentSettingsFallback, ...mergedSettings });
            setPlans(initialPlans);
-           setWeekMetas(Object.keys(mergedWeekMetas).length > 0 ? mergedWeekMetas : anonymousWeekMetas);
-           setSettings(prev => normalizeSettings({ ...prev, ...mergedSettings }));
+           setWeekMetas(initialWeekMetas);
+           setSettings(initialSettings);
            setSyncing(true);
 
            if (navigator.onLine && (hasPendingSync || anonymousPlans.length > 0 || Object.keys(anonymousWeekMetas).length > 0 || settingsFromAnonExist)) {
@@ -625,40 +641,52 @@ export default function App() {
                ? localPlansForUid
                : cloudPlans.length > 0
                  ? cloudPlans
-                 : (localPlansForUid.length > 0 ? localPlansForUid : anonymousPlans);
+                 : (localPlansForUid.length > 0 ? localPlansForUid : currentPlansFallback);
              setPlans(initialPlans);
 
              const initialMetas = hasPendingSync
                ? localMetasForUid
                : Object.keys(cloudWeekMetas).length > 0
                  ? cloudWeekMetas
-                 : (Object.keys(localMetasForUid).length > 0 ? localMetasForUid : anonymousWeekMetas);
+                 : (Object.keys(localMetasForUid).length > 0 ? localMetasForUid : currentWeekMetasFallback);
              setWeekMetas(initialMetas);
 
              if (!hasPendingSync && Object.keys(cloudSettings).length > 0) {
                setSettings(prev => normalizeSettings({ ...prev, ...cloudSettings }));
+             } else if (hasExistingLocalData) {
+               setSettings(prev => normalizeSettings({ ...prev, ...currentSettingsFallback }));
              }
 
-             unsubPlans = subscribePlans(firebaseUser.uid, p => {
-                const hasPendingPlanSync = storage.hasPendingSyncFor(firebaseUser.uid, 'plans');
-                const shouldApplyCloudSnapshot = !hasPendingPlanSync || initialPlans.length === 0;
-                if (shouldApplyCloudSnapshot) {
-                  setPlans(p);
-                  storage.savePlans(p, firebaseUser.uid, false);
-                }
-                setSyncing(false);
-             });
+             if (navigator.onLine) {
+               unsubPlans = subscribePlans(firebaseUser.uid, p => {
+                  const hasPendingPlanSync = storage.hasPendingSyncFor(firebaseUser.uid, 'plans');
+                  const shouldApplyCloudSnapshot = !hasPendingPlanSync || initialPlans.length === 0;
+                  if (shouldApplyCloudSnapshot) {
+                    setPlans(p);
+                    storage.savePlans(p, firebaseUser.uid, false);
+                  }
+                  setSyncing(false);
+               });
+             } else {
+               setSyncing(false);
+             }
            } catch (e) {
              console.error("Failed to sync/migrate data:", e);
              setSyncing(false);
-             setPlans(localPlansForUid.length > 0 ? localPlansForUid : anonymousPlans);
-             setWeekMetas(Object.keys(localMetasForUid).length > 0 ? localMetasForUid : anonymousWeekMetas);
-             setSettings(prev => normalizeSettings({ ...prev, ...(rawLocalSettingsForUid ?? {}) }));
+             const fallbackPlans = localPlansForUid.length > 0 ? localPlansForUid : (plansRef.current.length > 0 ? plansRef.current : anonymousPlans);
+             const fallbackMetas = Object.keys(localMetasForUid).length > 0 ? localMetasForUid : (Object.keys(weekMetasRef.current).length > 0 ? weekMetasRef.current : anonymousWeekMetas);
+             const fallbackSettings = normalizeSettings({ ...currentSettingsFallback, ...(rawLocalSettingsForUid ?? {}) });
+             setPlans(fallbackPlans);
+             setWeekMetas(fallbackMetas);
+             setSettings(fallbackSettings);
            }
         } else {
-           setPlans(anonymousPlans);
-           setWeekMetas(anonymousWeekMetas);
-           setSettings(anonymousSettings);
+           const fallbackPlans = plansRef.current.length > 0 ? plansRef.current : anonymousPlans;
+           const fallbackMetas = Object.keys(weekMetasRef.current).length > 0 ? weekMetasRef.current : anonymousWeekMetas;
+           const fallbackSettings = hasExistingLocalData ? normalizeSettings({ ...currentSettingsFallback, ...anonymousSettings }) : anonymousSettings;
+           setPlans(fallbackPlans);
+           setWeekMetas(fallbackMetas);
+           setSettings(fallbackSettings);
            setSyncing(false);
         }
      });
