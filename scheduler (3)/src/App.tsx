@@ -549,12 +549,19 @@ export default function App() {
 
   const clearAllScheduledNotifications = React.useCallback(() => {
     clearScheduledTimeouts();
-    firedNotificationIdsRef.current.clear();
     if (notificationScannerRef.current !== null) {
       window.clearInterval(notificationScannerRef.current);
       notificationScannerRef.current = null;
     }
   }, [clearScheduledTimeouts]);
+
+  const stopNotifications = React.useCallback(() => {
+    clearAllScheduledNotifications();
+  }, [clearAllScheduledNotifications]);
+
+  React.useEffect(() => {
+    firedNotificationIdsRef.current = new Set(storage.getFiredNotificationIds(user?.uid));
+  }, [user]);
 
   const getNotificationPermission = React.useCallback(async (): Promise<NotificationPermission> => {
     if (typeof window === 'undefined' || !('Notification' in window)) {
@@ -591,8 +598,9 @@ export default function App() {
     }
 
     firedNotificationIdsRef.current.add(notificationId);
+    storage.addFiredNotificationId(notificationId, user?.uid);
     scheduledNotificationTimeoutsRef.current.delete(notificationId);
-  }, [makeNotificationId, settingsState.catEnabled]);
+  }, [makeNotificationId, user]);
 
   const scheduleUpcomingNotifications = React.useCallback(() => {
     clearScheduledTimeouts();

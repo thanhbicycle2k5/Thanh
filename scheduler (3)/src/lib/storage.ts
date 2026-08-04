@@ -62,6 +62,8 @@ export const normalizeSettings = (raw: any): AppSettings => {
   };
 };
 
+const FIRED_NOTIFICATION_IDS_KEY = 'chronos_fired_notification_ids';
+
 export const storage = {
   getPlans: (uid?: string | null): Plan[] => {
     try {
@@ -113,5 +115,24 @@ export const storage = {
   deletePlan: (id: string, uid?: string | null) => {
     const plans = storage.getPlans(uid);
     storage.savePlans(plans.filter(p => p.id !== id), uid);
+  },
+  getFiredNotificationIds: (uid?: string | null): string[] => {
+    try {
+      const data = localStorage.getItem(keyFor(FIRED_NOTIFICATION_IDS_KEY, uid));
+      return data ? JSON.parse(data) : [];
+    } catch (e) {
+      console.error('Failed to load fired notification ids', e);
+      return [];
+    }
+  },
+  addFiredNotificationId: (notificationId: string, uid?: string | null) => {
+    const ids = storage.getFiredNotificationIds(uid);
+    if (!ids.includes(notificationId)) {
+      ids.push(notificationId);
+      localStorage.setItem(keyFor(FIRED_NOTIFICATION_IDS_KEY, uid), JSON.stringify(ids));
+    }
+  },
+  clearFiredNotificationIds: (uid?: string | null) => {
+    localStorage.removeItem(keyFor(FIRED_NOTIFICATION_IDS_KEY, uid));
   }
 };
