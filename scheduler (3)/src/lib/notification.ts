@@ -110,7 +110,6 @@ export async function scheduleTaskNotification(payload: ScheduledNotificationPay
   // Fallback if service worker is not available.
   const delay = payload.fireAt - Date.now();
   if (delay <= 0) {
-    showImmediateNotification(payload.title);
     return;
   }
 

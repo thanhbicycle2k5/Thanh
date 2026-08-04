@@ -165,7 +165,6 @@ self.addEventListener('message', async (event) => {
   await storeScheduledPayload(payload);
   const delay = payload.fireAt - Date.now();
   if (delay <= 0) {
-    await showNotification(payload);
     return;
   }
 
@@ -197,7 +196,7 @@ async function triggerStoredNotifications() {
   const now = Date.now();
   await Promise.all(
     items.map(async ({ request, payload }) => {
-      if (payload.fireAt <= now) {
+      if (payload.fireAt <= now && now - payload.fireAt < 60_000) {
         await showNotification(payload);
         await removeScheduledPayload(request);
       }
