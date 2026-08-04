@@ -110,7 +110,12 @@ export async function clearScheduledNotifications(): Promise<void> {
   });
   fallbackTimeouts.clear();
 
-  const registration = await getWorkerRegistration();
+  let registration = await getWorkerRegistration();
+  if (!registration) {
+    await registerNotificationWorker();
+    registration = await getWorkerRegistration();
+  }
+
   if (registration?.active) {
     registration.active.postMessage({ type: SCHEDULY_CLEAR_ALL_NOTIFICATIONS });
   }

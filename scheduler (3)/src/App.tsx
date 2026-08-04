@@ -702,10 +702,25 @@ export default function App() {
      };
   }, []);
 
+  const clearAllScheduledNotifications = React.useCallback(async () => {
+    if (notificationScannerRef.current !== null) {
+      window.clearInterval(notificationScannerRef.current);
+      notificationScannerRef.current = null;
+    }
+    await clearAllWorkerNotifications();
+  }, [clearAllWorkerNotifications]);
+
+  const stopNotifications = React.useCallback(() => {
+    void clearAllScheduledNotifications();
+  }, [clearAllScheduledNotifications]);
+
   const handleUpdateSettings = React.useCallback((newSettings: Partial<AppSettings>) => {
     const updated = normalizeSettings({ ...settingsState, ...newSettings });
     setSettings(updated);
     storage.saveSettings(newSettings, user?.uid);
+    if (updated.notificationsEnabled === false) {
+      void clearAllScheduledNotifications();
+    }
     if (user) {
       cloudStorage.saveSettings(user.uid, newSettings)
         .then(() => storage.setPendingSync(user.uid, 'settings', false))
@@ -713,7 +728,7 @@ export default function App() {
           console.warn('Cloud settings save failed:', error);
         });
     }
-  }, [settingsState, user]);
+  }, [settingsState, user, clearAllScheduledNotifications]);
 
   React.useEffect(() => {
     if (settingsState.theme === 'dark') document.documentElement.classList.add('dark');
@@ -744,18 +759,6 @@ export default function App() {
     return minutesUntilStart >= 14 && minutesUntilStart <= 15;
   }, []);
 
-  const clearAllScheduledNotifications = React.useCallback(async () => {
-    if (notificationScannerRef.current !== null) {
-      window.clearInterval(notificationScannerRef.current);
-      notificationScannerRef.current = null;
-    }
-    await clearAllWorkerNotifications();
-  }, [clearAllWorkerNotifications]);
-
-  const stopNotifications = React.useCallback(() => {
-    void clearAllScheduledNotifications();
-  }, [clearAllScheduledNotifications]);
-
   React.useEffect(() => {
     firedNotificationIdsRef.current = new Set(storage.getFiredNotificationIds(user?.uid));
   }, [user]);
@@ -778,7 +781,7 @@ export default function App() {
   }, []);
 
   const sendReminderNotification = React.useCallback(async (plan: Plan) => {
-    if (!isOnline || plan.color === 'green') {
+    if (!isOnline || !settingsState.notificationsEnabled || plan.color === 'green') {
       return;
     }
 
@@ -820,7 +823,7 @@ export default function App() {
   }, [makeNotificationId, user, showSpeechBubbleText, getEventDate, getMinutesUntilStart, isWithinReminderWindow, isOnline]);
 
   const scheduleUpcomingNotifications = React.useCallback(async () => {
-    if (!isOnline) {
+    if (!isOnline || !settingsState.notificationsEnabled) {
       return;
     }
 
@@ -871,7 +874,7 @@ export default function App() {
   }, [clearAllScheduledNotifications, getEventDate, makeNotificationId, sendReminderNotification, getNotificationPermission]);
 
   const scanForMissedNotifications = React.useCallback(() => {
-    if (!isOnline || typeof window === 'undefined') {
+    if (!isOnline || !settingsState.notificationsEnabled || typeof window === 'undefined') {
       return;
     }
 
@@ -902,8 +905,8 @@ export default function App() {
       return;
     }
 
-    await clearAllScheduledNotifications();
     await registerNotificationWorker();
+    await clearAllScheduledNotifications();
     void scheduleUpcomingNotifications();
     if (notificationScannerRef.current !== null) {
       window.clearInterval(notificationScannerRef.current);

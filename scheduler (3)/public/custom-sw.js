@@ -4,6 +4,8 @@ const SCHEDULY_NOTIFICATION_MESSAGE = 'SCHEDULY_SCHEDULE_NOTIFICATION';
 const SCHEDULY_CLEAR_ALL_NOTIFICATIONS = 'SCHEDULY_CLEAR_ALL_NOTIFICATIONS';
 const APP_SHELL_URLS = ['/', '/index.html', '/favicon.svg', '/manifest.webmanifest'];
 
+const fallbackScheduledTimeouts = new Map();
+
 async function openScheduleCache() {
   return await caches.open(SCHEDULE_CACHE_NAME);
 }
@@ -161,6 +163,10 @@ self.addEventListener('message', async (event) => {
 
   if (message.type === SCHEDULY_CLEAR_ALL_NOTIFICATIONS) {
     await clearScheduledPayloads();
+    fallbackScheduledTimeouts.forEach((timeoutId) => {
+      self.clearTimeout(timeoutId);
+    });
+    fallbackScheduledTimeouts.clear();
     await closeActiveNotifications();
     return;
   }
@@ -168,6 +174,11 @@ self.addEventListener('message', async (event) => {
     const payload = message.payload;
     if (payload?.id) {
       await removeScheduledPayload(new Request(`/scheduly-notification/${payload.id}`));
+      const timeoutId = fallbackScheduledTimeouts.get(payload.id);
+      if (timeoutId !== undefined) {
+        self.clearTimeout(timeoutId);
+        fallbackScheduledTimeouts.delete(payload.id);
+      }
       await closeActiveNotifications();
     }
     return;
@@ -202,12 +213,12 @@ self.addEventListener('message', async (event) => {
     }
   }
 
-  self.registration.getNotifications({ tag: payload.id }).then(() => {
-    setTimeout(async () => {
-      await showNotification(payload);
-      await triggerStoredNotifications();
-    }, Math.max(0, delay));
-  });
+  const timeoutId = self.setTimeout(async () => {
+    await showNotification(payload);
+    await triggerStoredNotifications();
+    fallbackScheduledTimeouts.delete(payload.id);
+  }, Math.max(0, delay));
+  fallbackScheduledTimeouts.set(payload.id, timeoutId);
 });
 
 async function triggerStoredNotifications() {
