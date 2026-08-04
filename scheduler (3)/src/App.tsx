@@ -575,7 +575,8 @@ export default function App() {
              }
 
              unsubPlans = subscribePlans(firebaseUser.uid, p => {
-                const shouldApplyCloudSnapshot = p.length > 0 || initialPlans.length === 0 || !hasPendingSync;
+                const hasPendingPlanSync = storage.hasPendingSyncFor(firebaseUser.uid, 'plans');
+                const shouldApplyCloudSnapshot = !hasPendingPlanSync || initialPlans.length === 0;
                 if (shouldApplyCloudSnapshot) {
                   setPlans(p);
                   storage.savePlans(p, firebaseUser.uid, false);
@@ -611,7 +612,7 @@ export default function App() {
     storage.saveSettings(newSettings, user?.uid);
     if (user) {
       cloudStorage.saveSettings(user.uid, newSettings)
-        .then(() => storage.setPendingSync(user.uid, false))
+        .then(() => storage.setPendingSync(user.uid, 'settings', false))
         .catch((error) => {
           console.warn('Cloud settings save failed:', error);
         });
@@ -960,9 +961,10 @@ export default function App() {
     if (user) {
       cloudStorage.savePlan(user.uid, p)
         .then(() => {
-          storage.setPendingSync(user.uid, false);
+          storage.setPendingSync(user.uid, 'plans', false);
         })
         .catch((error) => {
+          storage.setPendingSync(user.uid, 'plans', true);
           console.warn('Cloud save failed, local change persisted:', error);
         });
     }
@@ -978,9 +980,10 @@ export default function App() {
     if (user) {
       cloudStorage.savePlan(user.uid, p)
         .then(() => {
-          storage.setPendingSync(user.uid, false);
+          storage.setPendingSync(user.uid, 'plans', false);
         })
         .catch((error) => {
+          storage.setPendingSync(user.uid, 'plans', true);
           console.warn('Cloud save failed, local change persisted:', error);
         });
     }
@@ -996,9 +999,10 @@ export default function App() {
     if (user) {
       cloudStorage.deletePlan(user.uid, id)
         .then(() => {
-          storage.setPendingSync(user.uid, false);
+          storage.setPendingSync(user.uid, 'plans', false);
         })
         .catch((error) => {
+          storage.setPendingSync(user.uid, 'plans', true);
           console.warn('Cloud delete failed, local change persisted:', error);
         });
     }
@@ -1319,7 +1323,11 @@ export default function App() {
                     const updated = { ...weekMetas, [key]: { ...weekMetas[key], note } };
                     setWeekMetas(updated);
                     storage.saveWeekMeta(key, { note }, user?.uid);
-                    if (user) cloudStorage.saveWeekMeta(user.uid, key, { note });
+                    if (user) {
+                      cloudStorage.saveWeekMeta(user.uid, key, { note })
+                        .then(() => storage.setPendingSync(user.uid, 'week_meta', false))
+                        .catch(() => storage.setPendingSync(user.uid, 'week_meta', true));
+                    }
                   }}
                />
              </div>
@@ -1378,7 +1386,11 @@ export default function App() {
                                      const updated = { ...weekMetas, [key]: { ...weekMetas[key], color: undefined } };
                                      setWeekMetas(updated);
                                      storage.saveWeekMeta(key, { color: null }, user?.uid);
-                                     if (user) cloudStorage.saveWeekMeta(user.uid, key, { color: null });
+                                     if (user) {
+                                       cloudStorage.saveWeekMeta(user.uid, key, { color: null })
+                                         .then(() => storage.setPendingSync(user.uid, 'week_meta', false))
+                                         .catch(() => storage.setPendingSync(user.uid, 'week_meta', true));
+                                     }
                                   }}>Reset</Button>
                                )}
                             </div>
@@ -1390,7 +1402,11 @@ export default function App() {
                                         const updated = { ...weekMetas, [key]: { ...weekMetas[key], color: c.value } };
                                         setWeekMetas(updated);
                                         storage.saveWeekMeta(key, { color: c.value }, user?.uid);
-                                        if (user) cloudStorage.saveWeekMeta(user.uid, key, { color: c.value });
+                                        if (user) {
+                                          cloudStorage.saveWeekMeta(user.uid, key, { color: c.value })
+                                            .then(() => storage.setPendingSync(user.uid, 'week_meta', false))
+                                            .catch(() => storage.setPendingSync(user.uid, 'week_meta', true));
+                                        }
                                      }}
                                      className={cn(
                                         "w-7 h-7 rounded-lg border-2 transition-all hover:scale-110",
@@ -1411,7 +1427,11 @@ export default function App() {
                                   const updated = { ...weekMetas, [key]: { ...weekMetas[key], note: e.target.value } };
                                   setWeekMetas(updated);
                                   storage.saveWeekMeta(key, { note: e.target.value }, user?.uid);
-                                  if (user) cloudStorage.saveWeekMeta(user.uid, key, { note: e.target.value });
+                                  if (user) {
+                                    cloudStorage.saveWeekMeta(user.uid, key, { note: e.target.value })
+                                      .then(() => storage.setPendingSync(user.uid, 'week_meta', false))
+                                      .catch(() => storage.setPendingSync(user.uid, 'week_meta', true));
+                                  }
                                }}
                                placeholder={t('weekNotePlaceholder')}
                                className="text-xs min-h-[100px] resize-none rounded-xl bg-muted/50 border-border"
@@ -1423,7 +1443,11 @@ export default function App() {
                                const updated = { ...weekMetas, [key]: { ...weekMetas[key] } };
                                setWeekMetas(updated);
                                storage.saveWeekMeta(key, updated[key], user?.uid);
-                               if (user) cloudStorage.saveWeekMeta(user.uid, key, updated[key]);
+                               if (user) {
+                                 cloudStorage.saveWeekMeta(user.uid, key, updated[key])
+                                   .then(() => storage.setPendingSync(user.uid, 'week_meta', false))
+                                   .catch(() => storage.setPendingSync(user.uid, 'week_meta', true));
+                               }
                             }}>
                                {t('save')}
                             </Button>

@@ -23,8 +23,12 @@ const defaultSettings: AppSettings = {
   desktopKeyboardShortcutsEnabled: true,
 };
 
+type PendingSyncScope = 'plans' | 'week_meta' | 'settings';
 const keyFor = (key: string, uid?: string | null) => uid ? `${key}_${uid}` : key;
-const pendingSyncKey = (uid?: string | null) => keyFor('chronos_pending_sync', uid);
+const pendingSyncKey = (uid?: string | null, scope?: PendingSyncScope) => {
+  const base = 'chronos_pending_sync';
+  return scope ? keyFor(`${base}_${scope}`, uid) : keyFor(base, uid);
+};
 const themeKey = 'chronos_theme';
 
 const isBackgroundConfig = (value: any): value is AppSettings['backgroundConfig'] => {
@@ -78,18 +82,22 @@ export const storage = {
       return [];
     }
   },
-  setPendingSync: (uid: string, pending: boolean) => {
+  setPendingSync: (uid: string, scope: PendingSyncScope, pending: boolean) => {
     if (!uid) return;
     if (pending) {
-      localStorage.setItem(pendingSyncKey(uid), '1');
+      localStorage.setItem(pendingSyncKey(uid, scope), '1');
     } else {
-      localStorage.removeItem(pendingSyncKey(uid));
+      localStorage.removeItem(pendingSyncKey(uid, scope));
     }
+  },
+  hasPendingSyncFor: (uid: string | null | undefined, scope: PendingSyncScope) => {
+    if (!uid) return false;
+    return localStorage.getItem(pendingSyncKey(uid, scope)) === '1';
   },
   savePlans: (plans: Plan[], uid?: string | null, markPending = true) => {
     localStorage.setItem(keyFor('chronos_excel_plans', uid), JSON.stringify(plans));
     if (uid && markPending) {
-      localStorage.setItem(pendingSyncKey(uid), '1');
+      localStorage.setItem(pendingSyncKey(uid, 'plans'), '1');
     }
   },
   getWeekMetas: (uid?: string | null): Record<string, any> => {
@@ -105,7 +113,7 @@ export const storage = {
     metas[weekStart] = { ...metas[weekStart], ...meta };
     localStorage.setItem(keyFor('chronos_week_meta', uid), JSON.stringify(metas));
     if (uid && markPending) {
-      localStorage.setItem(pendingSyncKey(uid), '1');
+      localStorage.setItem(pendingSyncKey(uid, 'week_meta'), '1');
     }
   },
   getSettings: (uid?: string | null): AppSettings => {
@@ -123,7 +131,7 @@ export const storage = {
     localStorage.setItem(keyFor('chronos_settings', uid), JSON.stringify(normalized));
     localStorage.setItem(themeKey, normalized.theme);
     if (uid && markPending) {
-      localStorage.setItem(pendingSyncKey(uid), '1');
+      localStorage.setItem(pendingSyncKey(uid, 'settings'), '1');
     }
   },
   addPlan: (plan: Plan, uid?: string | null) => {
@@ -158,13 +166,32 @@ export const storage = {
     if (!uid) {
       return false;
     }
-    return localStorage.getItem(pendingSyncKey(uid)) === '1';
+    return (
+      localStorage.getItem(pendingSyncKey(uid, 'plans')) === '1' ||
+      localStorage.getItem(pendingSyncKey(uid, 'week_meta')) === '1' ||
+      localStorage.getItem(pendingSyncKey(uid, 'settings')) === '1'
+    );
   },
-  clearPendingSync: (uid?: string | null) => {
+  hasPendingSyncFor: (uid?: string | null, scope?: PendingSyncScope) => {
+    if (!uid) {
+      return false;
+    }
+    if (scope) {
+      return localStorage.getItem(pendingSyncKey(uid, scope)) === '1';
+    }
+    return storage.hasPendingSync(uid);
+  },
+  clearPendingSync: (uid?: string | null, scope?: PendingSyncScope) => {
     if (!uid) {
       return;
     }
-    localStorage.removeItem(pendingSyncKey(uid));
+    if (scope) {
+      localStorage.removeItem(pendingSyncKey(uid, scope));
+      return;
+    }
+    localStorage.removeItem(pendingSyncKey(uid, 'plans'));
+    localStorage.removeItem(pendingSyncKey(uid, 'week_meta'));
+    localStorage.removeItem(pendingSyncKey(uid, 'settings'));
   },
   clearFiredNotificationIds: (uid?: string | null) => {
     localStorage.removeItem(keyFor(FIRED_NOTIFICATION_IDS_KEY, uid));
