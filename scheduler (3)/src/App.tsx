@@ -718,13 +718,13 @@ export default function App() {
     else document.documentElement.classList.remove('dark');
   }, [settingsState.theme]);
 
-  const scheduledNotificationTimeoutsRef = React.useRef<Map<string, number>>(new Map());
   const firedNotificationIdsRef = React.useRef<Set<string>>(new Set());
   const notificationScannerRef = React.useRef<number | null>(null);
 
   const makeNotificationId = React.useCallback((plan: Plan) => {
-    const fallbackBase = `${plan.date}-${plan.startHour}-${plan.title?.trim() || 'task'}`;
-    return `scheduly-${plan.id || fallbackBase}`;
+    const title = plan.title?.trim() || 'nhiệm vụ';
+    const nameToken = title.replace(/[\s\W]+/g, '_').toLowerCase();
+    return `scheduly-${nameToken}-${plan.startHour}-${plan.date}`;
   }, []);
 
   const getEventDate = React.useCallback((plan: Plan) => {
@@ -733,19 +733,22 @@ export default function App() {
     return eventDate;
   }, []);
 
-  const clearScheduledTimeouts = React.useCallback(() => {
-    scheduledNotificationTimeoutsRef.current.forEach((timeout) => window.clearTimeout(timeout));
-    scheduledNotificationTimeoutsRef.current.clear();
+  const getMinutesUntilStart = React.useCallback((plan: Plan) => {
+    const now = Date.now();
+    return (getEventDate(plan).getTime() - now) / 60_000;
+  }, [getEventDate]);
+
+  const isWithinReminderWindow = React.useCallback((minutesUntilStart: number) => {
+    return minutesUntilStart >= 14 && minutesUntilStart <= 15;
   }, []);
 
   const clearAllScheduledNotifications = React.useCallback(async () => {
-    clearScheduledTimeouts();
     if (notificationScannerRef.current !== null) {
       window.clearInterval(notificationScannerRef.current);
       notificationScannerRef.current = null;
     }
     await clearAllWorkerNotifications();
-  }, [clearScheduledTimeouts]);
+  }, [clearAllWorkerNotifications]);
 
   const stopNotifications = React.useCallback(() => {
     void clearAllScheduledNotifications();
@@ -782,6 +785,11 @@ export default function App() {
       return;
     }
 
+    const minutesUntilStart = getMinutesUntilStart(plan);
+    if (!isWithinReminderWindow(minutesUntilStart)) {
+      return;
+    }
+
     const taskName = plan.title?.trim() || 'công việc';
     const remindAt = getEventDate(plan).getTime() - 15 * 60 * 1000;
     const payload = {
@@ -795,7 +803,11 @@ export default function App() {
     showSpeechBubbleText('remind', taskName, notificationId);
 
     try {
-      await scheduleTaskNotification(payload);
+      if (remindAt <= Date.now()) {
+        await showNowNotification(payload.title, payload.body, payload.id);
+      } else {
+        await scheduleTaskNotification(payload);
+      }
     } catch (error) {
       console.error('Failed to schedule notification', error);
       showImmediateNotification(taskName);
@@ -803,8 +815,7 @@ export default function App() {
 
     firedNotificationIdsRef.current.add(notificationId);
     storage.addFiredNotificationId(notificationId, user?.uid);
-    scheduledNotificationTimeoutsRef.current.delete(notificationId);
-  }, [makeNotificationId, user, showSpeechBubbleText, getEventDate, isOnline]);
+  }, [makeNotificationId, user, showSpeechBubbleText, getEventDate, getMinutesUntilStart, isWithinReminderWindow, isOnline]);
 
   const scheduleUpcomingNotifications = React.useCallback(async () => {
     if (!isOnline) {
@@ -838,19 +849,22 @@ export default function App() {
         return;
       }
 
-      if (remindAt <= now) {
-        sendReminderNotification(plan);
+      const minutesUntilStart = (eventDate.getTime() - now) / 60_000;
+      if (isWithinReminderWindow(minutesUntilStart)) {
+        void sendReminderNotification(plan);
         return;
       }
 
-      scheduleTaskNotification({
-        id: notificationId,
-        title: buildNotificationTitle(),
-        body: buildNotificationBody(plan.title?.trim() || 'công việc'),
-        fireAt: remindAt,
-      }).catch((error) => {
-        console.error('Failed to schedule task notification', error);
-      });
+      if (remindAt > now) {
+        scheduleTaskNotification({
+          id: notificationId,
+          title: buildNotificationTitle(),
+          body: buildNotificationBody(plan.title?.trim() || 'công việc'),
+          fireAt: remindAt,
+        }).catch((error) => {
+          console.error('Failed to schedule task notification', error);
+        });
+      }
     });
   }, [clearAllScheduledNotifications, getEventDate, makeNotificationId, sendReminderNotification, getNotificationPermission]);
 
@@ -871,9 +885,9 @@ export default function App() {
       }
 
       const eventDate = getEventDate(plan);
-      const remindAt = eventDate.getTime() - 15 * 60 * 1000;
-      if (remindAt <= now && now < eventDate.getTime()) {
-        sendReminderNotification(plan);
+      const minutesUntilStart = (eventDate.getTime() - now) / 60_000;
+      if (isWithinReminderWindow(minutesUntilStart)) {
+        void sendReminderNotification(plan);
       }
     });
   }, [getEventDate, makeNotificationId, sendReminderNotification]);

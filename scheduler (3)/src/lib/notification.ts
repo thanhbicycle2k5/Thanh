@@ -189,7 +189,14 @@ export async function scheduleTaskNotification(payload: ScheduledNotificationPay
   }
 
   const timeoutId = window.setTimeout(() => {
-    showImmediateNotification(payload.title);
+    if (Notification.permission === 'granted') {
+      new Notification(payload.title, {
+        body: payload.body,
+        icon: '/favicon.svg',
+        badge: '/favicon.svg',
+        tag: payload.id,
+      });
+    }
     fallbackTimeouts.delete(payload.id);
   }, delay);
   fallbackTimeouts.set(payload.id, timeoutId);

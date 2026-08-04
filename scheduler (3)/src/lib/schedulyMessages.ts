@@ -145,15 +145,15 @@ const goodnightMessages: string[] = [
 ];
 
 const messagesByStatus: Record<SchedulyStatus, string[]> = {
-  remind: remindMessages,
-  complete: completeMessages,
-  goodnight: goodnightMessages,
+  remind: remindMessages.slice(0, 40),
+  complete: completeMessages.slice(0, 40),
+  goodnight: goodnightMessages.slice(0, 20),
 };
 
-const lastMessageIndexByStatus: Record<SchedulyStatus, number | null> = {
-  remind: null,
-  complete: null,
-  goodnight: null,
+const lastMessageIndexesByStatus: Record<SchedulyStatus, number[]> = {
+  remind: [],
+  complete: [],
+  goodnight: [],
 };
 
 function getRandomIndex(status: SchedulyStatus): number {
@@ -161,12 +161,20 @@ function getRandomIndex(status: SchedulyStatus): number {
   const length = messages.length;
   if (length === 0) return 0;
 
-  let index = Math.floor(Math.random() * length);
-  if (length > 1 && index === lastMessageIndexByStatus[status]) {
-    index = (index + 1) % length;
+  const history = lastMessageIndexesByStatus[status];
+  const availableIndexes = messages
+    .map((_, idx) => idx)
+    .filter((idx) => !history.includes(idx));
+
+  const index = availableIndexes.length > 0
+    ? availableIndexes[Math.floor(Math.random() * availableIndexes.length)]
+    : Math.floor(Math.random() * length);
+
+  history.unshift(index);
+  if (history.length > 3) {
+    history.pop();
   }
 
-  lastMessageIndexByStatus[status] = index;
   return index;
 }
 
