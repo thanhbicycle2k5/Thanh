@@ -12,11 +12,11 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       VitePWA({
         injectRegister: null,
-        includeAssets: ['favicon.svg'],
+        includeAssets: ['favicon.svg', 'manifest.webmanifest'],
         manifest: {
-          name: 'Scheduler — Weekly Planner',
+          name: 'Scheduler - Smart planner for everyday',
           short_name: 'Scheduler',
-          description: 'Professional Weekly Planner',
+          description: 'Smart planner for everyday',
           theme_color: '#ffffff',
           background_color: '#ffffff',
           display: 'standalone',
