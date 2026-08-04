@@ -168,44 +168,6 @@
   position: absolute;
 }
 
-#splash-screen {
-  position: fixed;
-  inset: 0;
-  background: #111827;
-  color: #f8fafc;
-  z-index: 99999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-  text-align: center;
-  transition: opacity 0.6s ease, visibility 0.6s ease;
-}
-
-#splash-screen.hide {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.splash-screen__content {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.splash-screen__title {
-  font-size: clamp(2.5rem, 5vw, 4.5rem);
-  font-weight: 900;
-  letter-spacing: 0.08em;
-  margin: 0;
-}
-
-.splash-screen__subtitle {
-  opacity: 0.7;
-  margin: 0;
-  font-size: 1rem;
-}
-
 /* Mobile Settings Dialog - Enable smooth scrolling */
 .mobile-settings-scroll {
   max-height: calc(90vh - 80px);
