@@ -3,42 +3,50 @@ import { MusicTrack } from '../types';
 export const PRESET_TRACKS: MusicTrack[] = [
   {
     id: 'lofi1',
-    name: 'Lo-Fi Chill 1',
+    name: 'Lo-Fi Focus',
     url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
+    source: 'preset',
   },
   {
     id: 'lofi2',
-    name: 'Lo-Fi Chill 2',
+    name: 'Chill Rain',
     url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
+    source: 'preset',
   },
   {
     id: 'lofi3',
-    name: 'Acoustic Study',
+    name: 'Ambient Drift',
     url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
+    source: 'preset',
   },
   {
     id: 'lofi4',
-    name: 'Piano Focus',
+    name: 'Instrumental Study',
     url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
+    source: 'preset',
   },
   {
     id: 'lofi5',
-    name: 'Soft Jazz',
+    name: 'Piano Calm',
     url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
+    source: 'preset',
   },
   {
     id: 'lofi6',
-    name: 'Night Vibes',
+    name: 'Night Soft',
     url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3',
+    source: 'preset',
   },
   {
     id: 'lofi7',
-    name: 'Ambient Flow',
+    name: 'Deep Work',
     url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3',
+    source: 'preset',
   },
   {
     id: 'lofi8',
-    name: 'Deep Work',
+    name: 'Quiet Flow',
     url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-11.mp3',
+    source: 'preset',
   },
 ];

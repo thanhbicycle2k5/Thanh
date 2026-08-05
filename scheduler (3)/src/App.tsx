@@ -14,11 +14,12 @@ import {
   isAfter,
   startOfDay,
 } from 'date-fns';
-import { Plan, NotificationSound, WeekTransitionEffect } from './types';
+import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack } from './types';
 import { storage, normalizeSettings } from './lib/storage';
 import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, settleRedirectAuth } from './lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
+import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
 import { playNotificationSound, playMusicalNote, playCompletionMelody, playMeow } from './lib/sounds';
 import { getSchedulyMessage, SchedulyStatus } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
@@ -48,6 +49,7 @@ import {
   Plus,
   Minus,
   Trash2,
+  Upload,
   Play,
   Pause,
   RotateCcw,
@@ -223,6 +225,9 @@ class SettingsErrorBoundary extends React.Component<{
   children: React.ReactNode;
   onError: (message: string) => void;
   fallback?: React.ReactNode;
+}, {
+  hasError: boolean;
+  errorMessage: string;
 }> {
   state = { hasError: false, errorMessage: '' };
 
@@ -403,34 +408,244 @@ export default function App() {
     setPomodoroRunning(false);
   };
 
+  const [playlistTracks, setPlaylistTracks] = React.useState<MusicTrack[]>(PRESET_TRACKS);
   const [selectedMusicId, setSelectedMusicId] = React.useState<string | null>(null);
-  const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [isMusicPlaying, setIsMusicPlaying] = React.useState(false);
+  const [musicPlaybackMode, setMusicPlaybackMode] = React.useState<MusicPlaybackMode>('loop_all');
+  const [musicInputUrl, setMusicInputUrl] = React.useState('');
+  const [musicError, setMusicError] = React.useState<string | null>(null);
+  const [isMusicLoading, setIsMusicLoading] = React.useState(false);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const selectedTrackRef = React.useRef<MusicTrack | null>(null);
 
   React.useEffect(() => {
-    if (selectedMusicId) {
-      const track = PRESET_TRACKS.find(t => t.id === selectedMusicId);
-      if (track) {
-        if (!audioRef.current) {
-          audioRef.current = new Audio(track.url);
-          audioRef.current.loop = true;
-        } else {
-          audioRef.current.src = track.url;
+    const persisted = loadMusicPlayerState();
+    setSelectedMusicId(persisted.currentTrackId ?? settingsState.musicTrackId ?? null);
+    setMusicPlaybackMode(persisted.playbackMode ?? settingsState.musicPlaybackMode ?? 'loop_all');
+    setIsMusicPlaying(persisted.isPlaying);
+  }, []);
+
+  React.useEffect(() => {
+    let active = true;
+    void listCustomTracks().then((tracks) => {
+      if (!active) return;
+      setPlaylistTracks([...PRESET_TRACKS, ...tracks]);
+      if (!selectedMusicId) {
+        const persisted = loadMusicPlayerState();
+        if (persisted.currentTrackId) {
+          const exists = tracks.some((track) => track.id === persisted.currentTrackId);
+          if (exists) {
+            setSelectedMusicId(persisted.currentTrackId);
+          }
         }
-        if (isMusicPlaying) audioRef.current.play();
       }
-    } else {
-      audioRef.current?.pause();
+    }).catch(() => {
+      setPlaylistTracks(PRESET_TRACKS);
+    });
+    return () => { active = false; };
+  }, []);
+
+  React.useEffect(() => {
+    if (!selectedMusicId) {
+      return;
     }
-  }, [selectedMusicId]);
+    const track = playlistTracks.find((item) => item.id === selectedMusicId);
+    if (!track) {
+      setSelectedMusicId(null);
+      setIsMusicPlaying(false);
+      return;
+    }
+    selectedTrackRef.current = track;
+  }, [playlistTracks, selectedMusicId]);
+
+  const persistMusicState = React.useCallback((nextTrackId: string | null, nextPlaybackMode: MusicPlaybackMode, nextIsPlaying: boolean) => {
+    saveMusicPlayerState({
+      currentTrackId: nextTrackId,
+      playbackMode: nextPlaybackMode,
+      volume: settingsState.musicVolume ?? 0.3,
+      isPlaying: nextIsPlaying,
+    });
+  }, [settingsState.musicVolume]);
+
+  const playTrack = React.useCallback((trackId: string | null, shouldPlay = true) => {
+    if (!trackId) {
+      audioRef.current?.pause();
+      setIsMusicPlaying(false);
+      setSelectedMusicId(null);
+      persistMusicState(null, musicPlaybackMode, false);
+      return;
+    }
+
+    const track = playlistTracks.find((item) => item.id === trackId);
+    if (!track) {
+      return;
+    }
+
+    setSelectedMusicId(track.id);
+    if (!audioRef.current) {
+      audioRef.current = new Audio(track.url);
+    } else {
+      audioRef.current.src = track.url;
+    }
+    audioRef.current.volume = settingsState.musicVolume ?? 0.3;
+    audioRef.current.load();
+
+    if (shouldPlay && settingsState.musicEnabled) {
+      void audioRef.current.play().then(() => {
+        setIsMusicPlaying(true);
+      }).catch(() => {
+        setIsMusicPlaying(false);
+      });
+    } else {
+      audioRef.current.pause();
+      setIsMusicPlaying(false);
+    }
+
+    handleUpdateSettings({ musicTrackId: track.id, musicPlaybackMode, musicVolume: settingsState.musicVolume ?? 0.3 });
+    persistMusicState(track.id, musicPlaybackMode, shouldPlay && settingsState.musicEnabled);
+  }, [handleUpdateSettings, musicPlaybackMode, persistMusicState, playlistTracks, settingsState.musicEnabled, settingsState.musicVolume]);
+
+  React.useEffect(() => {
+    if (!audioRef.current) return;
+    audioRef.current.volume = settingsState.musicVolume ?? 0.3;
+    if (selectedMusicId && settingsState.musicEnabled && isMusicPlaying) {
+      void audioRef.current.play().catch(() => {
+        setIsMusicPlaying(false);
+      });
+    }
+  }, [settingsState.musicVolume, selectedMusicId, settingsState.musicEnabled, isMusicPlaying]);
+
+  React.useEffect(() => {
+    if (!settingsState.musicEnabled) {
+      audioRef.current?.pause();
+      setIsMusicPlaying(false);
+      persistMusicState(selectedMusicId, musicPlaybackMode, false);
+    }
+  }, [persistMusicState, selectedMusicId, musicPlaybackMode, settingsState.musicEnabled]);
 
   const toggleMusic = () => {
-    if (audioRef.current) {
-      if (isMusicPlaying) audioRef.current.pause();
-      else audioRef.current.play();
-      setIsMusicPlaying(!isMusicPlaying);
+    if (!selectedMusicId) {
+      const firstTrack = playlistTracks[0];
+      if (firstTrack) {
+        playTrack(firstTrack.id, true);
+      }
+      return;
+    }
+
+    if (isMusicPlaying) {
+      audioRef.current?.pause();
+      setIsMusicPlaying(false);
+      persistMusicState(selectedMusicId, musicPlaybackMode, false);
+    } else {
+      if (audioRef.current) {
+        void audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(() => setIsMusicPlaying(false));
+      } else {
+        playTrack(selectedMusicId, true);
+      }
+      persistMusicState(selectedMusicId, musicPlaybackMode, true);
     }
   };
+
+  const playNextTrack = () => {
+    if (!playlistTracks.length) return;
+    if (!selectedMusicId) {
+      playTrack(playlistTracks[0].id, true);
+      return;
+    }
+    const currentIndex = playlistTracks.findIndex((track) => track.id === selectedMusicId);
+    const nextId = getNextTrackId({ tracks: playlistTracks, currentTrackId: selectedMusicId, playbackMode: musicPlaybackMode, currentIndex });
+    if (nextId) {
+      playTrack(nextId, true);
+    }
+  };
+
+  const playPreviousTrack = () => {
+    if (!playlistTracks.length) return;
+    if (!selectedMusicId) {
+      playTrack(playlistTracks[playlistTracks.length - 1].id, true);
+      return;
+    }
+    const currentIndex = playlistTracks.findIndex((track) => track.id === selectedMusicId);
+    const previousIndex = currentIndex <= 0 ? playlistTracks.length - 1 : currentIndex - 1;
+    playTrack(playlistTracks[previousIndex].id, true);
+  };
+
+  React.useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const handleEnded = () => {
+      if (musicPlaybackMode === 'play_once') {
+        setIsMusicPlaying(false);
+        persistMusicState(selectedMusicId, musicPlaybackMode, false);
+        return;
+      }
+      if (!selectedMusicId) {
+        return;
+      }
+      const currentIndex = playlistTracks.findIndex((track) => track.id === selectedMusicId);
+      const nextId = getNextTrackId({ tracks: playlistTracks, currentTrackId: selectedMusicId, playbackMode: musicPlaybackMode, currentIndex });
+      if (nextId) {
+        playTrack(nextId, true);
+      }
+    };
+
+    audio.addEventListener('ended', handleEnded);
+    return () => audio.removeEventListener('ended', handleEnded);
+  }, [musicPlaybackMode, playTrack, persistMusicState, playlistTracks, selectedMusicId]);
+
+  const handleAddMusicUrl = React.useCallback(async () => {
+    const trimmed = musicInputUrl.trim();
+    if (!trimmed) {
+      setMusicError(t('enterMusicUrl'));
+      return;
+    }
+    try {
+      new URL(trimmed);
+    } catch {
+      setMusicError(t('enterMusicUrl'));
+      return;
+    }
+
+    setIsMusicLoading(true);
+    setMusicError(null);
+    try {
+      const customTrack = await saveCustomTrack({
+        id: `custom-url-${Date.now()}`,
+        name: `Custom ${new Date().toLocaleTimeString()}`,
+        url: trimmed,
+        isCustom: true,
+        source: 'url',
+      });
+      const nextTracks = [...playlistTracks.filter((track) => track.id !== customTrack.id), customTrack];
+      setPlaylistTracks(nextTracks);
+      playTrack(customTrack.id, true);
+    } catch (error) {
+      setMusicError(error instanceof Error ? error.message : 'Could not add music URL');
+    } finally {
+      setIsMusicLoading(false);
+      setMusicInputUrl('');
+    }
+  }, [musicInputUrl, playTrack, playlistTracks, t]);
+
+  const handleRemoveTrack = React.useCallback(async (trackId: string) => {
+    const track = playlistTracks.find((item) => item.id === trackId);
+    if (!track?.isCustom) return;
+    try {
+      await removeCustomTrack(trackId);
+      const nextTracks = playlistTracks.filter((item) => item.id !== trackId);
+      setPlaylistTracks(nextTracks);
+      if (selectedMusicId === trackId) {
+        const fallbackTrack = nextTracks[0];
+        if (fallbackTrack) {
+          playTrack(fallbackTrack.id, isMusicPlaying);
+        } else {
+          playTrack(null, false);
+        }
+      }
+    } catch (error) {
+      setMusicError(error instanceof Error ? error.message : 'Could not remove track');
+    }
+  }, [isMusicPlaying, playTrack, playlistTracks, selectedMusicId]);
 
   const t = React.useCallback((key: keyof typeof translations.en, params: Record<string, string> = {}) => {
     const locale = translations[settingsState.language] ?? translations.en;
@@ -1410,35 +1625,101 @@ export default function App() {
                     <Music className={cn("w-4 h-4 transition-all", isMusicPlaying && "text-[#107C41] animate-spin-slow")} />
                  </Button>
                </PopoverTrigger>
-               <PopoverContent className="w-64 p-4" align="end">
+               <PopoverContent className="w-80 p-4" align="end">
                  <div className="space-y-4">
-                   <h3 className="font-bold text-sm uppercase tracking-wider">{t('music')}</h3>
-                   <div className="grid gap-1">
-                     {PRESET_TRACKS.map(track => (
-                       <Button 
+                   <div className="flex items-center justify-between">
+                     <h3 className="font-bold text-sm uppercase tracking-wider">{t('music')}</h3>
+                     <span className="text-[10px] text-muted-foreground">{t('playlist')}</span>
+                   </div>
+
+                   <div className="flex items-center gap-2">
+                     <Button variant="outline" size="icon" className="h-9 w-9" onClick={playPreviousTrack}>
+                       <RotateCcw className="w-4 h-4 rotate-180" />
+                     </Button>
+                     <Button variant="secondary" size="icon" className="h-10 w-10" onClick={toggleMusic}>
+                       {isMusicPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                     </Button>
+                     <Button variant="outline" size="icon" className="h-9 w-9" onClick={playNextTrack}>
+                       <RotateCcw className="w-4 h-4" />
+                     </Button>
+                   </div>
+
+                   <div className="space-y-2">
+                     <div className="flex items-center justify-between">
+                       <span className="text-xs font-semibold">{t('playbackMode')}</span>
+                       <Select value={musicPlaybackMode} onValueChange={(value: MusicPlaybackMode) => {
+                         setMusicPlaybackMode(value);
+                         if (selectedMusicId) {
+                           persistMusicState(selectedMusicId, value, isMusicPlaying);
+                         }
+                         handleUpdateSettings({ musicPlaybackMode: value });
+                       }}>
+                         <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                         <SelectContent>
+                           <SelectItem value="play_once">{t('playOnce')}</SelectItem>
+                           <SelectItem value="loop_one">{t('loopOne')}</SelectItem>
+                           <SelectItem value="loop_all">{t('loopAll')}</SelectItem>
+                           <SelectItem value="shuffle">{t('shuffle')}</SelectItem>
+                         </SelectContent>
+                       </Select>
+                     </div>
+
+                     <div className="space-y-1">
+                       <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                         <span>{t('sound')}</span>
+                         <span>{Math.round((settingsState.musicVolume ?? 0.3) * 100)}%</span>
+                       </div>
+                       <Slider value={[settingsState.musicVolume ?? 0.3]} onValueChange={(value: number[]) => {
+                         const nextVolume = value[0];
+                         handleUpdateSettings({ musicVolume: nextVolume });
+                         if (audioRef.current) {
+                           audioRef.current.volume = nextVolume;
+                         }
+                         persistMusicState(selectedMusicId, musicPlaybackMode, isMusicPlaying);
+                       }} min={0} max={1} step={0.01} />
+                     </div>
+                   </div>
+
+                   <div className="max-h-44 overflow-auto rounded-xl border border-border p-2 space-y-1">
+                     {playlistTracks.map((track) => (
+                       <button
                          key={track.id}
-                         variant={selectedMusicId === track.id ? "secondary" : "ghost"} 
-                         size="sm"
-                         className="w-full justify-start text-left text-xs h-8"
+                         className={cn(
+                           'flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-xs transition-colors',
+                           selectedMusicId === track.id ? 'bg-secondary text-secondary-foreground' : 'hover:bg-muted'
+                         )}
                          onClick={() => {
-                           if (selectedMusicId === track.id) {
-                             toggleMusic();
-                           } else {
-                             setSelectedMusicId(track.id);
-                             setIsMusicPlaying(true);
-                           }
+                           playTrack(track.id, true);
                          }}
                        >
-                         {selectedMusicId === track.id && isMusicPlaying ? <Pause className="w-3 h-3 mr-2" /> : <Play className="w-3 h-3 mr-2" />}
-                         <span className="truncate">{track.name}</span>
-                       </Button>
+                         <span className="truncate pr-2">{track.name}</span>
+                         <span className="text-[10px] text-muted-foreground">{track.isCustom ? '★' : '•'}</span>
+                       </button>
                      ))}
                    </div>
-                   {selectedMusicId && (
-                     <Button variant="outline" size="sm" className="w-full mt-2" onClick={() => { setSelectedMusicId(null); setIsMusicPlaying(false); }}>
-                       Stop Music
-                     </Button>
-                   )}
+
+                   <div className="space-y-2 rounded-xl border border-dashed border-border p-3 text-[11px]">
+                     <div className="flex items-center justify-between text-xs font-semibold">
+                       <span>{t('customMusic')}</span>
+                     </div>
+                     <div className="flex items-center gap-2">
+                       <Input value={musicInputUrl} onChange={(event) => setMusicInputUrl(event.target.value)} placeholder={t('enterMusicUrl')} className="h-8 text-[11px]" />
+                       <Button variant="outline" size="sm" className="h-8" onClick={handleAddMusicUrl} disabled={isMusicLoading}>
+                         {t('addMusicUrl')}
+                       </Button>
+                     </div>
+                     <p className="text-[10px] text-muted-foreground">{t('customTrackHint')}</p>
+                     {musicError ? <p className="text-[10px] text-red-500">{musicError}</p> : null}
+                   </div>
+
+                   <div className="flex items-center justify-between">
+                     <span className="text-[10px] text-muted-foreground">{selectedMusicId ? t('musicTrack') : t('noCustomTracks')}</span>
+                     {selectedMusicId && (
+                       <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px]" onClick={() => playTrack(null, false)}>
+                         {t('removeMusic')}
+                       </Button>
+                     )}
+                   </div>
                  </div>
                </PopoverContent>
              </Popover>
@@ -2264,33 +2545,55 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="w-full sm:w-auto">
-                          <Select value={settingsState.musicTrackId} onValueChange={(v: string) => handleUpdateSettings({ musicTrackId: v })}>
-                            <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
-                            <SelectContent>
-                              {PRESET_TRACKS.map(track => (
-                                <SelectItem key={track.id} value={track.id}>{track.name}</SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
+                      <div className="flex flex-col gap-3">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="w-full sm:w-auto">
+                            <Select value={settingsState.musicTrackId} onValueChange={(v: string) => handleUpdateSettings({ musicTrackId: v })}>
+                              <SelectTrigger className="w-full sm:w-48"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                {playlistTracks.map(track => (
+                                  <SelectItem key={track.id} value={track.id}>{track.name}</SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="w-full sm:w-48">
+                            <Slider value={[settingsState.musicVolume ?? 0.3]} onValueChange={(v: number[]) => handleUpdateSettings({ musicVolume: v[0] })} min={0} max={1} step={0.01} />
+                          </div>
                         </div>
-                        <div className="w-full sm:w-48">
-                          <Slider value={[settingsState.musicVolume ?? 0.3]} onValueChange={(v: number[]) => handleUpdateSettings({ musicVolume: v[0] })} min={0} max={1} step={0.01} />
-                        </div>
-                      </div>
 
-                      <div className="pt-2 border-t border-border" />
+                        <div className="flex flex-col gap-2 rounded-2xl border border-border bg-background/70 p-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold">{t('playbackMode')}</span>
+                            <Select value={settingsState.musicPlaybackMode} onValueChange={(v: MusicPlaybackMode) => handleUpdateSettings({ musicPlaybackMode: v })}>
+                              <SelectTrigger className="w-36"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="play_once">{t('playOnce')}</SelectItem>
+                                <SelectItem value="loop_one">{t('loopOne')}</SelectItem>
+                                <SelectItem value="loop_all">{t('loopAll')}</SelectItem>
+                                <SelectItem value="shuffle">{t('shuffle')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
 
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm font-semibold dark:text-white">{t('gymRestTimer')}</p>
-                          <p className="text-xs text-muted-foreground dark:text-foreground/70">{t('gymRestTimerDescription')}</p>
+                          <div className="flex flex-col gap-2">
+                            <Input value={musicInputUrl} onChange={(event) => setMusicInputUrl(event.target.value)} placeholder={t('enterMusicUrl')} className="h-9 text-sm" />
+                            <Button variant="outline" size="sm" onClick={handleAddMusicUrl} disabled={isMusicLoading}>{t('addMusicUrl')}</Button>
+                            {musicError ? <p className="text-[10px] text-red-500">{musicError}</p> : null}
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <Switch checked={!!settingsState.gymRestEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestEnabled: v })} />
+
+                        <div className="pt-2 border-t border-border" />
+
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm font-semibold dark:text-white">{t('gymRestTimer')}</p>
+                            <p className="text-xs text-muted-foreground dark:text-foreground/70">{t('gymRestTimerDescription')}</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Switch checked={!!settingsState.gymRestEnabled} onCheckedChange={(v) => handleUpdateSettings({ gymRestEnabled: v })} />
+                          </div>
                         </div>
-                      </div>
 
                       <div className="grid grid-cols-2 gap-2 items-center">
                         <Input type="number" min={5} max={600} value={settingsState.gymRestDurationSeconds ?? 60} onChange={(e) => handleUpdateSettings({ gymRestDurationSeconds: Number(e.target.value) })} className="h-10 rounded-2xl border border-border" />
@@ -2303,6 +2606,7 @@ export default function App() {
                           <Label className="text-xs dark:text-white">{t('gymRestVibration')}</Label>
                         </div>
                       </div>
+                    </div>
                     </div>
                   )}
 

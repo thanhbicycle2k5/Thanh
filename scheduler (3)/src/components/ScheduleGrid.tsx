@@ -4,7 +4,6 @@ import {
   addDays, 
   isSameDay 
 } from 'date-fns';
-import { Solar } from 'lunar-javascript';
 import { Plan, PlanColor, Language, Theme, TaskApplyMode } from '../types';
 import { cn } from '@/lib/utils';
 import { Plus, Edit2, Trash2, Clock } from 'lucide-react';
@@ -140,7 +139,9 @@ function ScheduleGridComponent({
 
   const getLunarLabel = React.useCallback((date: Date) => {
     try {
-      const solar = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate());
+      const imported = (window as any).__lunarSolar;
+      if (!imported) return '';
+      const solar = imported.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate());
       const lunar = solar.getLunar();
       return `${lunar.getDay()}/${lunar.getMonth()}`;
     } catch {

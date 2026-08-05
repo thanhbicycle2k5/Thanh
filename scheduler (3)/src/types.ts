@@ -29,6 +29,7 @@ export interface WeekMetadata {
 export type Language = 'en' | 'vi';
 export type Theme = 'light' | 'dark';
 export type NotificationSound = 'bird' | 'wind' | 'bell' | 'chime';
+export type MusicPlaybackMode = 'play_once' | 'loop_one' | 'loop_all' | 'shuffle';
 export type CatMood = 'idle' | 'work' | 'gym' | 'medical' | 'shortBreak' | 'longBreak' | 'celebrating' | 'tired' | 'happy';
 export type CatColor = 'orange' | 'pink' | 'blue' | 'green' | 'purple' | 'yellow' | 'teal' | 'red' | 'gray' | 'black' | 'white';
 export type BackgroundType = 'color' | 'gradient' | 'image';
@@ -39,6 +40,8 @@ export interface MusicTrack {
   name: string;
   url: string;
   isCustom?: boolean;
+  source?: 'preset' | 'custom';
+  fileName?: string;
 }
 
 export interface BackgroundConfig {
@@ -53,6 +56,7 @@ export interface AppSettings {
   musicEnabled: boolean;
   musicVolume: number;
   musicTrackId: string;
+  musicPlaybackMode: MusicPlaybackMode;
   customMusicDataUrl: string;
   customMusicName: string;
   notificationsEnabled: boolean;

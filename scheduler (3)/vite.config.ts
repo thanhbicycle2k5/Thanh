@@ -44,6 +44,7 @@ export default defineConfig(({ mode }) => {
       alias: {
         '@': path.resolve(__dirname, '.'),
       },
+      external: ['lunar-javascript'],
     },
     server: {
       port: 3000,

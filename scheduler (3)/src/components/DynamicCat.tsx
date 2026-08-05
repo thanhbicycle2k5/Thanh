@@ -16,7 +16,7 @@ interface DynamicCatProps {
   onClick?: () => void;
 }
 
-const getColorStyles = (color: NonNullable<DynamicCatProps['color']>) => {
+const getColorStyles = (color: CatColor | undefined) => {
   switch (color) {
     case 'pink':
       return {
