@@ -508,22 +508,6 @@ export default function App() {
     }
   }, []);
 
-  const handleYouTubeEnded = React.useCallback(() => {
-    if (musicPlaybackMode === 'play_once') {
-      setIsMusicPlaying(false);
-      persistMusicState(selectedMusicId, musicPlaybackMode, false);
-      return;
-    }
-    if (!selectedMusicId) {
-      return;
-    }
-    const currentIndex = playlistTracks.findIndex((track) => track.id === selectedMusicId);
-    const nextId = getNextTrackId({ tracks: playlistTracks, currentTrackId: selectedMusicId, playbackMode: musicPlaybackMode, currentIndex });
-    if (nextId) {
-      void playTrack(nextId, true);
-    }
-  }, [musicPlaybackMode, persistMusicState, playlistTracks, selectedMusicId]);
-
   React.useEffect(() => {
     const persisted = loadMusicPlayerState();
     setSelectedMusicId(persisted.currentTrackId ?? settingsState.musicTrackId ?? null);
@@ -572,6 +556,22 @@ export default function App() {
       isPlaying: nextIsPlaying,
     });
   }, [settingsState.musicVolume]);
+
+  const handleYouTubeEnded = React.useCallback(() => {
+    if (musicPlaybackMode === 'play_once') {
+      setIsMusicPlaying(false);
+      persistMusicState(selectedMusicId, musicPlaybackMode, false);
+      return;
+    }
+    if (!selectedMusicId) {
+      return;
+    }
+    const currentIndex = playlistTracks.findIndex((track) => track.id === selectedMusicId);
+    const nextId = getNextTrackId({ tracks: playlistTracks, currentTrackId: selectedMusicId, playbackMode: musicPlaybackMode, currentIndex });
+    if (nextId) {
+      void playTrack(nextId, true);
+    }
+  }, [musicPlaybackMode, persistMusicState, playlistTracks, selectedMusicId]);
 
   const playTrack = React.useCallback(async (trackId: string | null, shouldPlay = true) => {
     if (!trackId) {
