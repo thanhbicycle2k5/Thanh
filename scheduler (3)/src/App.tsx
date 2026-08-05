@@ -444,6 +444,85 @@ export default function App() {
   const [isMusicLoading, setIsMusicLoading] = React.useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const selectedTrackRef = React.useRef<MusicTrack | null>(null);
+  const youtubePlayerRef = React.useRef<any>(null);
+  const youtubeContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const youtubeApiPromiseRef = React.useRef<Promise<void> | null>(null);
+
+  const stopYoutubePlayer = React.useCallback(() => {
+    if (!youtubePlayerRef.current) return;
+    try {
+      youtubePlayerRef.current.stopVideo?.();
+      youtubePlayerRef.current.destroy?.();
+    } catch (error) {
+      console.warn('Failed to destroy YouTube player', error);
+    } finally {
+      youtubePlayerRef.current = null;
+    }
+  }, []);
+
+  const stopAudioPlayback = React.useCallback(() => {
+    if (!audioRef.current) return;
+    audioRef.current.pause();
+    audioRef.current.currentTime = 0;
+    audioRef.current.src = '';
+    audioRef.current.load();
+  }, []);
+
+  const ensureYouTubeApi = React.useCallback(() => {
+    if (typeof window === 'undefined') return Promise.resolve();
+    if ((window as any).YT?.Player) return Promise.resolve();
+    if (youtubeApiPromiseRef.current) return youtubeApiPromiseRef.current;
+
+    youtubeApiPromiseRef.current = new Promise<void>((resolve) => {
+      const existingScript = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+      if (existingScript) {
+        const poll = () => {
+          if ((window as any).YT?.Player) {
+            resolve();
+            return;
+          }
+          window.setTimeout(poll, 100);
+        };
+        poll();
+        return;
+      }
+
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      script.async = true;
+      (window as any).onYouTubeIframeAPIReady = () => resolve();
+      document.body.appendChild(script);
+    });
+
+    return youtubeApiPromiseRef.current;
+  }, []);
+
+  const getYouTubeConfig = React.useCallback((url: string) => {
+    try {
+      const parsed = new URL(url);
+      const videoId = parsed.searchParams.get('v') || parsed.pathname.split('/').filter(Boolean).pop() || null;
+      const playlistId = parsed.searchParams.get('list') || null;
+      return { videoId, playlistId };
+    } catch {
+      return { videoId: null, playlistId: null };
+    }
+  }, []);
+
+  const handleYouTubeEnded = React.useCallback(() => {
+    if (musicPlaybackMode === 'play_once') {
+      setIsMusicPlaying(false);
+      persistMusicState(selectedMusicId, musicPlaybackMode, false);
+      return;
+    }
+    if (!selectedMusicId) {
+      return;
+    }
+    const currentIndex = playlistTracks.findIndex((track) => track.id === selectedMusicId);
+    const nextId = getNextTrackId({ tracks: playlistTracks, currentTrackId: selectedMusicId, playbackMode: musicPlaybackMode, currentIndex });
+    if (nextId) {
+      void playTrack(nextId, true);
+    }
+  }, [musicPlaybackMode, persistMusicState, playlistTracks, selectedMusicId]);
 
   React.useEffect(() => {
     const persisted = loadMusicPlayerState();
@@ -494,9 +573,10 @@ export default function App() {
     });
   }, [settingsState.musicVolume]);
 
-  const playTrack = React.useCallback((trackId: string | null, shouldPlay = true) => {
+  const playTrack = React.useCallback(async (trackId: string | null, shouldPlay = true) => {
     if (!trackId) {
-      audioRef.current?.pause();
+      stopAudioPlayback();
+      stopYoutubePlayer();
       setIsMusicPlaying(false);
       setSelectedMusicId(null);
       persistMusicState(null, musicPlaybackMode, false);
@@ -509,6 +589,75 @@ export default function App() {
     }
 
     setSelectedMusicId(track.id);
+    const shouldActuallyPlay = shouldPlay && settingsState.musicEnabled;
+
+    if (track.provider === 'youtube') {
+      stopAudioPlayback();
+      await ensureYouTubeApi();
+      const { videoId, playlistId } = getYouTubeConfig(track.url);
+      if (!youtubeContainerRef.current) {
+        setIsMusicPlaying(false);
+        return;
+      }
+
+      if (!youtubePlayerRef.current) {
+        const player = new (window as any).YT.Player(youtubeContainerRef.current, {
+          height: '0',
+          width: '0',
+          videoId: videoId ?? undefined,
+          playerVars: {
+            autoplay: shouldActuallyPlay ? 1 : 0,
+            controls: 0,
+            rel: 0,
+            modestbranding: 1,
+            playsinline: 1,
+            ...(playlistId ? { listType: 'playlist', list: playlistId } : {}),
+          },
+          events: {
+            onReady: () => {
+              if (shouldActuallyPlay) {
+                youtubePlayerRef.current?.playVideo?.();
+              } else {
+                youtubePlayerRef.current?.pauseVideo?.();
+              }
+            },
+            onStateChange: (event: any) => {
+              if (event.data === (window as any).YT.PlayerState.PLAYING) {
+                setIsMusicPlaying(true);
+                persistMusicState(track.id, musicPlaybackMode, true);
+              } else if (event.data === (window as any).YT.PlayerState.PAUSED) {
+                setIsMusicPlaying(false);
+                persistMusicState(track.id, musicPlaybackMode, false);
+              } else if (event.data === (window as any).YT.PlayerState.ENDED) {
+                handleYouTubeEnded();
+              }
+            },
+          },
+        });
+        youtubePlayerRef.current = player;
+      } else {
+        if (videoId) {
+          youtubePlayerRef.current.loadVideoById(videoId);
+        } else if (playlistId) {
+          youtubePlayerRef.current.loadPlaylist({ listType: 'playlist', list: playlistId });
+        }
+      }
+
+      if (youtubePlayerRef.current) {
+        youtubePlayerRef.current.setVolume?.(Math.round((settingsState.musicVolume ?? 0.3) * 100));
+        if (shouldActuallyPlay) {
+          youtubePlayerRef.current.playVideo?.();
+        } else {
+          youtubePlayerRef.current.pauseVideo?.();
+        }
+      }
+      setIsMusicPlaying(shouldActuallyPlay);
+      handleUpdateSettings({ musicTrackId: track.id, musicPlaybackMode, musicVolume: settingsState.musicVolume ?? 0.3 });
+      persistMusicState(track.id, musicPlaybackMode, shouldActuallyPlay);
+      return;
+    }
+
+    stopYoutubePlayer();
     if (!audioRef.current) {
       audioRef.current = new Audio(track.url);
     } else {
@@ -517,7 +666,7 @@ export default function App() {
     audioRef.current.volume = settingsState.musicVolume ?? 0.3;
     audioRef.current.load();
 
-    if (shouldPlay && settingsState.musicEnabled) {
+    if (shouldActuallyPlay) {
       void audioRef.current.play().then(() => {
         setIsMusicPlaying(true);
       }).catch(() => {
@@ -529,8 +678,8 @@ export default function App() {
     }
 
     handleUpdateSettings({ musicTrackId: track.id, musicPlaybackMode, musicVolume: settingsState.musicVolume ?? 0.3 });
-    persistMusicState(track.id, musicPlaybackMode, shouldPlay && settingsState.musicEnabled);
-  }, [handleUpdateSettings, musicPlaybackMode, persistMusicState, playlistTracks, settingsState.musicEnabled, settingsState.musicVolume]);
+    persistMusicState(track.id, musicPlaybackMode, shouldActuallyPlay);
+  }, [ensureYouTubeApi, getYouTubeConfig, handleYouTubeEnded, handleUpdateSettings, musicPlaybackMode, persistMusicState, playlistTracks, settingsState.musicEnabled, settingsState.musicVolume, stopAudioPlayback, stopYoutubePlayer]);
 
   React.useEffect(() => {
     if (!audioRef.current) return;
@@ -544,30 +693,55 @@ export default function App() {
 
   React.useEffect(() => {
     if (!settingsState.musicEnabled) {
-      audioRef.current?.pause();
+      stopAudioPlayback();
+      if (youtubePlayerRef.current) {
+        youtubePlayerRef.current.pauseVideo?.();
+      }
       setIsMusicPlaying(false);
       persistMusicState(selectedMusicId, musicPlaybackMode, false);
     }
-  }, [persistMusicState, selectedMusicId, musicPlaybackMode, settingsState.musicEnabled]);
+  }, [musicPlaybackMode, persistMusicState, selectedMusicId, settingsState.musicEnabled, stopAudioPlayback]);
+
+  React.useEffect(() => {
+    if (!youtubePlayerRef.current) return;
+    youtubePlayerRef.current.setVolume?.(Math.round((settingsState.musicVolume ?? 0.3) * 100));
+  }, [settingsState.musicVolume]);
+
+  React.useEffect(() => {
+    return () => {
+      stopAudioPlayback();
+      stopYoutubePlayer();
+    };
+  }, [stopAudioPlayback, stopYoutubePlayer]);
 
   const toggleMusic = () => {
     if (!selectedMusicId) {
       const firstTrack = playlistTracks[0];
       if (firstTrack) {
-        playTrack(firstTrack.id, true);
+        void playTrack(firstTrack.id, true);
       }
       return;
     }
 
     if (isMusicPlaying) {
-      audioRef.current?.pause();
+      if (selectedTrackRef.current?.provider === 'youtube') {
+        youtubePlayerRef.current?.pauseVideo?.();
+      } else {
+        audioRef.current?.pause();
+      }
       setIsMusicPlaying(false);
       persistMusicState(selectedMusicId, musicPlaybackMode, false);
     } else {
-      if (audioRef.current) {
+      if (selectedTrackRef.current?.provider === 'youtube') {
+        if (youtubePlayerRef.current) {
+          youtubePlayerRef.current.playVideo?.();
+        } else {
+          void playTrack(selectedMusicId, true);
+        }
+      } else if (audioRef.current) {
         void audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(() => setIsMusicPlaying(false));
       } else {
-        playTrack(selectedMusicId, true);
+        void playTrack(selectedMusicId, true);
       }
       persistMusicState(selectedMusicId, musicPlaybackMode, true);
     }
@@ -576,25 +750,25 @@ export default function App() {
   const playNextTrack = () => {
     if (!playlistTracks.length) return;
     if (!selectedMusicId) {
-      playTrack(playlistTracks[0].id, true);
+      void playTrack(playlistTracks[0].id, true);
       return;
     }
     const currentIndex = playlistTracks.findIndex((track) => track.id === selectedMusicId);
     const nextId = getNextTrackId({ tracks: playlistTracks, currentTrackId: selectedMusicId, playbackMode: musicPlaybackMode, currentIndex });
     if (nextId) {
-      playTrack(nextId, true);
+      void playTrack(nextId, true);
     }
   };
 
   const playPreviousTrack = () => {
     if (!playlistTracks.length) return;
     if (!selectedMusicId) {
-      playTrack(playlistTracks[playlistTracks.length - 1].id, true);
+      void playTrack(playlistTracks[playlistTracks.length - 1].id, true);
       return;
     }
     const currentIndex = playlistTracks.findIndex((track) => track.id === selectedMusicId);
     const previousIndex = currentIndex <= 0 ? playlistTracks.length - 1 : currentIndex - 1;
-    playTrack(playlistTracks[previousIndex].id, true);
+    void playTrack(playlistTracks[previousIndex].id, true);
   };
 
   React.useEffect(() => {
@@ -612,7 +786,7 @@ export default function App() {
       const currentIndex = playlistTracks.findIndex((track) => track.id === selectedMusicId);
       const nextId = getNextTrackId({ tracks: playlistTracks, currentTrackId: selectedMusicId, playbackMode: musicPlaybackMode, currentIndex });
       if (nextId) {
-        playTrack(nextId, true);
+        void playTrack(nextId, true);
       }
     };
 
@@ -806,6 +980,7 @@ export default function App() {
     setIsMusicLoading(false);
     setLoginLoading(false);
 
+    stopYoutubePlayer();
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -1663,6 +1838,7 @@ export default function App() {
       )}
       style={getBackgroundStyle()}
     >
+      <div ref={youtubeContainerRef} className="hidden" />
       {/* Background overlay for better text readability */}
       {settingsState.backgroundConfig && (
         <div className="absolute inset-0 bg-background/40 dark:bg-background/60 pointer-events-none" />

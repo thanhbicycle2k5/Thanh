@@ -41,6 +41,7 @@ export interface MusicTrack {
   url: string;
   isCustom?: boolean;
   source?: 'preset' | 'custom';
+  provider?: 'audio' | 'youtube';
   fileName?: string;
 }
 

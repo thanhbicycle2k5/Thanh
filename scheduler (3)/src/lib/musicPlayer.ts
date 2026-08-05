@@ -1,5 +1,14 @@
 import { MusicPlaybackMode, MusicTrack } from '../types';
 
+export const isYouTubeUrl = (value: string) => {
+  if (!value) return false;
+  return /(?:youtube\.com|youtu\.be)/i.test(value);
+};
+
+export const getTrackProvider = (url: string): MusicTrack['provider'] => {
+  return isYouTubeUrl(url) ? 'youtube' : 'audio';
+};
+
 const DB_NAME = 'scheduly-music-db';
 const STORE_NAME = 'tracks';
 const PLAYER_STATE_KEY = 'scheduly_music_player_state';
@@ -105,6 +114,7 @@ export const listCustomTracks = async (): Promise<MusicTrack[]> => {
         url: track.url || '',
         isCustom: true,
         source: track.source === 'custom' ? 'custom' : 'url',
+        provider: getTrackProvider(track.url || ''),
         fileName: track.fileName,
       } satisfies MusicTrack;
     });
@@ -147,6 +157,7 @@ export const saveCustomTrack = async (track: MusicTrack, file?: File | Blob): Pr
       url: file ? URL.createObjectURL(file) : track.url,
       isCustom: true,
       source: 'custom' as const,
+      provider: getTrackProvider(track.url),
       fileName: track.fileName,
     });
     request.onerror = () => reject(request.error ?? new Error('Could not save custom track'));
