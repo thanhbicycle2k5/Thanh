@@ -1198,13 +1198,13 @@ export default function App() {
 
   const handlePlanTurnGreen = React.useCallback((p: Plan) => {
     setCatMoodOverride('celebrating');
-    playCompletionMelody();
+    playNotificationSound(settingsState.notificationSound);
     if (settingsState.catEnabled !== false) {
       playMeow();
     }
     setShowCelebration(true);
     window.setTimeout(() => setCatMoodOverride(null), 3000);
-  }, [settingsState.catEnabled]);
+  }, [settingsState.catEnabled, settingsState.notificationSound]);
 
   const totalPlansCount = currentWeekPlans.length;
   const completedPlansCount = currentWeekPlans.filter(p => p.color === 'green').length;
