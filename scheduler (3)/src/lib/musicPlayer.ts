@@ -211,6 +211,11 @@ export const saveMusicPlayerState = (state: MusicPlayerState) => {
   window.localStorage.setItem(PLAYER_STATE_KEY, JSON.stringify(state));
 };
 
+export const resetMusicPlayerState = () => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.removeItem(PLAYER_STATE_KEY);
+};
+
 export const getNextTrackId = ({
   tracks,
   currentTrackId,

@@ -1,6 +1,6 @@
 import { Plan, AppSettings } from '../types';
 
-const defaultSettings: AppSettings = {
+export const defaultSettings: AppSettings = {
   language: 'en',
   theme: 'light',
   musicEnabled: false,
@@ -253,5 +253,15 @@ export const storage = {
   },
   clearFiredNotificationIds: (uid?: string | null) => {
     localStorage.removeItem(keyFor(FIRED_NOTIFICATION_IDS_KEY, uid));
+  },
+  resetUserData: (uid?: string | null) => {
+    const emptySettings = normalizeSettings(defaultSettings);
+    localStorage.setItem(keyFor('chronos_settings', uid), JSON.stringify(emptySettings));
+    localStorage.setItem(themeKey, emptySettings.theme);
+    localStorage.setItem(keyFor(PLANS_KEY, uid), JSON.stringify([]));
+    localStorage.setItem(keyFor('chronos_week_meta', uid), JSON.stringify({}));
+    localStorage.removeItem(keyFor(DELETED_PLANS_KEY, uid));
+    localStorage.removeItem(keyFor(FIRED_NOTIFICATION_IDS_KEY, uid));
+    storage.clearPendingSync(uid);
   }
 };

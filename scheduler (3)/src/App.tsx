@@ -15,11 +15,11 @@ import {
   startOfDay,
 } from 'date-fns';
 import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack } from './types';
-import { storage, normalizeSettings } from './lib/storage';
+import { storage, normalizeSettings, defaultSettings } from './lib/storage';
 import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, settleRedirectAuth } from './lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
-import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
+import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
 import { playNotificationSound, playMusicalNote, playCompletionMelody, playMeow } from './lib/sounds';
 import { getSchedulyMessage, SchedulyStatus } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
@@ -733,6 +733,76 @@ export default function App() {
     }
   }, [t]);
 
+  const resetAppStateForGuest = React.useCallback((options?: { preserveAnonymousStorage?: boolean }) => {
+    const preserveAnonymousStorage = options?.preserveAnonymousStorage ?? false;
+
+    setPlans([]);
+    setWeekMetas({});
+    setIsSummaryOpen(false);
+    setIsSettingsOpen(false);
+    setGymRestOpen(false);
+    setGymRestRunning(false);
+    setGymRestRemaining(60);
+    setGymRestEndAt(null);
+    setGymRestRound(1);
+    setGymRestSets(4);
+    setGymRestMessage('');
+    setGymRestCustomOpen(false);
+    setActiveSettingsTab('general');
+    setMobileExpanded(null);
+    setIsCalendarOpen(false);
+    setIsNoteOpen(false);
+    setNoteText('');
+    setSelectedWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
+    previousWeekStartRef.current = startOfWeek(new Date(), { weekStartsOn: 1 });
+    setIsMobileNote(false);
+    setIsPomodoroOpen(false);
+    setPomodoroMode('work');
+    setPomodoroSecondsLeft(POMODORO_DURATIONS.work);
+    setPomodoroRunning(false);
+    setPomodoroSessions(0);
+    setShowCelebration(false);
+    setCatMoodOverride(null);
+    setSpeechBubble(null);
+    if (speechBubbleTimeoutRef.current !== null) {
+      window.clearTimeout(speechBubbleTimeoutRef.current);
+      speechBubbleTimeoutRef.current = null;
+    }
+    setCatPosition(null);
+    setPlaylistTracks(PRESET_TRACKS);
+    setSelectedMusicId(null);
+    setIsMusicPlaying(false);
+    setMusicPlaybackMode('loop_all');
+    setMusicInputUrl('');
+    setMusicError(null);
+    setIsMusicLoading(false);
+    setLoginLoading(false);
+
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      audioRef.current.volume = 0.3;
+      audioRef.current.src = '';
+      audioRef.current.load();
+    }
+
+    const guestSettings = normalizeSettings(defaultSettings);
+    plansRef.current = [];
+    weekMetasRef.current = {};
+    settingsRef.current = guestSettings;
+    setSettings(guestSettings);
+    if (!preserveAnonymousStorage) {
+      storage.resetUserData();
+      resetMusicPlayerState();
+      localStorage.removeItem('chronos_quick_note');
+    }
+
+    if (!preserveAnonymousStorage) {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.style.colorScheme = 'light';
+    }
+  }, [POMODORO_DURATIONS.work]);
+
   React.useEffect(() => {
     const handleOnline = async () => {
       setIsOnline(true);
@@ -773,6 +843,10 @@ export default function App() {
         setUser(firebaseUser);
         setAuthLoading(false);
 
+        if (!firebaseUser) {
+          resetAppStateForGuest({ preserveAnonymousStorage: false });
+        }
+
         const anonymousPlans = storage.getPlans();
         const anonymousWeekMetas = storage.getWeekMetas();
         const anonymousSettings = normalizeSettings(storage.getSettings());
@@ -792,6 +866,7 @@ export default function App() {
           : anonymousSettings;
 
         if (firebaseUser) {
+           resetAppStateForGuest({ preserveAnonymousStorage: true });
            const mergePlans = (base: Plan[], extra: Plan[]) => {
              const map = new Map<string, Plan>();
              base.forEach((plan) => map.set(plan.id, plan));
@@ -958,6 +1033,20 @@ export default function App() {
   const stopNotifications = React.useCallback(() => {
     void clearAllScheduledNotifications();
   }, [clearAllScheduledNotifications]);
+
+  const handleLogout = React.useCallback(async () => {
+    try {
+      await signOutUser();
+    } catch (error) {
+      console.warn('Sign out failed', error);
+    } finally {
+      setUser(null);
+      resetAppStateForGuest();
+      storage.resetUserData();
+      resetMusicPlayerState();
+      localStorage.removeItem('chronos_quick_note');
+    }
+  }, [resetAppStateForGuest]);
 
   const handleUpdateSettings = React.useCallback((newSettings: Partial<AppSettings>) => {
     const updated = normalizeSettings({ ...settingsState, ...newSettings });
@@ -2646,7 +2735,7 @@ export default function App() {
                             <p className="text-sm font-semibold truncate">{user.displayName}</p>
                             <p className="text-xs opacity-70 dark:opacity-80 truncate">{user.email}</p>
                           </div>
-                          <Button variant="outline" size="sm" onClick={() => signOutUser()} className="flex-shrink-0 whitespace-nowrap">{t('signOut')}</Button>
+                          <Button variant="outline" size="sm" onClick={() => { void handleLogout(); }} className="flex-shrink-0 whitespace-nowrap">{t('signOut')}</Button>
                         </div>
                       ) : (
                         <Button
