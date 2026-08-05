@@ -7,6 +7,7 @@ import {
 import { Plan, PlanColor, Language, Theme, TaskApplyMode } from '../types';
 import { cn } from '@/lib/utils';
 import { Plus, Edit2, Trash2, Clock } from 'lucide-react';
+import { Solar } from 'lunar-javascript';
 import { translations } from '../lib/i18n';
 import { playMusicalNote } from '../lib/sounds';
 import {
@@ -139,9 +140,7 @@ function ScheduleGridComponent({
 
   const getLunarLabel = React.useCallback((date: Date) => {
     try {
-      const imported = (window as any).__lunarSolar;
-      if (!imported) return '';
-      const solar = imported.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate());
+      const solar = Solar.fromYmd(date.getFullYear(), date.getMonth() + 1, date.getDate());
       const lunar = solar.getLunar();
       return `${lunar.getDay()}/${lunar.getMonth()}`;
     } catch {
