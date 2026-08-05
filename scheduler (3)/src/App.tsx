@@ -408,6 +408,33 @@ export default function App() {
     setPomodoroRunning(false);
   };
 
+  const firedNotificationIdsRef = React.useRef<Set<string>>(new Set());
+  const notificationScannerRef = React.useRef<number | null>(null);
+
+  const clearAllScheduledNotifications = React.useCallback(async () => {
+    if (notificationScannerRef.current !== null) {
+      window.clearInterval(notificationScannerRef.current);
+      notificationScannerRef.current = null;
+    }
+    await clearAllWorkerNotifications();
+  }, []);
+
+  const handleUpdateSettings = React.useCallback((newSettings: Partial<AppSettings>) => {
+    const updated = normalizeSettings({ ...settingsState, ...newSettings });
+    setSettings(updated);
+    storage.saveSettings(newSettings, user?.uid);
+    if (updated.notificationsEnabled === false) {
+      void clearAllScheduledNotifications();
+    }
+    if (user) {
+      cloudStorage.saveSettings(user.uid, newSettings)
+        .then(() => storage.setPendingSync(user.uid, 'settings', false))
+        .catch((error) => {
+          console.warn('Cloud settings save failed:', error);
+        });
+    }
+  }, [settingsState, user, clearAllScheduledNotifications]);
+
   const [playlistTracks, setPlaylistTracks] = React.useState<MusicTrack[]>(PRESET_TRACKS);
   const [selectedMusicId, setSelectedMusicId] = React.useState<string | null>(null);
   const [isMusicPlaying, setIsMusicPlaying] = React.useState(false);
@@ -593,6 +620,15 @@ export default function App() {
     return () => audio.removeEventListener('ended', handleEnded);
   }, [musicPlaybackMode, playTrack, persistMusicState, playlistTracks, selectedMusicId]);
 
+  const t = React.useCallback((key: keyof typeof translations.en, params: Record<string, string> = {}) => {
+    const locale = translations[settingsState.language] ?? translations.en;
+    let text = locale[key] ?? translations.en[key] ?? key;
+    Object.entries(params).forEach(([k, v]) => {
+      text = text.replace(`{${k}}`, v);
+    });
+    return text;
+  }, [settingsState.language]);
+
   const handleAddMusicUrl = React.useCallback(async () => {
     const trimmed = musicInputUrl.trim();
     if (!trimmed) {
@@ -646,15 +682,6 @@ export default function App() {
       setMusicError(error instanceof Error ? error.message : 'Could not remove track');
     }
   }, [isMusicPlaying, playTrack, playlistTracks, selectedMusicId]);
-
-  const t = React.useCallback((key: keyof typeof translations.en, params: Record<string, string> = {}) => {
-    const locale = translations[settingsState.language] ?? translations.en;
-    let text = locale[key] ?? translations.en[key] ?? key;
-    Object.entries(params).forEach(([k, v]) => {
-      text = text.replace(`{${k}}`, v);
-    });
-    return text;
-  }, [settingsState.language]);
 
   const [selectedWeekStart, setSelectedWeekStart] = React.useState(() => 
     startOfWeek(new Date(), { weekStartsOn: 1 })
@@ -771,6 +798,7 @@ export default function App() {
     setCatPosition(null);
     setPlaylistTracks(PRESET_TRACKS);
     setSelectedMusicId(null);
+    selectedTrackRef.current = null;
     setIsMusicPlaying(false);
     setMusicPlaybackMode('loop_all');
     setMusicInputUrl('');
@@ -785,6 +813,7 @@ export default function App() {
       audioRef.current.src = '';
       audioRef.current.load();
     }
+    firedNotificationIdsRef.current = new Set();
 
     const guestSettings = normalizeSettings(defaultSettings);
     plansRef.current = [];
@@ -1022,19 +1051,12 @@ export default function App() {
      };
   }, []);
 
-  const clearAllScheduledNotifications = React.useCallback(async () => {
-    if (notificationScannerRef.current !== null) {
-      window.clearInterval(notificationScannerRef.current);
-      notificationScannerRef.current = null;
-    }
-    await clearAllWorkerNotifications();
-  }, [clearAllWorkerNotifications]);
-
   const stopNotifications = React.useCallback(() => {
     void clearAllScheduledNotifications();
   }, [clearAllScheduledNotifications]);
 
   const handleLogout = React.useCallback(async () => {
+    const previousUid = user?.uid;
     try {
       await signOutUser();
     } catch (error) {
@@ -1042,35 +1064,17 @@ export default function App() {
     } finally {
       setUser(null);
       resetAppStateForGuest();
+      storage.resetUserData(previousUid);
       storage.resetUserData();
       resetMusicPlayerState();
       localStorage.removeItem('chronos_quick_note');
     }
-  }, [resetAppStateForGuest]);
-
-  const handleUpdateSettings = React.useCallback((newSettings: Partial<AppSettings>) => {
-    const updated = normalizeSettings({ ...settingsState, ...newSettings });
-    setSettings(updated);
-    storage.saveSettings(newSettings, user?.uid);
-    if (updated.notificationsEnabled === false) {
-      void clearAllScheduledNotifications();
-    }
-    if (user) {
-      cloudStorage.saveSettings(user.uid, newSettings)
-        .then(() => storage.setPendingSync(user.uid, 'settings', false))
-        .catch((error) => {
-          console.warn('Cloud settings save failed:', error);
-        });
-    }
-  }, [settingsState, user, clearAllScheduledNotifications]);
+  }, [resetAppStateForGuest, user?.uid]);
 
   React.useEffect(() => {
     if (settingsState.theme === 'dark') document.documentElement.classList.add('dark');
     else document.documentElement.classList.remove('dark');
   }, [settingsState.theme]);
-
-  const firedNotificationIdsRef = React.useRef<Set<string>>(new Set());
-  const notificationScannerRef = React.useRef<number | null>(null);
 
   const makeNotificationId = React.useCallback((plan: Plan) => {
     const title = plan.title?.trim() || 'nhiệm vụ';
