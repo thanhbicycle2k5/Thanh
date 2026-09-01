@@ -1084,7 +1084,7 @@ export default function App() {
         setAuthLoading(false);
 
         if (!firebaseUser) {
-          resetAppStateForGuest({ preserveAnonymousStorage: false });
+          resetAppStateForGuest({ preserveAnonymousStorage: true });
         }
 
         const anonymousPlans = storage.getPlans();
@@ -1489,7 +1489,6 @@ export default function App() {
     const permission = await getNotificationPermission();
     if (permission !== 'granted') {
       toast.error('Notification permission denied.');
-      handleUpdateSettings({ notificationsEnabled: false });
       return;
     }
 
