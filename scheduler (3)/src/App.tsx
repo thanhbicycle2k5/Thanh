@@ -194,9 +194,14 @@ function HealthTipPanel({ theme, isSettingsOpen, t, lang, onActivate }: { theme:
           <motion.div
             drag
             dragMomentum={false}
+            dragElastic={0.08}
+            dragPropagation={false}
+            dragConstraints={false}
+            dragTransition={{ bounceStiffness: 500, bounceDamping: 32 }}
             initial={{ opacity: 0, scale: 0.9, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 10 }}
+            style={{ touchAction: 'none' }}
             onPointerDown={(e) => e.stopPropagation()}
             className={cn(
                "absolute z-40 w-[20rem] right-0 bottom-14 border shadow-2xl rounded-xl overflow-hidden cursor-move bg-card border-border"
