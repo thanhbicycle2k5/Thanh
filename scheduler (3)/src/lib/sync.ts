@@ -37,6 +37,7 @@ export const normalizePlanForStorage = (plan: Partial<Plan>): Plan => {
     title: plan.title || '',
     date: safeDate,
     startHour: typeof plan.startHour === 'number' ? plan.startHour : 0,
+    startMinute: typeof plan.startMinute === 'number' ? plan.startMinute : 0,
     duration: typeof plan.duration === 'number' ? plan.duration : 1,
     color: plan.color || 'yellow',
     notes: plan.notes || undefined,
