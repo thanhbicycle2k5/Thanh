@@ -88,69 +88,88 @@ const getColorStyles = (color: CatColor | undefined) => {
   }
 };
 
-const CatPoses: Record<CatMood, { body: string; ears: string; eyes: string; mouth: string; accessories?: string }> = {
+const CatPoses: Record<CatMood, { body: string; tilt: number; earTilt: number; eyeScale: number; mouth: string; tail: string; pawOffset: number; accessory?: string }> = {
   idle: {
     body: 'translate(0, 0)',
-    ears: 'rotate(0)',
-    eyes: 'M30,35 C30,32 32,30 35,30 C38,30 40,32 40,35 M60,35 C60,32 62,30 65,30 C68,30 70,32 70,35',
-    mouth: 'M50,50 Q45,55 40,50',
-    accessories: ''
+    tilt: 0,
+    earTilt: 0,
+    eyeScale: 1,
+    mouth: 'M48 52 Q60 60 72 52',
+    tail: 'M20 40 C 8 54, 8 76, 23 82',
+    pawOffset: 0,
   },
   work: {
     body: 'translate(0, 2)',
-    ears: 'rotate(-5)',
-    eyes: 'M30,35 C30,32 32,30 35,30 C38,30 40,32 40,35 M60,35 C60,32 62,30 65,30 C68,30 70,32 70,35',
-    mouth: 'M50,50 Q45,54 40,50 M50,50 Q55,54 60,50',
-    accessories: '<circle cx="25" cy="28" r="3" fill="#FFB6C1"/><circle cx="75" cy="28" r="3" fill="#FFB6C1"/>'
+    tilt: -2,
+    earTilt: -8,
+    eyeScale: 1,
+    mouth: 'M47 52 Q60 57 73 52',
+    tail: 'M18 42 C 8 52, 6 68, 18 79',
+    pawOffset: 1,
   },
   gym: {
-    body: 'translate(-5, -2)',
-    ears: 'rotate(8)',
-    eyes: 'M30,35 C30,32 32,30 35,30 C38,30 40,32 40,35 M60,35 C60,32 62,30 65,30 C68,30 70,32 70,35',
-    mouth: 'M50,50 Q45,53 40,50',
-    accessories: '<ellipse cx="20" cy="55" rx="4" ry="8" fill="#DEB887"/><ellipse cx="80" cy="55" rx="4" ry="8" fill="#DEB887"/><path d="M15 50 L10 40" stroke="#DEB887" stroke-width="2" fill="none"/><path d="M85 50 L90 40" stroke="#DEB887" stroke-width="2" fill="none"/>'
+    body: 'translate(-3, -1)',
+    tilt: 6,
+    earTilt: 8,
+    eyeScale: 1,
+    mouth: 'M46 52 Q60 58 74 52',
+    tail: 'M20 41 C 9 49, 6 63, 18 80',
+    pawOffset: 2,
   },
   medical: {
     body: 'translate(0, 0)',
-    ears: 'rotate(0)',
-    eyes: 'M30,35 C30,32 32,30 35,30 C38,30 40,32 40,35 M60,35 C60,32 62,30 65,30 C68,30 70,32 70,35',
-    mouth: 'M50,50 Q45,54 40,50',
-    accessories: '<rect x="-6" y="-2" width="12" height="3" fill="#FFFFFF" transform="rotate(20)" /><path d="M-2,-5 L-2,2" stroke="#BBBBBB" stroke-width="1"/><path d="M2,-5 L2,2" stroke="#BBBBBB" stroke-width="1"/>'
+    tilt: 0,
+    earTilt: 0,
+    eyeScale: 0.9,
+    mouth: 'M47 52 Q60 54 73 52',
+    tail: 'M18 42 C 8 55, 7 72, 22 82',
+    pawOffset: 0,
+    accessory: '<path d="M34 48 L43 42 L46 48 L38 55 Z" fill="#ffffff" opacity="0.8" />'
   },
   shortBreak: {
-    body: 'translate(0, 0)',
-    ears: 'rotate(-8)',
-    eyes: 'M30,35 Q32,38 35,37 M65,37 Q68,38 70,35',
-    mouth: 'M50,50 Q50,52 50,55',
-    accessories: '<path d="M20,55 Q25,60 30,55" stroke="#FFD700" stroke-width="2" fill="none"/><path d="M70,55 Q75,60 80,55" stroke="#FFD700" stroke-width="2" fill="none"/>'
+    body: 'translate(0, 1)',
+    tilt: -4,
+    earTilt: -10,
+    eyeScale: 1.08,
+    mouth: 'M48 51 Q60 65 72 51',
+    tail: 'M20 40 C 10 50, 8 68, 18 80',
+    pawOffset: 0,
   },
   longBreak: {
-    body: 'translate(2, 4)',
-    ears: 'rotate(-10)',
-    eyes: 'M30,36 Q32,38 35,37 M65,37 Q68,38 70,36',
-    mouth: 'M50,52 Q48,56 50,58 Q52,56 50,52',
-    accessories: '<path d="M25,50 Q20,55 25,60" stroke="#87CEEB" stroke-width="2" fill="none"/><path d="M75,50 Q80,55 75,60" stroke="#87CEEB" stroke-width="2" fill="none"/><text x="35" y="25" font-size="8" fill="#87CEEB">zzz</text>'
+    body: 'translate(0, 4)',
+    tilt: -3,
+    earTilt: -12,
+    eyeScale: 1,
+    mouth: 'M49 53 Q60 58 71 53',
+    tail: 'M18 42 C 7 52, 6 70, 20 84',
+    pawOffset: 1,
   },
   celebrating: {
     body: 'translate(0, -5)',
-    ears: 'rotate(15)',
-    eyes: 'M30,34 Q32,32 35,34 M70,34 Q68,32 65,34',
-    mouth: 'M50,50 Q45,48 40,50 Q50,56 60,50 Q55,48 50,50',
-    accessories: '<path d="M15,20 L25,10 L30,25 Z" fill="#FFD700"/><path d="M70,20 L80,10 L85,25 Z" fill="#FFD700"/><path d="M50,5 L55,15 L45,15 Z" fill="#FFD700"/>'
+    tilt: 0,
+    earTilt: 12,
+    eyeScale: 1.1,
+    mouth: 'M46 52 Q60 66 74 52',
+    tail: 'M20 40 C 11 38, 7 54, 18 78',
+    pawOffset: 0,
   },
   tired: {
     body: 'translate(0, 3)',
-    ears: 'rotate(-15)',
-    eyes: 'M32,36 L38,36 M65,36 L62,36',
-    mouth: 'M50,52 L50,54',
-    accessories: '<text x="20" y="20" font-size="12" fill="#A9A9A9">z</text><text x="75" y="15" font-size="12" fill="#A9A9A9">z</text>'
+    tilt: 0,
+    earTilt: -16,
+    eyeScale: 0.75,
+    mouth: 'M52 55 Q60 58 68 55',
+    tail: 'M20 41 C 8 54, 8 74, 21 84',
+    pawOffset: 1,
   },
   happy: {
-    body: 'translate(-2, -2)',
-    ears: 'rotate(5)',
-    eyes: 'M30,35 C30,32 32,30 35,30 C38,30 40,32 40,35 L30,35 Z M60,35 C60,32 62,30 65,30 C68,30 70,32 70,35 L60,35 Z',
-    mouth: 'M40,50 Q50,58 60,50',
-    accessories: '<circle cx="50" cy="42" r="2" fill="#FFB6C1"/><circle cx="42" cy="42" r="2" fill="#FFB6C1"/><circle cx="58" cy="42" r="2" fill="#FFB6C1"/>'
+    body: 'translate(-2, -1)',
+    tilt: 3,
+    earTilt: 6,
+    eyeScale: 1.08,
+    mouth: 'M46 52 Q60 64 74 52',
+    tail: 'M18 40 C 8 46, 7 62, 21 81',
+    pawOffset: 0,
   }
 };
 
@@ -161,9 +180,9 @@ const sizeMap = {
 };
 
 const viewBoxMap = {
-  sm: '0 0 100 100',
-  md: '0 0 100 100',
-  lg: '0 0 100 100'
+  sm: '0 0 120 120',
+  md: '0 0 120 120',
+  lg: '0 0 120 120'
 };
 
 export const DynamicCat: React.FC<DynamicCatProps> = ({ 
@@ -180,7 +199,7 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
 
   const handleClick = () => {
     setIsClicked(true);
-    setTimeout(() => setIsClicked(false), 600);
+    window.setTimeout(() => setIsClicked(false), 600);
     onClick?.();
   };
 
@@ -188,111 +207,75 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
     <motion.div
       animate={
         isClicked
-          ? { 
-              y: [0, -20, -15, 0],
-              rotate: [0, 5, -5, 0],
-              scale: [1, 1.05, 1]
-            }
-          : isAnimating 
-            ? { y: [0, -8, 0] }
+          ? { y: [0, -18, -12, 0], rotate: [0, 8, -6, 0], scale: [1, 1.06, 1] }
+          : isAnimating
+            ? { y: [0, -7, 0] }
             : { y: 0 }
       }
       transition={
         isClicked
           ? { duration: 0.6, type: 'spring', stiffness: 200 }
-          : isAnimating 
-            ? { duration: 0.6, repeat: Infinity, ease: 'easeInOut', type: 'tween' }
+          : isAnimating
+            ? { duration: 0.7, repeat: Infinity, ease: 'easeInOut', type: 'tween' }
             : undefined
       }
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.95 }}
+      whileHover={{ scale: 1.08 }}
+      whileTap={{ scale: 0.96 }}
       onClick={handleClick}
-      className={cn(sizeMap[size], className, "cursor-pointer")}
+      className={cn(sizeMap[size], className, 'cursor-pointer select-none')}
     >
       <svg
         viewBox={viewBoxMap[size]}
         className="w-full h-full"
         xmlns="http://www.w3.org/2000/svg"
+        aria-label="Cat mascot"
+        role="img"
       >
-        {/* Cat Body */}
-        <g transform={`translate(50, 50) ${pose.body}`}>
-          {/* Tail */}
-          <motion.path
-            d={mood === 'happy' ? 'M15,20 Q30,35 35,50' : 'M15,20 Q20,35 15,50'}
-            stroke={colorStyles.tail}
-            strokeWidth="6"
-            fill="none"
-            strokeLinecap="round"
-            animate={mood === 'happy' ? { rotate: [0, 15, 0] } : { rotate: 0 }}
-            transition={mood === 'happy' ? { duration: 1, repeat: Infinity } : undefined}
-          />
+        <g transform={`translate(60 58) rotate(${pose.tilt})`}>
+          <path d={pose.tail} fill="none" stroke={colorStyles.tail} strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />
 
-          {/* Body */}
-          <ellipse cx="0" cy="15" rx="16" ry="20" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="1" />
+          <ellipse cx="0" cy="18" rx="24" ry="18" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2.5" />
 
-          {/* Head */}
-          <circle cx="0" cy="-8" r="15" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="1" />
+          <g transform={`translate(0 -8)`}>
+            <circle cx="0" cy="0" r="23" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2.5" />
 
-          {/* Ears */}
-          <motion.g
-            animate={{ rotate: pose.ears }}
-            transition={{ type: 'spring', stiffness: 100, damping: 15 }}
-          >
-            <path d="M-8,-18 L-10,-35 L-2,-20 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="1" />
-            <path d="M8,-18 L10,-35 L2,-20 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="1" />
-            {/* Inner ear */}
-            <path d="M-6,-22 L-8,-30 L-4,-23 Z" fill="#FFB6C1" />
-            <path d="M6,-22 L8,-30 L4,-23 Z" fill="#FFB6C1" />
-          </motion.g>
+            <g transform={`rotate(${pose.earTilt})`}>
+              <path d="M-12 -18 L-23 -40 L-3 -23 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
+              <path d="M12 -18 L23 -40 L3 -23 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
+              <path d="M-9 -20 L-17 -31 L-5 -24 Z" fill="#fbb4c9" opacity="0.9" />
+              <path d="M9 -20 L17 -31 L5 -24 Z" fill="#fbb4c9" opacity="0.9" />
+            </g>
 
-          {/* Eyes */}
-          <motion.g
-            animate={{
-              scaleX: mood === 'tired' ? 0.3 : 1,
-              scaleY: mood === 'tired' ? 0.1 : 1
-            }}
-            transition={{ type: 'spring', stiffness: 200 }}
-          >
-            <circle cx="-5" cy="-10" r="2.5" fill="black" />
-            <circle cx="5" cy="-10" r="2.5" fill="black" />
-            {mood !== 'tired' && (
-              <>
-                <circle cx="-4.5" cy="-11" r="1" fill="white" />
-                <circle cx="5.5" cy="-11" r="1" fill="white" />
-              </>
-            )}
-          </motion.g>
+            <g transform={`scale(${pose.eyeScale})`}>
+              <ellipse cx="-8" cy="-2" rx="5" ry="6" fill="#111827" />
+              <ellipse cx="8" cy="-2" rx="5" ry="6" fill="#111827" />
+              <circle cx="-6" cy="-4" r="1.7" fill="#ffffff" />
+              <circle cx="10" cy="-4" r="1.7" fill="#ffffff" />
+            </g>
 
-          {/* Nose */}
-          <path d="M0,-5 L-1,0 L1,0 Z" fill="#FFB6C1" />
+            <path d="M0 6 L6 12 L12 6" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M0 7 L-6 12 L-12 7" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M0 10 L0 15" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" />
 
-          {/* Mouth */}
-          <motion.path
-            d={pose.mouth}
-            stroke="#000"
-            strokeWidth="1.5"
-            fill="none"
-            strokeLinecap="round"
-            animate={mood === 'celebrating' ? { scale: [1, 1.1, 1] } : { scale: 1 }}
-            transition={mood === 'celebrating' ? { duration: 0.8, repeat: Infinity } : undefined}
-          />
+            <path d="M0 0 L0 5" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" opacity="0.8" />
+            <path d="M-18 2 L-31 0" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M-18 7 L-31 8" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M-18 12 L-31 16" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M18 2 L31 0" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M18 7 L31 8" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M18 12 L31 16" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" />
+          </g>
 
-          {/* Whiskers */}
-          <line x1="-16" y1="-8" x2="-25" y2="-10" stroke="#000" strokeWidth="0.8" />
-          <line x1="-16" y1="-3" x2="-25" y2="-3" stroke="#000" strokeWidth="0.8" />
-          <line x1="-16" y1="2" x2="-25" y2="4" stroke="#000" strokeWidth="0.8" />
-          <line x1="16" y1="-8" x2="25" y2="-10" stroke="#000" strokeWidth="0.8" />
-          <line x1="16" y1="-3" x2="25" y2="-3" stroke="#000" strokeWidth="0.8" />
-          <line x1="16" y1="2" x2="25" y2="4" stroke="#000" strokeWidth="0.8" />
+          <g>
+            <ellipse cx="-15" cy="34" rx="7" ry="12" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
+            <ellipse cx="15" cy="34" rx="7" ry="12" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
+            <ellipse cx="-13" cy="49" rx="5" ry="7" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
+            <ellipse cx="13" cy="49" rx="5" ry="7" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
+            <path d="M-24 35 L-30 42" stroke={colorStyles.stroke} strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+            <path d="M24 35 L30 42" stroke={colorStyles.stroke} strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+          </g>
 
-          {/* Front Paws */}
-          <ellipse cx="-8" cy="30" rx="5" ry="8" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="1" />
-          <ellipse cx="8" cy="30" rx="5" ry="8" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="1" />
-
-          {/* Accessories for special moods */}
-          {pose.accessories && (
-            <g dangerouslySetInnerHTML={{ __html: pose.accessories }} />
-          )}
+          {pose.accessory && <g dangerouslySetInnerHTML={{ __html: pose.accessory }} />}
         </g>
       </svg>
     </motion.div>
