@@ -302,8 +302,8 @@ const Logo = ({ className }: { className?: string }) => (
 );
 
 export default function App() {
-  const [plans, setPlans] = React.useState<Plan[]>(() => storage.getPlans());
-  const [weekMetas, setWeekMetas] = React.useState<Record<string, any>>(() => storage.getWeekMetas());
+  const [plans, setPlans] = React.useState<Plan[]>([]);
+  const [weekMetas, setWeekMetas] = React.useState<Record<string, any>>({});
   const [isSummaryOpen, setIsSummaryOpen] = React.useState(false);
   const plansRef = React.useRef<Plan[]>(plans);
   const weekMetasRef = React.useRef<Record<string, any>>(weekMetas);
@@ -1099,10 +1099,10 @@ export default function App() {
         const anonymousSettingsFromStorage = storage.hasStoredSettings() ? storage.getSettings() : undefined;
         const hasPendingSync = firebaseUser ? storage.hasPendingSync(firebaseUser.uid) : false;
         const hasExistingLocalData = anonymousPlans.length > 0 || Object.keys(anonymousWeekMetas).length > 0 || storage.hasStoredSettings() || (firebaseUser ? storage.hasStoredSettings(firebaseUser.uid) : false);
-        const currentPlansFallback = plansRef.current.length > 0 ? plansRef.current : anonymousPlans;
-        const currentWeekMetasFallback = Object.keys(weekMetasRef.current).length > 0 ? weekMetasRef.current : anonymousWeekMetas;
-        const currentSettingsFallback = Object.keys(settingsRef.current).length > 0 && JSON.stringify(settingsRef.current) !== JSON.stringify(anonymousSettings)
-          ? settingsRef.current
+        const currentPlansFallback = firebaseUser ? (localPlansForUid.length > 0 ? localPlansForUid : anonymousPlans) : anonymousPlans;
+        const currentWeekMetasFallback = firebaseUser ? (Object.keys(localMetasForUid).length > 0 ? localMetasForUid : anonymousWeekMetas) : anonymousWeekMetas;
+        const currentSettingsFallback = firebaseUser
+          ? (rawLocalSettingsForUid ? rawLocalSettingsForUid : (anonymousSettingsFromStorage ?? anonymousSettings))
           : anonymousSettings;
 
         if (firebaseUser) {
@@ -1147,7 +1147,7 @@ export default function App() {
              storage.setPendingSync(firebaseUser.uid, 'settings', true);
            }
 
-           const initialPlans = mergedPlans.length > 0 ? mergedPlans : currentPlansFallback;
+           const initialPlans = mergedPlans.length > 0 ? mergedPlans : (localPlansForUid.length > 0 ? localPlansForUid : currentPlansFallback);
            const initialWeekMetas = Object.keys(mergedWeekMetas).length > 0 ? mergedWeekMetas : currentWeekMetasFallback;
            const initialSettings = normalizeSettings({ ...currentSettingsFallback, ...mergedSettings });
            setPlans(initialPlans);
@@ -1257,9 +1257,9 @@ export default function App() {
              setSettings(fallbackSettings);
            }
         } else {
-           const fallbackPlans = plansRef.current.length > 0 ? plansRef.current : anonymousPlans;
-           const fallbackMetas = Object.keys(weekMetasRef.current).length > 0 ? weekMetasRef.current : anonymousWeekMetas;
-           const fallbackSettings = hasExistingLocalData ? normalizeSettings({ ...currentSettingsFallback, ...anonymousSettings }) : anonymousSettings;
+           const fallbackPlans = anonymousPlans;
+           const fallbackMetas = anonymousWeekMetas;
+           const fallbackSettings = anonymousSettings;
            setPlans(fallbackPlans);
            setWeekMetas(fallbackMetas);
            setSettings(fallbackSettings);
