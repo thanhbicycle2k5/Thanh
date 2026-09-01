@@ -22,6 +22,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
 import { playNotificationSound, playMusicalNote, playCompletionMelody, playMeow } from './lib/sounds';
+import { getPlanReminderDate, getPlanStartDate } from './lib/taskTime';
 import { getSchedulyMessage, SchedulyStatus } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
@@ -1306,9 +1307,11 @@ export default function App() {
   }, []);
 
   const getEventDate = React.useCallback((plan: Plan) => {
-    const eventDate = new Date(plan.date);
-    eventDate.setHours(plan.startHour, plan.startMinute ?? 0, 0, 0);
-    return eventDate;
+    return getPlanStartDate({
+      date: plan.date,
+      startHour: plan.startHour,
+      startMinute: plan.startMinute,
+    });
   }, []);
 
   const getMinutesUntilStart = React.useCallback((plan: Plan) => {
@@ -1338,8 +1341,12 @@ export default function App() {
   }, []);
 
   const getNotificationPermission = React.useCallback(async (): Promise<NotificationPermission> => {
-    return await requestUniversalNotificationPermission();
-  }, []);
+    const permission = await requestUniversalNotificationPermission();
+    if (permission === 'granted') {
+      void playNotificationSound(settingsState.notificationSound);
+    }
+    return permission;
+  }, [settingsState.notificationSound]);
 
   const sendReminderNotification = React.useCallback(async (plan: Plan) => {
     if (!isOnline || !settingsState.notificationsEnabled || plan.color === 'green') {
@@ -1362,7 +1369,11 @@ export default function App() {
     }
 
     const taskName = plan.title?.trim() || 'công việc';
-    const remindAt = getEventDate(plan).getTime() - 15 * 60 * 1000;
+    const remindAt = getPlanReminderDate({
+      date: plan.date,
+      startHour: plan.startHour,
+      startMinute: plan.startMinute,
+    }).getTime();
     const payload = {
       id: notificationId,
       title: buildNotificationTitle(),
@@ -1374,6 +1385,7 @@ export default function App() {
       playMeow();
       showSpeechBubbleText('remind', taskName, notificationId);
     }
+    void playNotificationSound(settingsState.notificationSound);
 
     try {
       if (remindAt <= Date.now()) {
@@ -1425,7 +1437,11 @@ export default function App() {
       }
 
       const eventDate = getEventDate(plan);
-      const remindAt = eventDate.getTime() - 15 * 60 * 1000;
+      const remindAt = getPlanReminderDate({
+        date: plan.date,
+        startHour: plan.startHour,
+        startMinute: plan.startMinute,
+      }).getTime();
       if (eventDate.getTime() <= now) {
         return;
       }

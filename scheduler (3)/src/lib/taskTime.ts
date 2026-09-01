@@ -11,3 +11,7 @@ export const getPlanStartDate = (plan: Pick<Plan, 'date' | 'startHour' | 'startM
   start.setHours(plan.startHour, plan.startMinute ?? 0, 0, 0);
   return start;
 };
+
+export const getPlanReminderDate = (plan: Pick<Plan, 'date' | 'startHour' | 'startMinute'>) => {
+  return new Date(getPlanStartDate(plan).getTime() - 15 * 60 * 1000);
+};
