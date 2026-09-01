@@ -47,16 +47,7 @@ function DialogContent({
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
 }) {
-  const [position, setPosition] = React.useState<{ x: number; y: number }>(() => {
-    if (typeof window === "undefined") {
-      return { x: 0, y: 0 }
-    }
-
-    return {
-      x: window.innerWidth / 2 - 220,
-      y: window.innerHeight / 2 - 180,
-    }
-  })
+  const [position, setPosition] = React.useState<{ x: number; y: number } | null>(null)
   const [dragState, setDragState] = React.useState<{
     pointerX: number
     pointerY: number
@@ -65,6 +56,15 @@ function DialogContent({
   } | null>(null)
 
   const popupProps = props as DialogPrimitive.Popup.Props & { showCloseButton?: boolean }
+
+  React.useEffect(() => {
+    if (open && position === null && typeof window !== "undefined") {
+      setPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+      })
+    }
+  }, [open, position])
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     const dragHandle = (event.target as HTMLElement).closest("[data-drag-handle]")
@@ -110,9 +110,15 @@ function DialogContent({
             ? {
                 left: `${position.x}px`,
                 top: `${position.y}px`,
+                transform: "translate(-50%, -50%)",
                 touchAction: "none",
               }
-            : { touchAction: "none" }
+            : {
+                left: "50%",
+                top: "50%",
+                transform: "translate(-50%, -50%)",
+                touchAction: "none",
+              }
         }
         className={cn(
           "fixed z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
