@@ -689,9 +689,11 @@ export default function App() {
     return plans.filter(p => isSameWeek(new Date(p.date), selectedWeekStart, { weekStartsOn: 1 }));
   }, [plans, selectedWeekStart]);
 
+  const shouldShowCat = settingsState.catEnabled !== false;
+
   // Cat auto-move: find empty schedule cells and teleport the cat there periodically
   React.useEffect(() => {
-    if (isMobile || settingsState.catEnabled === false) return;
+    if (!shouldShowCat) return;
 
     let running = true;
     const moveCatToRandomEmptyCell = () => {
@@ -1493,7 +1495,7 @@ export default function App() {
         )}
         
         {/* Dynamic Cat */}
-        {!isMobile && settingsState.catEnabled !== false && (
+        {shouldShowCat && (
           <motion.div
             animate={{ x: [0, -8, 8, 0], y: [0, -6, 6, 0] }}
             transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
