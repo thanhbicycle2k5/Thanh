@@ -10,6 +10,7 @@ export interface Plan {
   duration: number;
   color: PlanColor;
   notes?: string;
+  reminderMinutes?: number | null;
   applyMode?: TaskApplyMode;
   applyDays?: ('mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun')[];
   applyWeekInterval?: number; // repeat every N weeks when applyMode === 'week'

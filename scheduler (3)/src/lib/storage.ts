@@ -71,6 +71,7 @@ const normalizePlan = (plan: any): Plan => {
     duration: typeof plan?.duration === 'number' ? plan.duration : 1,
     color: plan?.color === 'default' || plan?.color === 'green' || plan?.color === 'yellow' || plan?.color === 'gray' || plan?.color === 'red' || plan?.color === 'blue' ? plan.color : 'yellow',
     notes: typeof plan?.notes === 'string' ? plan.notes : undefined,
+    reminderMinutes: typeof plan?.reminderMinutes === 'number' ? plan.reminderMinutes : (plan?.reminderMinutes === null ? null : 0),
     applyMode: plan?.applyMode === 'day' || plan?.applyMode === 'week' ? plan.applyMode : 'none',
     applyDays: Array.isArray(plan?.applyDays) ? plan.applyDays : undefined,
     applyWeekInterval: typeof plan?.applyWeekInterval === 'number' ? plan.applyWeekInterval : undefined,
