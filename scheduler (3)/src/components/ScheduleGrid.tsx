@@ -78,7 +78,12 @@ const ScheduleCell = React.memo(function ScheduleCell({
       onClick={() => handleUnifiedClick(day, hour)}
     >
       {plan ? (
-        <div className="w-full h-full p-1.5 text-[10px] md:text-xs font-bold flex flex-col items-center justify-center text-center relative leading-tight gap-0.5">
+        <div className={cn("w-full h-full p-1.5 text-[10px] md:text-xs font-bold flex flex-col items-center justify-center text-center relative leading-tight gap-0.5", (plan.startMinute ?? 0) > 0 && "pt-4")}>
+          {(plan.startMinute ?? 0) > 0 && (
+            <span className="absolute left-1 top-0.5 text-[8px] md:text-[9px] font-black tracking-wide opacity-80">
+              {formatPlanTime(plan.startHour, plan.startMinute ?? 0)}
+            </span>
+          )}
           <span className={cn(plan.title === '' && "italic opacity-30")}>
             {plan.title || t('enterTask')}
           </span>
@@ -494,16 +499,16 @@ function ScheduleGridComponent({
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-3">
-              <Label className="text-right text-xs font-bold text-muted-foreground">
-                {t('startHour')}
-              </Label>
-              <div className="col-span-3 flex items-center gap-2">
+            <div className="grid grid-cols-2 items-end gap-3">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-muted-foreground">
+                  {t('startHour')}
+                </Label>
                 <Select
                   value={String(newStartMinute)}
                   onValueChange={(v) => setNewStartMinute(Number(v))}
                 >
-                  <SelectTrigger className="w-28 bg-muted/50 border-border">
+                  <SelectTrigger className="w-full bg-muted/50 border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -512,21 +517,16 @@ function ScheduleGridComponent({
                     ))}
                   </SelectContent>
                 </Select>
-                <span className="text-xs text-muted-foreground">
-                  {formatPlanTime(editingPlan?.startHour ?? 0, newStartMinute)}
-                </span>
               </div>
-            </div>
-            <div className="grid grid-cols-4 items-center gap-3">
-              <Label className="text-right text-xs font-bold text-muted-foreground">
-                {t('duration')}
-              </Label>
-              <div className="col-span-3 flex items-center gap-2">
+              <div className="space-y-2">
+                <Label className="text-xs font-bold text-muted-foreground">
+                  {t('duration')}
+                </Label>
                 <Select
                   value={String(newDuration)}
                   onValueChange={(v) => setNewDuration(Number(v))}
                 >
-                  <SelectTrigger className="w-28 bg-muted/50 border-border">
+                  <SelectTrigger className="w-full bg-muted/50 border-border">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -535,10 +535,10 @@ function ScheduleGridComponent({
                     ))}
                   </SelectContent>
                 </Select>
-                <span className="text-xs text-muted-foreground">
-                  → {formatPlanTime((editingPlan?.startHour ?? 0) + newDuration, newStartMinute)}
-                </span>
               </div>
+            </div>
+            <div className="flex items-center justify-end text-[11px] text-muted-foreground">
+              {formatPlanTime(editingPlan?.startHour ?? 0, newStartMinute)} → {formatPlanTime((editingPlan?.startHour ?? 0) + newDuration, 0)}
             </div>
             <div className="grid grid-cols-4 items-center gap-3">
               <Label className="text-right text-xs font-bold text-muted-foreground">
