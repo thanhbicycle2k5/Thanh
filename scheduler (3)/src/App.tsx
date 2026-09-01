@@ -307,7 +307,7 @@ export default function App() {
   const [isSummaryOpen, setIsSummaryOpen] = React.useState(false);
   const plansRef = React.useRef<Plan[]>(plans);
   const weekMetasRef = React.useRef<Record<string, any>>(weekMetas);
-  const settingsRef = React.useRef<AppSettings>(normalizeSettings(storage.getSettings()));
+  const settingsRef = React.useRef<AppSettings>(normalizeSettings(defaultSettings));
   React.useEffect(() => {
     plansRef.current = plans;
   }, [plans]);
@@ -330,7 +330,7 @@ export default function App() {
   const [syncing, setSyncing] = React.useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
-  const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(storage.getSettings()));
+  const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(defaultSettings));
   const [settingsError, setSettingsError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -1084,7 +1084,14 @@ export default function App() {
         setAuthLoading(false);
 
         if (!firebaseUser) {
-          resetAppStateForGuest({ preserveAnonymousStorage: true });
+          const anonymousPlans = storage.getPlans();
+          const anonymousWeekMetas = storage.getWeekMetas();
+          const anonymousSettings = normalizeSettings(storage.getSettings());
+          setPlans(anonymousPlans);
+          setWeekMetas(anonymousWeekMetas);
+          setSettings(anonymousSettings);
+          setSyncing(false);
+          return;
         }
 
         const anonymousPlans = storage.getPlans();
@@ -1106,7 +1113,6 @@ export default function App() {
           : anonymousSettings;
 
         if (firebaseUser) {
-           resetAppStateForGuest({ preserveAnonymousStorage: true });
            const mergePlans = (base: Plan[], extra: Plan[]) => {
              const map = new Map<string, Plan>();
              base.forEach((plan) => map.set(plan.id, plan));
@@ -1126,7 +1132,7 @@ export default function App() {
              storage.setPendingSync(firebaseUser.uid, 'plans', true);
            }
 
-           const mergedWeekMetas = { ...localMetasForUid, ...anonymousWeekMetas };
+           const mergedWeekMetas = Object.keys(localMetasForUid).length > 0 ? { ...anonymousWeekMetas, ...localMetasForUid } : anonymousWeekMetas;
            const weekMetaChanged = Object.keys(mergedWeekMetas).some((key) => {
              const existing = localMetasForUid[key];
              const incoming = anonymousWeekMetas[key];
