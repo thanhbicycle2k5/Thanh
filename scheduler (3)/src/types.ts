@@ -17,6 +17,10 @@ export interface Plan {
   applyWeekDays?: ('mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun')[]; // which weekdays to apply on weekly mode
   applyUntil?: string; // ISO date string: apply until this date (inclusive)
   updatedAt?: string;
+  createdAt?: string;
+  deviceId?: string;
+  syncStatus?: 'pending' | 'synced';
+  version?: number;
   isSynced?: boolean;
   deletedAt?: string;
 }
@@ -42,7 +46,7 @@ export interface MusicTrack {
   name: string;
   url: string;
   isCustom?: boolean;
-  source?: 'preset' | 'custom';
+  source?: 'preset' | 'custom' | 'url';
   provider?: 'audio' | 'youtube';
   fileName?: string;
 }
@@ -78,6 +82,7 @@ export interface AppSettings {
   desktopKeyboardShortcutsEnabled?: boolean;
   catColor?: CatColor;
   weekTransitionEffect?: WeekTransitionEffect;
+  updatedAt?: string;
 }
 
 export interface WeeklySchedule {

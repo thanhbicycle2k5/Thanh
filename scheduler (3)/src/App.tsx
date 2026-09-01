@@ -15,7 +15,8 @@ import {
   startOfDay,
 } from 'date-fns';
 import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack } from './types';
-import { storage, normalizeSettings, defaultSettings } from './lib/storage';
+import { storage, normalizeSettings, defaultSettings, mergeSettingsForSync } from './lib/storage';
+import { mergePlans, markPlanForSync, getDeviceId, enqueueSyncOperation } from './lib/sync';
 import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, settleRedirectAuth } from './lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
@@ -420,7 +421,11 @@ export default function App() {
   }, []);
 
   const handleUpdateSettings = React.useCallback((newSettings: Partial<AppSettings>) => {
-    const updated = normalizeSettings({ ...settingsState, ...newSettings });
+    const updated = normalizeSettings({
+      ...settingsState,
+      ...newSettings,
+      updatedAt: new Date().toISOString(),
+    });
     setSettings(updated);
 
     storage.saveSettings(updated, user?.uid, true);
@@ -905,7 +910,7 @@ export default function App() {
       const mergedPlans = mergePlans(localPlans, cloudPlans);
       const mergedMetas = { ...cloudMetas, ...storage.getWeekMetas(uid) };
       const localSettings = storage.getSettings(uid);
-      const mergedSettings = normalizeSettings({ ...cloudSettings, ...localSettings });
+      const mergedSettings = mergeSettingsForSync(localSettings, cloudSettings);
 
       setPlans(mergedPlans);
       setWeekMetas(mergedMetas);
@@ -929,7 +934,7 @@ export default function App() {
 
       const mergedPlans = mergePlans(localPlans, cloudPlans);
       const mergedMetas = { ...cloudMetas, ...localMetas };
-      const mergedSettings = normalizeSettings({ ...cloudSettings, ...localSettings });
+      const mergedSettings = mergeSettingsForSync(localSettings, cloudSettings);
 
       await cloudStorage.savePlans(uid, mergedPlans);
       await Promise.all(
@@ -1134,7 +1139,7 @@ export default function App() {
              storage.setPendingSync(firebaseUser.uid, 'week_meta', true);
            }
 
-           const mergedSettings = normalizeSettings({ ...(rawLocalSettingsForUid ?? {}), ...(anonymousSettingsFromStorage ?? {}) });
+           const mergedSettings = mergeSettingsForSync(rawLocalSettingsForUid ?? anonymousSettingsFromStorage ?? {}, anonymousSettingsFromStorage ?? rawLocalSettingsForUid ?? {});
            const settingsFromUidExist = storage.hasStoredSettings(firebaseUser.uid);
            const settingsFromAnonExist = storage.hasStoredSettings();
            if (settingsFromAnonExist) {
@@ -1210,9 +1215,9 @@ export default function App() {
              setWeekMetas(initialMetas);
 
              if (!hasPendingSync && Object.keys(cloudSettings).length > 0) {
-               setSettings(prev => normalizeSettings({ ...prev, ...cloudSettings }));
+               setSettings(prev => mergeSettingsForSync(prev, cloudSettings));
              } else if (hasExistingLocalData) {
-               setSettings(prev => normalizeSettings({ ...prev, ...currentSettingsFallback }));
+               setSettings(prev => mergeSettingsForSync(prev, currentSettingsFallback));
              }
 
              if (navigator.onLine) {
@@ -1231,7 +1236,7 @@ export default function App() {
                unsubSettings = subscribeSettings(firebaseUser.uid, cloudSettingsSnapshot => {
                  const localSettings = storage.getSettings(firebaseUser.uid);
                  const nextSettings = storage.hasPendingSyncFor(firebaseUser.uid, 'settings')
-                   ? normalizeSettings({ ...cloudSettingsSnapshot, ...localSettings })
+                   ? mergeSettingsForSync(localSettings, cloudSettingsSnapshot)
                    : normalizeSettings(cloudSettingsSnapshot);
                  setSettings(nextSettings);
                  storage.saveSettings(nextSettings, firebaseUser.uid, false);

@@ -56,7 +56,7 @@ const isBackgroundConfig = (value: any): value is AppSettings['backgroundConfig'
 export const normalizeSettings = (raw: any): AppSettings => {
   const obj = raw && typeof raw === 'object' ? raw : {};
 
-  return {
+  const normalized: AppSettings = {
     language: obj.language === 'vi' ? 'vi' : 'en',
     theme: obj.theme === 'dark' ? 'dark' : 'light',
     musicEnabled: typeof obj.musicEnabled === 'boolean' ? obj.musicEnabled : defaultSettings.musicEnabled,
@@ -82,6 +82,32 @@ export const normalizeSettings = (raw: any): AppSettings => {
     catColor: obj.catColor === 'orange' || obj.catColor === 'pink' || obj.catColor === 'blue' || obj.catColor === 'green' || obj.catColor === 'purple' || obj.catColor === 'yellow' || obj.catColor === 'teal' || obj.catColor === 'red' || obj.catColor === 'gray' || obj.catColor === 'black' || obj.catColor === 'white' ? obj.catColor : defaultSettings.catColor,
     weekTransitionEffect: obj.weekTransitionEffect === 'none' || obj.weekTransitionEffect === 'fade' || obj.weekTransitionEffect === 'slide' ? obj.weekTransitionEffect : defaultSettings.weekTransitionEffect,
   };
+
+  if (typeof obj.updatedAt === 'string' && !Number.isNaN(new Date(obj.updatedAt).getTime())) {
+    normalized.updatedAt = obj.updatedAt;
+  }
+
+  return normalized;
+};
+
+export const getSettingsTimestamp = (settings?: Partial<AppSettings> | null): number => {
+  if (!settings || typeof settings.updatedAt !== 'string') return 0;
+  const ts = new Date(settings.updatedAt).getTime();
+  return Number.isNaN(ts) ? 0 : ts;
+};
+
+export const mergeSettingsForSync = (localSettings?: Partial<AppSettings> | null, remoteSettings?: Partial<AppSettings> | null): AppSettings => {
+  const local = normalizeSettings(localSettings ?? {});
+  const remote = normalizeSettings(remoteSettings ?? {});
+  const localTs = getSettingsTimestamp(localSettings);
+  const remoteTs = getSettingsTimestamp(remoteSettings);
+
+  if (!localTs && !remoteTs) {
+    return normalizeSettings({ ...defaultSettings, ...local, ...remote });
+  }
+
+  const winner = localTs >= remoteTs ? local : remote;
+  return normalizeSettings({ ...defaultSettings, ...local, ...remote, ...winner, updatedAt: winner.updatedAt ?? new Date().toISOString() });
 };
 
 const FIRED_NOTIFICATION_IDS_KEY = 'chronos_fired_notification_ids';
@@ -168,7 +194,11 @@ export const storage = {
   },
   saveSettings: (settings: Partial<AppSettings>, uid?: string | null, markPending = true) => {
     const current = storage.getSettings(uid);
-    const normalized = normalizeSettings({ ...current, ...settings });
+    const normalized = normalizeSettings({
+      ...current,
+      ...settings,
+      updatedAt: settings.updatedAt ?? current.updatedAt ?? nowIso(),
+    });
     localStorage.setItem(keyFor('chronos_settings', uid), JSON.stringify(normalized));
     localStorage.setItem(themeKey, normalized.theme);
     if (uid && markPending) {

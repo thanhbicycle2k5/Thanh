@@ -14,6 +14,11 @@ const STORE_NAME = 'tracks';
 const PLAYER_STATE_KEY = 'scheduly_music_player_state';
 const CUSTOM_TRACKS_KEY = 'scheduly_custom_music_tracks';
 
+type PersistedCustomTrack = Omit<MusicTrack, 'source'> & {
+  source?: 'custom' | 'url';
+  fileName?: string;
+};
+
 export interface MusicPlayerState {
   currentTrackId: string | null;
   playbackMode: MusicPlaybackMode;
@@ -40,20 +45,25 @@ const createDbRequest = (name: string): Promise<IDBDatabase> => {
   });
 };
 
-const readPersistedCustomTracks = (): Array<MusicTrack & { source: 'custom' | 'url'; fileName?: string }> => {
+const readPersistedCustomTracks = (): PersistedCustomTrack[] => {
   if (typeof window === 'undefined') return [];
   try {
     const raw = window.localStorage.getItem(CUSTOM_TRACKS_KEY);
     if (!raw) return [];
-    const parsed = JSON.parse(raw) as Array<MusicTrack & { source?: 'custom' | 'url'; fileName?: string }>;
-    return Array.isArray(parsed) ? parsed.filter((track) => Boolean(track?.id)) : [];
+    const parsed = JSON.parse(raw) as PersistedCustomTrack[];
+    return Array.isArray(parsed)
+      ? parsed.filter((track) => Boolean(track?.id)).map((track) => ({
+          ...track,
+          source: track.source === 'custom' ? 'custom' : 'url',
+        }))
+      : [];
   } catch (error) {
     console.error('Failed to load persisted custom track metadata', error);
     return [];
   }
 };
 
-const writePersistedCustomTracks = (tracks: Array<MusicTrack & { source: 'custom' | 'url'; fileName?: string }>) => {
+const writePersistedCustomTracks = (tracks: PersistedCustomTrack[]) => {
   if (typeof window === 'undefined') return;
   window.localStorage.setItem(CUSTOM_TRACKS_KEY, JSON.stringify(tracks));
 };
@@ -108,12 +118,13 @@ export const listCustomTracks = async (): Promise<MusicTrack[]> => {
       if (dbTrack) {
         return dbTrack;
       }
+      const normalizedSource: MusicTrack['source'] = track.source === 'custom' ? 'custom' : 'url';
       return {
         id: track.id,
         name: track.name || 'Custom track',
         url: track.url || '',
         isCustom: true,
-        source: track.source === 'custom' ? 'custom' : 'url',
+        source: normalizedSource,
         provider: getTrackProvider(track.url || ''),
         fileName: track.fileName,
       } satisfies MusicTrack;
@@ -144,7 +155,7 @@ export const saveCustomTrack = async (track: MusicTrack, file?: File | Blob): Pr
     isCustom: true,
     source: file ? 'custom' : 'url',
     fileName: track.fileName,
-  });
+  } satisfies PersistedCustomTrack);
   writePersistedCustomTracks(persistedTracks);
 
   return new Promise((resolve, reject) => {

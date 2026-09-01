@@ -462,7 +462,6 @@ function ScheduleGridComponent({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent
           className="sm:rounded-2xl border-none max-w-sm bg-card"
-          onOpenAutoFocus={(event) => event.preventDefault()}
         >
           <DialogHeader>
             <DialogTitle className="text-foreground">
