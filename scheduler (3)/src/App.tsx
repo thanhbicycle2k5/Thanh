@@ -2484,9 +2484,14 @@ export default function App() {
                 <motion.div
                   drag
                   dragMomentum={false}
+                  dragElastic={0.08}
+                  dragPropagation={false}
+                  dragConstraints={false}
+                  dragTransition={{ bounceStiffness: 500, bounceDamping: 32 }}
                   initial={{ opacity: 0, scale: 0.9, y: 10 }}
                   animate={{ opacity: 1, scale: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                  style={{ touchAction: 'none' }}
                   onPointerDown={(e) => e.stopPropagation()}
                   className="absolute z-40 w-64 right-0 bottom-14 border shadow-2xl rounded-xl overflow-hidden cursor-move bg-card"
                 >
@@ -2565,9 +2570,14 @@ export default function App() {
             <motion.div
               drag
               dragMomentum={false}
+              dragElastic={0.08}
+              dragPropagation={false}
+              dragConstraints={false}
+              dragTransition={{ bounceStiffness: 500, bounceDamping: 32 }}
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              style={{ touchAction: 'none' }}
               onPointerDown={(e) => e.stopPropagation()}
               className="fixed bottom-24 right-4 z-40 w-[min(95vw,22rem)] border shadow-2xl rounded-3xl overflow-hidden cursor-move bg-card border-border pointer-events-auto"
             >
