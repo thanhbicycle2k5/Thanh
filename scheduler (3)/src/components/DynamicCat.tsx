@@ -94,26 +94,26 @@ const CatPoses: Record<CatMood, { body: string; tilt: number; earTilt: number; e
     tilt: 0,
     earTilt: 0,
     eyeScale: 1,
-    mouth: 'M48 52 Q60 60 72 52',
-    tail: 'M20 40 C 8 54, 8 76, 23 82',
+    mouth: 'M47 52 Q60 59 73 52',
+    tail: 'M16 36 C 8 42, 7 56, 18 70',
     pawOffset: 0,
   },
   work: {
     body: 'translate(0, 2)',
-    tilt: -2,
+    tilt: 0,
     earTilt: -8,
     eyeScale: 1,
-    mouth: 'M47 52 Q60 57 73 52',
-    tail: 'M18 42 C 8 52, 6 68, 18 79',
+    mouth: 'M47 52 Q60 58 73 52',
+    tail: 'M16 37 C 8 44, 6 58, 18 72',
     pawOffset: 1,
   },
   gym: {
-    body: 'translate(-3, -1)',
-    tilt: 6,
+    body: 'translate(-2, -1)',
+    tilt: 3,
     earTilt: 8,
     eyeScale: 1,
-    mouth: 'M46 52 Q60 58 74 52',
-    tail: 'M20 41 C 9 49, 6 63, 18 80',
+    mouth: 'M46 53 Q60 60 74 53',
+    tail: 'M16 36 C 9 42, 8 58, 18 72',
     pawOffset: 2,
   },
   medical: {
@@ -121,36 +121,36 @@ const CatPoses: Record<CatMood, { body: string; tilt: number; earTilt: number; e
     tilt: 0,
     earTilt: 0,
     eyeScale: 0.9,
-    mouth: 'M47 52 Q60 54 73 52',
-    tail: 'M18 42 C 8 55, 7 72, 22 82',
+    mouth: 'M48 53 Q60 58 72 53',
+    tail: 'M16 36 C 8 44, 7 58, 18 72',
     pawOffset: 0,
-    accessory: '<path d="M34 48 L43 42 L46 48 L38 55 Z" fill="#ffffff" opacity="0.8" />'
+    accessory: '<path d="M35 49 L44 42 L47 49 L39 56 Z" fill="#ffffff" opacity="0.8" />'
   },
   shortBreak: {
     body: 'translate(0, 1)',
-    tilt: -4,
+    tilt: -3,
     earTilt: -10,
     eyeScale: 1.08,
-    mouth: 'M48 51 Q60 65 72 51',
-    tail: 'M20 40 C 10 50, 8 68, 18 80',
+    mouth: 'M48 52 Q60 63 72 52',
+    tail: 'M16 36 C 8 43, 7 58, 18 72',
     pawOffset: 0,
   },
   longBreak: {
-    body: 'translate(0, 4)',
-    tilt: -3,
+    body: 'translate(0, 3)',
+    tilt: -2,
     earTilt: -12,
     eyeScale: 1,
-    mouth: 'M49 53 Q60 58 71 53',
-    tail: 'M18 42 C 7 52, 6 70, 20 84',
+    mouth: 'M48 54 Q60 59 72 54',
+    tail: 'M16 36 C 7 43, 6 58, 18 74',
     pawOffset: 1,
   },
   celebrating: {
-    body: 'translate(0, -5)',
+    body: 'translate(0, -3)',
     tilt: 0,
-    earTilt: 12,
+    earTilt: 10,
     eyeScale: 1.1,
-    mouth: 'M46 52 Q60 66 74 52',
-    tail: 'M20 40 C 11 38, 7 54, 18 78',
+    mouth: 'M46 53 Q60 65 74 53',
+    tail: 'M16 36 C 9 38, 7 52, 18 72',
     pawOffset: 0,
   },
   tired: {
@@ -159,16 +159,16 @@ const CatPoses: Record<CatMood, { body: string; tilt: number; earTilt: number; e
     earTilt: -16,
     eyeScale: 0.75,
     mouth: 'M52 55 Q60 58 68 55',
-    tail: 'M20 41 C 8 54, 8 74, 21 84',
+    tail: 'M16 36 C 8 42, 8 58, 18 72',
     pawOffset: 1,
   },
   happy: {
-    body: 'translate(-2, -1)',
+    body: 'translate(-1, -1)',
     tilt: 3,
     earTilt: 6,
     eyeScale: 1.08,
-    mouth: 'M46 52 Q60 64 74 52',
-    tail: 'M18 40 C 8 46, 7 62, 21 81',
+    mouth: 'M46 53 Q60 64 74 53',
+    tail: 'M16 36 C 8 39, 7 54, 19 72',
     pawOffset: 0,
   }
 };
@@ -234,45 +234,46 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
         <g transform={`translate(60 58) rotate(${pose.tilt})`}>
           <path d={pose.tail} fill="none" stroke={colorStyles.tail} strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />
 
-          <ellipse cx="0" cy="18" rx="24" ry="18" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2.5" />
+          <g transform="translate(0 8)">
+            <path d="M-10 18 C -18 8, -25 4, -30 8 C -35 12, -34 24, -30 30 C -23 39, -11 40, -6 34 C -1 28, 1 22, -10 18 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2.4" />
 
-          <g transform={`translate(0 -8)`}>
-            <circle cx="0" cy="0" r="23" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2.5" />
+            <path d="M-12 18 C -18 14, -22 4, -18 -8 C -14 -18, -6 -24, 1 -24 C 10 -24, 18 -18, 18 -8 C 21 1, 17 10, 7 18 C 4 21, 3 23, 0 24 C -6 25, -10 22, -12 18 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2.4" />
 
             <g transform={`rotate(${pose.earTilt})`}>
-              <path d="M-12 -18 L-23 -40 L-3 -23 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
-              <path d="M12 -18 L23 -40 L3 -23 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
-              <path d="M-9 -20 L-17 -31 L-5 -24 Z" fill="#fbb4c9" opacity="0.9" />
-              <path d="M9 -20 L17 -31 L5 -24 Z" fill="#fbb4c9" opacity="0.9" />
+              <path d="M-12 -18 L-22 -39 L-3 -23 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
+              <path d="M12 -18 L22 -39 L3 -23 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
+              <path d="M-9 -20 L-16 -31 L-4 -25 Z" fill="#fbb4c9" opacity="0.9" />
+              <path d="M9 -20 L16 -31 L4 -25 Z" fill="#fbb4c9" opacity="0.9" />
             </g>
 
             <g transform={`scale(${pose.eyeScale})`}>
-              <ellipse cx="-8" cy="-2" rx="5" ry="6" fill="#111827" />
-              <ellipse cx="8" cy="-2" rx="5" ry="6" fill="#111827" />
-              <circle cx="-6" cy="-4" r="1.7" fill="#ffffff" />
-              <circle cx="10" cy="-4" r="1.7" fill="#ffffff" />
+              <ellipse cx="-8" cy="-2" rx="4.2" ry="5.2" fill="#111827" />
+              <ellipse cx="8" cy="-2" rx="4.2" ry="5.2" fill="#111827" />
+              <circle cx="-6.2" cy="-3.8" r="1.4" fill="#ffffff" />
+              <circle cx="9.8" cy="-3.8" r="1.4" fill="#ffffff" />
             </g>
 
-            <path d="M0 6 L6 12 L12 6" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M0 7 L6 12 L12 7" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M0 7 L-6 12 L-12 7" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M0 10 L0 15" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" />
 
-            <path d="M0 0 L0 5" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" opacity="0.8" />
-            <path d="M-18 2 L-31 0" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" />
-            <path d="M-18 7 L-31 8" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" />
-            <path d="M-18 12 L-31 16" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" />
-            <path d="M18 2 L31 0" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" />
-            <path d="M18 7 L31 8" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" />
-            <path d="M18 12 L31 16" stroke="#111827" strokeWidth="1.8" strokeLinecap="round" />
+            <path d="M-18 2 L-30 1" stroke="#111827" strokeWidth="1.7" strokeLinecap="round" />
+            <path d="M-18 7 L-30 8" stroke="#111827" strokeWidth="1.7" strokeLinecap="round" />
+            <path d="M-18 12 L-30 15" stroke="#111827" strokeWidth="1.7" strokeLinecap="round" />
+            <path d="M18 2 L30 1" stroke="#111827" strokeWidth="1.7" strokeLinecap="round" />
+            <path d="M18 7 L30 8" stroke="#111827" strokeWidth="1.7" strokeLinecap="round" />
+            <path d="M18 12 L30 15" stroke="#111827" strokeWidth="1.7" strokeLinecap="round" />
           </g>
 
-          <g>
-            <ellipse cx="-15" cy="34" rx="7" ry="12" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
-            <ellipse cx="15" cy="34" rx="7" ry="12" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
-            <ellipse cx="-13" cy="49" rx="5" ry="7" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
-            <ellipse cx="13" cy="49" rx="5" ry="7" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
-            <path d="M-24 35 L-30 42" stroke={colorStyles.stroke} strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-            <path d="M24 35 L30 42" stroke={colorStyles.stroke} strokeWidth="2" strokeLinecap="round" opacity="0.7" />
+          <g transform="translate(0 18)">
+            <path d="M-14 14 C -16 3, -13 -2, -8 0 C -5 2, -6 9, -8 15 L -14 14 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
+            <path d="M14 14 C 16 3, 13 -2, 8 0 C 5 2, 6 9, 8 15 L 14 14 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="2" />
+            <path d="M-15 18 L-19 30" stroke={colorStyles.stroke} strokeWidth="2.6" strokeLinecap="round" />
+            <path d="M15 18 L19 30" stroke={colorStyles.stroke} strokeWidth="2.6" strokeLinecap="round" />
+            <path d="M-6 22 L-10 32" stroke={colorStyles.stroke} strokeWidth="2.6" strokeLinecap="round" />
+            <path d="M6 22 L10 32" stroke={colorStyles.stroke} strokeWidth="2.6" strokeLinecap="round" />
+            <path d="M-18 18 L-24 24" stroke={colorStyles.stroke} strokeWidth="2.4" strokeLinecap="round" opacity="0.8" />
+            <path d="M18 18 L24 24" stroke={colorStyles.stroke} strokeWidth="2.4" strokeLinecap="round" opacity="0.8" />
           </g>
 
           {pose.accessory && <g dangerouslySetInnerHTML={{ __html: pose.accessory }} />}
