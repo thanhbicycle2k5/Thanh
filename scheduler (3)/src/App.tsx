@@ -1378,6 +1378,10 @@ export default function App() {
       return;
     }
 
+    // Mark before playing/scheduling to avoid a race with the 30s scan loop or repeated schedule passes.
+    firedNotificationIdsRef.current.add(notificationId);
+    storage.addFiredNotificationId(notificationId, user?.uid);
+
     const minutesUntilStart = getMinutesUntilStart(plan);
     if (!isWithinReminderWindow(minutesUntilStart)) {
       return;
@@ -1412,9 +1416,6 @@ export default function App() {
       console.error('Failed to schedule notification', error);
       showImmediateNotification(taskName);
     }
-
-    firedNotificationIdsRef.current.add(notificationId);
-    storage.addFiredNotificationId(notificationId, user?.uid);
   }, [makeNotificationId, user, showSpeechBubbleText, getEventDate, getMinutesUntilStart, isWithinReminderWindow, isOnline, settingsState]);
 
   const scheduleUpcomingNotifications = React.useCallback(async () => {
