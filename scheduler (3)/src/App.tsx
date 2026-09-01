@@ -15,6 +15,8 @@ import {
 import { Plan, NotificationSound } from './types';
 import { storage, normalizeSettings } from './lib/storage';
 import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, settleRedirectAuth } from './lib/firebase';
+import { requestNotificationPermission, syncReminderNotifications } from './lib/notifications';
+import { markPlanForSync, enqueueSyncOperation, getSyncQueue, flushSyncQueue, mergePlans, getDeviceId } from './lib/sync';
 import { doc, setDoc } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { playNotificationSound, playMusicalNote, playMeow } from './lib/sounds';
@@ -340,6 +342,46 @@ export default function App() {
     }
   }, [settingsState.gymRestDurationSeconds, gymRestRunning]);
 
+  React.useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch((error) => {
+        console.warn('Service worker registration failed:', error);
+      });
+    }
+  }, []);
+
+  React.useEffect(() => {
+    const handleOnline = () => {
+      setIsOnline(true);
+      if (user) {
+        setSyncing(true);
+        flushSyncQueue(user.uid, async (plan) => {
+          await cloudStorage.savePlan(user.uid, plan);
+        }, async (id) => {
+          await cloudStorage.deletePlan(user.uid, id);
+        }).finally(() => setSyncing(false));
+      }
+    };
+
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [user]);
+
+  React.useEffect(() => {
+    if (settingsState.notificationsEnabled) {
+      requestNotificationPermission().catch(() => undefined);
+    }
+  }, [settingsState.notificationsEnabled]);
+
+  React.useEffect(() => {
+    syncReminderNotifications(plans);
+  }, [plans]);
+
   type PomodoroMode = 'work' | 'short' | 'long';
   const POMODORO_DURATIONS: Record<PomodoroMode, number> = { work: 25 * 60, short: 5 * 60, long: 15 * 60 };
   const [isPomodoroOpen, setIsPomodoroOpen] = React.useState(false);
@@ -526,7 +568,32 @@ export default function App() {
     setSettings(updated);
     storage.saveSettings(newSettings, user?.uid);
     if (user) cloudStorage.saveSettings(user.uid, newSettings);
+    if (newSettings.notificationsEnabled === true) {
+      requestNotificationPermission().catch(() => undefined);
+    }
   };
+
+  const syncPendingChanges = React.useCallback(async () => {
+    if (!user || !isOnline) return;
+    setSyncing(true);
+    try {
+      await flushSyncQueue(user.uid, async (plan) => {
+        await cloudStorage.savePlan(user.uid, plan);
+      }, async (id) => {
+        await cloudStorage.deletePlan(user.uid, id);
+      });
+
+      const remotePlans = await cloudStorage.getPlans(user.uid).catch(() => [] as Plan[]);
+      const localPlans = storage.getPlans(user.uid);
+      const merged = mergePlans(localPlans, remotePlans);
+      setPlans(merged);
+      storage.savePlans(merged, user.uid);
+    } catch (error) {
+      console.error('Sync pending changes failed:', error);
+    } finally {
+      setSyncing(false);
+    }
+  }, [user, isOnline]);
 
   const formatSeconds = (seconds: number) => {
     const min = Math.floor(seconds / 60);
@@ -662,7 +729,7 @@ export default function App() {
     return () => clearTimeout(timer);
   }, [selectedWeekStart]);
 
-  const handleUpdatePlan = React.useCallback((p: Plan) => {
+  const handleUpdatePlan = React.useCallback(async (p: Plan) => {
     const oldPlan = plansRef.current.find(x => x.id === p.id);
     if (oldPlan && oldPlan.color !== 'green' && p.color === 'green') {
       playNotificationSound(settingsState.notificationSound);
@@ -674,28 +741,87 @@ export default function App() {
       });
       setShowCelebration(true);
     }
-    if (user) {
-      cloudStorage.savePlan(user.uid, p);
-    } else {
-      setPlans(prev => prev.map(x => x.id === p.id ? p : x));
-    }
-  }, [user, settingsState.notificationSound, t]);
 
-  const handleAddPlan = React.useCallback((p: Plan) => {
-    if (user) {
-      cloudStorage.savePlan(user.uid, p);
-    } else {
-      setPlans(prev => [...prev, p]);
-    }
-  }, [user]);
+    const normalized = markPlanForSync({
+      ...p,
+      deviceId: p.deviceId || getDeviceId(),
+      createdAt: p.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      syncStatus: 'pending',
+      version: (p.version ?? 0) + 1,
+    });
 
-  const handleDeletePlan = React.useCallback((id: string) => {
+    const mergedPlans = mergePlans(plansRef.current, [normalized]);
+    setPlans(mergedPlans);
+    storage.savePlans(mergedPlans, user?.uid ?? null);
+
     if (user) {
-      cloudStorage.deletePlan(user.uid, id);
-    } else {
-      setPlans(prev => prev.filter(x => x.id !== id));
+      if (isOnline) {
+        try {
+          await cloudStorage.savePlan(user.uid, normalized);
+          const finalPlans = mergePlans(storage.getPlans(user.uid), [normalized]);
+          setPlans(finalPlans);
+          storage.savePlans(finalPlans, user.uid);
+        } catch (error) {
+          enqueueSyncOperation(user.uid, 'update', normalized);
+          console.error('Could not sync plan update immediately:', error);
+        }
+      } else {
+        enqueueSyncOperation(user.uid, 'update', normalized);
+      }
     }
-  }, [user]);
+  }, [user, isOnline, settingsState.notificationSound, t]);
+
+  const handleAddPlan = React.useCallback(async (p: Plan) => {
+    const normalized = markPlanForSync({
+      ...p,
+      deviceId: p.deviceId || getDeviceId(),
+      createdAt: p.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      syncStatus: 'pending',
+      version: (p.version ?? 0) + 1,
+    });
+
+    const mergedPlans = mergePlans(plansRef.current, [normalized]);
+    setPlans(mergedPlans);
+    storage.savePlans(mergedPlans, user?.uid ?? null);
+
+    if (user) {
+      if (isOnline) {
+        try {
+          await cloudStorage.savePlan(user.uid, normalized);
+          const finalPlans = mergePlans(storage.getPlans(user.uid), [normalized]);
+          setPlans(finalPlans);
+          storage.savePlans(finalPlans, user.uid);
+        } catch (error) {
+          enqueueSyncOperation(user.uid, 'create', normalized);
+          console.error('Could not sync plan create immediately:', error);
+        }
+      } else {
+        enqueueSyncOperation(user.uid, 'create', normalized);
+      }
+    }
+  }, [user, isOnline]);
+
+  const handleDeletePlan = React.useCallback(async (id: string) => {
+    const current = plansRef.current.find((x) => x.id === id);
+    const nextPlans = plansRef.current.filter(x => x.id !== id);
+    setPlans(nextPlans);
+    storage.savePlans(nextPlans, user?.uid ?? null);
+
+    if (user) {
+      if (isOnline) {
+        try {
+          await cloudStorage.deletePlan(user.uid, id);
+        } catch (error) {
+          enqueueSyncOperation(user.uid, 'delete', current, id);
+          console.error('Could not sync delete immediately:', error);
+        }
+      } else {
+        enqueueSyncOperation(user.uid, 'delete', current, id);
+      }
+    }
+  }, [user, isOnline]);
 
   const handlePlanTurnGreen = React.useCallback((p: Plan) => {
     setCatMoodOverride('celebrating');
@@ -830,7 +956,8 @@ export default function App() {
              )}
              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
                 playMusicalNote();
-                handleUpdateSettings({ notificationsEnabled: !settingsState.notificationsEnabled });
+                const next = !settingsState.notificationsEnabled;
+                handleUpdateSettings({ notificationsEnabled: next });
               }}>
                 {settingsState.notificationsEnabled ? <Bell className="w-4 h-4 text-[#107C41]" /> : <BellOff className="w-4 h-4" />}
              </Button>

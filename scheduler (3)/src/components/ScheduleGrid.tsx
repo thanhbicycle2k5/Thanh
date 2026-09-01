@@ -145,6 +145,7 @@ function ScheduleGridComponent({
   const [newTitle, setNewTitle] = React.useState('');
   const [newColor, setNewColor] = React.useState<PlanColor>('yellow');
   const [newDuration, setNewDuration] = React.useState(1);
+  const [newReminderMinutes, setNewReminderMinutes] = React.useState<number>(0);
   const [newApplyMode, setNewApplyMode] = React.useState<TaskApplyMode>('none');
   const [newApplyDays, setNewApplyDays] = React.useState<NonNullable<Plan['applyDays']>>([]);
   const [newApplyWeekInterval, setNewApplyWeekInterval] = React.useState<number>(1);
@@ -196,6 +197,7 @@ function ScheduleGridComponent({
         setNewTitle(existing.title);
         setNewColor(existing.color);
         setNewDuration(existing.duration);
+        setNewReminderMinutes(Number(existing.reminderMinutes ?? 0));
         setNewApplyMode(existing.applyMode || 'none');
         setNewApplyDays(existing.applyDays || []);
         setNewApplyWeekInterval(existing.applyWeekInterval || 1);
@@ -214,6 +216,7 @@ function ScheduleGridComponent({
         setNewTitle('');
         setNewColor('yellow');
         setNewDuration(1);
+        setNewReminderMinutes(0);
         setNewApplyMode('none');
         setNewApplyDays([]);
         setNewApplyWeekInterval(1);
@@ -255,6 +258,7 @@ function ScheduleGridComponent({
     setNewTitle(plan.title);
     setNewColor(plan.color);
     setNewDuration(plan.duration);
+    setNewReminderMinutes(Number(plan.reminderMinutes ?? 0));
     setNewApplyMode(plan.applyMode || 'none');
     setNewApplyDays(plan.applyDays || []);
     setNewApplyWeekInterval(plan.applyWeekInterval || 1);
@@ -267,7 +271,7 @@ function ScheduleGridComponent({
   const handleSave = async () => {
     if (!editingPlan) return;
     
-    const basePlan = { ...editingPlan, title: newTitle, color: newColor, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, notes: newNotes || undefined };
+    const basePlan = { ...editingPlan, title: newTitle, color: newColor, duration: newDuration, reminderMinutes: newReminderMinutes, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, notes: newNotes || undefined };
     const wasGreen = plans.find(p => p.id === editingPlan.id)?.color === 'green';
     const isNew = !plans.some(p => p.id === basePlan.id);
 
@@ -360,7 +364,7 @@ function ScheduleGridComponent({
   const maxDuration = (hour: number) => Math.min(12, endHour - hour + 1);
 
   return (
-    <div className="w-full overflow-x-auto rounded-xl border transition-colors bg-card border-border">
+    <div className="w-full overflow-x-auto rounded-2xl border border-[#107C41]/30 bg-card shadow-[0_0_0_1px_rgba(16,124,65,0.04),0_12px_32px_rgba(15,23,42,0.08)] transition-colors">
       <table className="w-full border-collapse table-fixed min-w-[600px]">
         <thead className="sticky top-0 z-30">
           <tr className="bg-muted/95 backdrop-blur">
@@ -456,6 +460,22 @@ function ScheduleGridComponent({
                 <span className="text-xs text-muted-foreground">
                   → {editingPlan ? editingPlan.startHour + newDuration : ''}:00
                 </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-start gap-3">
+              <Label className="text-right text-xs font-bold pt-2 text-muted-foreground">
+                Reminder
+              </Label>
+              <div className="col-span-3 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <Input
+                  type="number"
+                  min={0}
+                  step={5}
+                  value={newReminderMinutes}
+                  onChange={(e) => setNewReminderMinutes(Number(e.target.value) || 0)}
+                  className="w-full sm:w-24 bg-muted/50 border-border"
+                />
+                <span className="text-xs text-muted-foreground">minutes before</span>
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-3">

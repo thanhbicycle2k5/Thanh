@@ -60,18 +60,44 @@ export const normalizeSettings = (raw: any): AppSettings => {
   };
 };
 
+const normalizePlan = (plan: any): Plan => {
+  const now = new Date().toISOString();
+  const normalized: Plan = {
+    id: String(plan?.id ?? `plan-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    title: typeof plan?.title === 'string' ? plan.title : '',
+    date: typeof plan?.date === 'string' ? plan.date : now,
+    startHour: typeof plan?.startHour === 'number' ? plan.startHour : 0,
+    duration: typeof plan?.duration === 'number' ? plan.duration : 1,
+    color: plan?.color === 'default' || plan?.color === 'green' || plan?.color === 'yellow' || plan?.color === 'gray' || plan?.color === 'red' || plan?.color === 'blue' ? plan.color : 'yellow',
+    notes: typeof plan?.notes === 'string' ? plan.notes : undefined,
+    reminderMinutes: typeof plan?.reminderMinutes === 'number' ? plan.reminderMinutes : (plan?.reminderMinutes === null ? null : 0),
+    applyMode: plan?.applyMode === 'day' || plan?.applyMode === 'week' ? plan.applyMode : 'none',
+    applyDays: Array.isArray(plan?.applyDays) ? plan.applyDays : undefined,
+    applyWeekInterval: typeof plan?.applyWeekInterval === 'number' ? plan.applyWeekInterval : undefined,
+    applyWeekDays: Array.isArray(plan?.applyWeekDays) ? plan.applyWeekDays : undefined,
+    applyUntil: typeof plan?.applyUntil === 'string' ? plan.applyUntil : undefined,
+    createdAt: typeof plan?.createdAt === 'string' ? plan.createdAt : now,
+    updatedAt: typeof plan?.updatedAt === 'string' ? plan.updatedAt : now,
+    deviceId: typeof plan?.deviceId === 'string' ? plan.deviceId : undefined,
+    syncStatus: plan?.syncStatus === 'pending' || plan?.syncStatus === 'conflict' ? plan.syncStatus : 'synced',
+    version: typeof plan?.version === 'number' ? plan.version : 1,
+  };
+  return normalized;
+};
+
 export const storage = {
   getPlans: (uid?: string | null): Plan[] => {
     try {
       const data = localStorage.getItem(keyFor('chronos_excel_plans', uid));
-      return data ? JSON.parse(data) : [];
+      const parsed = data ? JSON.parse(data) : [];
+      return Array.isArray(parsed) ? parsed.map(normalizePlan) : [];
     } catch (e) {
       console.error('Failed to load plans', e);
       return [];
     }
   },
   savePlans: (plans: Plan[], uid?: string | null) => {
-    localStorage.setItem(keyFor('chronos_excel_plans', uid), JSON.stringify(plans));
+    localStorage.setItem(keyFor('chronos_excel_plans', uid), JSON.stringify(plans.map(normalizePlan)));
   },
   getWeekMetas: (uid?: string | null): Record<string, any> => {
     try {

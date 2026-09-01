@@ -9,11 +9,17 @@ export interface Plan {
   duration: number;
   color: PlanColor;
   notes?: string;
+  reminderMinutes?: number | null;
   applyMode?: TaskApplyMode;
   applyDays?: ('mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun')[];
   applyWeekInterval?: number; // repeat every N weeks when applyMode === 'week'
   applyWeekDays?: ('mon'|'tue'|'wed'|'thu'|'fri'|'sat'|'sun')[]; // which weekdays to apply on weekly mode
   applyUntil?: string; // ISO date string: apply until this date (inclusive)
+  createdAt?: string;
+  updatedAt?: string;
+  deviceId?: string;
+  syncStatus?: 'pending' | 'synced' | 'conflict';
+  version?: number;
 }
 
 export interface WeekMetadata {
