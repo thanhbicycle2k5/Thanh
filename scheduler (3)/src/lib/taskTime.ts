@@ -15,3 +15,9 @@ export const getPlanStartDate = (plan: Pick<Plan, 'date' | 'startHour' | 'startM
 export const getPlanReminderDate = (plan: Pick<Plan, 'date' | 'startHour' | 'startMinute'>) => {
   return new Date(getPlanStartDate(plan).getTime() - 15 * 60 * 1000);
 };
+
+export const getPlanEndMinutes = (plan: Pick<Plan, 'startHour' | 'startMinute' | 'duration'>) => {
+  // Keep task end aligned to whole-hour boundaries even when the start minute is not 0.
+  // Example: 07:15 + 1 hour = 08:00, not 08:15.
+  return (plan.startHour + plan.duration) * 60;
+};

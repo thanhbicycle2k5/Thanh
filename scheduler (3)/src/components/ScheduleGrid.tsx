@@ -28,7 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { START_MINUTE_OPTIONS, formatPlanTime } from '../lib/taskTime';
+import { START_MINUTE_OPTIONS, formatPlanTime, getPlanEndMinutes } from '../lib/taskTime';
 
 const WEEK_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 export type WeekDay = (typeof WEEK_DAYS)[number];
@@ -328,10 +328,12 @@ function ScheduleGridComponent({
     const overlaps = (dateIso: string, startHour: number, startMinute: number, duration: number) => {
       return plans.some(p => {
         if (!isSameDay(new Date(p.date), new Date(dateIso))) return false;
+
         const pStart = (p.startHour * 60) + (p.startMinute ?? 0);
-        const pEnd = pStart + p.duration * 60;
+        const pEnd = getPlanEndMinutes({ startHour: p.startHour, startMinute: p.startMinute ?? 0, duration: p.duration });
         const bStart = (startHour * 60) + startMinute;
-        const bEnd = bStart + duration * 60;
+        const bEnd = getPlanEndMinutes({ startHour, startMinute, duration });
+
         return (pStart < bEnd && bStart < pEnd);
       });
     };
