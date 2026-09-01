@@ -23,6 +23,7 @@ import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
 import { playNotificationSound, playCompletionMelody, playMeow } from './lib/sounds';
 import { getPlanReminderDate, getPlanStartDate } from './lib/taskTime';
+import { calculatePomodoroRemainingSeconds } from './lib/pomodoro';
 import { getSchedulyMessage, SchedulyStatus } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
@@ -377,6 +378,7 @@ export default function App() {
   const [pomodoroMode, setPomodoroMode] = React.useState<PomodoroMode>('work');
   const [pomodoroSecondsLeft, setPomodoroSecondsLeft] = React.useState(POMODORO_DURATIONS.work);
   const [pomodoroRunning, setPomodoroRunning] = React.useState(false);
+  const [pomodoroDeadline, setPomodoroDeadline] = React.useState<number | null>(null);
   const [pomodoroSessions, setPomodoroSessions] = React.useState(0);
   const [showCelebration, setShowCelebration] = React.useState(false);
   const [catMoodOverride, setCatMoodOverride] = React.useState<CatMood | null>(null);
@@ -385,28 +387,49 @@ export default function App() {
   const [catPosition, setCatPosition] = React.useState<{ left: number; top: number } | null>(null);
 
   React.useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (pomodoroRunning && pomodoroSecondsLeft > 0) {
-      interval = setInterval(() => {
-        setPomodoroSecondsLeft((s) => s - 1);
-      }, 1000);
-    } else if (pomodoroSecondsLeft === 0) {
-      setPomodoroRunning(false);
-      playNotificationSound(settingsState.notificationSound);
-      if (pomodoroMode === 'work') setPomodoroSessions(v => v + 1);
-      toast.success(t(pomodoroMode === 'work' ? 'workCompleted' : 'breakOver'));
-    }
-    return () => clearInterval(interval);
-  }, [pomodoroRunning, pomodoroSecondsLeft, pomodoroMode, settingsState.notificationSound]);
+    if (!pomodoroRunning || pomodoroDeadline === null) return;
 
-  const togglePomodoro = () => setPomodoroRunning(!pomodoroRunning);
+    const tick = () => {
+      const remaining = calculatePomodoroRemainingSeconds(pomodoroDeadline, Date.now());
+      setPomodoroSecondsLeft(remaining);
+
+      if (remaining <= 0) {
+        setPomodoroRunning(false);
+        setPomodoroDeadline(null);
+        setPomodoroSecondsLeft(0);
+        playNotificationSound(settingsState.notificationSound);
+        if (pomodoroMode === 'work') setPomodoroSessions(v => v + 1);
+        toast.success(t(pomodoroMode === 'work' ? 'workCompleted' : 'breakOver'));
+      }
+    };
+
+    tick();
+    const interval = window.setInterval(tick, 250);
+    return () => window.clearInterval(interval);
+  }, [pomodoroRunning, pomodoroDeadline, pomodoroMode, settingsState.notificationSound]);
+
+  const togglePomodoro = () => {
+    if (pomodoroRunning) {
+      setPomodoroRunning(false);
+      setPomodoroDeadline(null);
+      return;
+    }
+
+    const remainingSeconds = Math.max(1, pomodoroSecondsLeft || POMODORO_DURATIONS[pomodoroMode]);
+    setPomodoroSecondsLeft(remainingSeconds);
+    setPomodoroDeadline(Date.now() + remainingSeconds * 1000);
+    setPomodoroRunning(true);
+  };
+
   const resetPomodoro = () => {
     setPomodoroRunning(false);
+    setPomodoroDeadline(null);
     setPomodoroSecondsLeft(POMODORO_DURATIONS[pomodoroMode]);
   };
   const switchPomodoroMode = (mode: PomodoroMode) => {
     setPomodoroMode(mode);
     setPomodoroSecondsLeft(POMODORO_DURATIONS[mode]);
+    setPomodoroDeadline(null);
     setPomodoroRunning(false);
   };
 
