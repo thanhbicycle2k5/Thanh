@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { START_MINUTE_OPTIONS, formatPlanTime } from '../lib/taskTime';
 
 const WEEK_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 export type WeekDay = (typeof WEEK_DAYS)[number];
@@ -157,6 +158,7 @@ function ScheduleGridComponent({
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [newTitle, setNewTitle] = React.useState('');
   const [newColor, setNewColor] = React.useState<PlanColor>('yellow');
+  const [newStartMinute, setNewStartMinute] = React.useState<number>(0);
   const [newDuration, setNewDuration] = React.useState(1);
   const [newApplyMode, setNewApplyMode] = React.useState<TaskApplyMode>('none');
   const [newApplyDays, setNewApplyDays] = React.useState<NonNullable<Plan['applyDays']>>([]);
@@ -241,6 +243,7 @@ function ScheduleGridComponent({
         setEditingPlan(existing);
         setNewTitle(existing.title);
         setNewColor(existing.color);
+        setNewStartMinute(existing.startMinute ?? 0);
         setNewDuration(existing.duration);
         setNewApplyMode(existing.applyMode || 'none');
         setNewApplyDays(existing.applyDays || []);
@@ -254,11 +257,13 @@ function ScheduleGridComponent({
           title: '',
           date: date.toISOString(),
           startHour: hour,
+          startMinute: 0,
           duration: 1,
           color: 'yellow'
         } as Plan);
         setNewTitle('');
         setNewColor('yellow');
+        setNewStartMinute(0);
         setNewDuration(1);
         setNewApplyMode('none');
         setNewApplyDays([]);
@@ -300,6 +305,7 @@ function ScheduleGridComponent({
     setEditingPlan(plan);
     setNewTitle(plan.title);
     setNewColor(plan.color);
+    setNewStartMinute(plan.startMinute ?? 0);
     setNewDuration(plan.duration);
     setNewApplyMode(plan.applyMode || 'none');
     setNewApplyDays(plan.applyDays || []);
@@ -313,25 +319,25 @@ function ScheduleGridComponent({
   const handleSave = async () => {
     if (!editingPlan) return;
     
-    const basePlan = { ...editingPlan, title: newTitle, color: newColor, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, notes: newNotes || undefined };
+    const basePlan = { ...editingPlan, title: newTitle, color: newColor, startMinute: newStartMinute, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, notes: newNotes || undefined };
     const wasGreen = plans.find(p => p.id === editingPlan.id)?.color === 'green';
     const isNew = !plans.some(p => p.id === basePlan.id);
 
-    const overlaps = (dateIso: string, startHour: number, duration: number) => {
+    const overlaps = (dateIso: string, startHour: number, startMinute: number, duration: number) => {
       return plans.some(p => {
         if (!isSameDay(new Date(p.date), new Date(dateIso))) return false;
-        const aStart = p.startHour;
-        const aEnd = p.startHour + p.duration;
-        const bStart = startHour;
-        const bEnd = startHour + duration;
-        return (aStart < bEnd && bStart < aEnd);
+        const pStart = (p.startHour * 60) + (p.startMinute ?? 0);
+        const pEnd = pStart + p.duration * 60;
+        const bStart = (startHour * 60) + startMinute;
+        const bEnd = bStart + duration * 60;
+        return (pStart < bEnd && bStart < pEnd);
       });
     };
 
     try {
       if (isNew) {
         // Always add the base plan for the selected date if no overlap
-        if (!overlaps(basePlan.date, basePlan.startHour, basePlan.duration)) {
+        if (!overlaps(basePlan.date, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
           await onAddPlan(basePlan);
         }
 
@@ -342,7 +348,7 @@ function ScheduleGridComponent({
           cur.setDate(cur.getDate() + 1);
           while (cur <= end) {
             const iso = cur.toISOString();
-            if (!overlaps(iso, basePlan.startHour, basePlan.duration)) {
+            if (!overlaps(iso, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
               const newPlan = { ...basePlan, id: crypto.randomUUID(), date: iso };
               await onAddPlan(newPlan);
             }
@@ -370,7 +376,7 @@ function ScheduleGridComponent({
                 candidate.setDate(candidate.getDate() + diff);
                 if (candidate >= startDate && candidate <= endDate) {
                   const iso = candidate.toISOString();
-                  if (!overlaps(iso, basePlan.startHour, basePlan.duration)) {
+                  if (!overlaps(iso, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
                     const newPlan = { ...basePlan, id: crypto.randomUUID(), date: iso };
                     await onAddPlan(newPlan);
                   }
@@ -468,7 +474,7 @@ function ScheduleGridComponent({
               {plans.some(p => p.id === editingPlan?.id) ? t('editPlan') : t('addPlan')}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              {editingPlan && `${editingPlan.startHour}:00 — ${format(new Date(editingPlan.date), 'EEE, d/M')}`}
+              {editingPlan && `${formatPlanTime(editingPlan.startHour, editingPlan.startMinute ?? 0)} — ${format(new Date(editingPlan.date), 'EEE, d/M')}`}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2">
@@ -490,6 +496,29 @@ function ScheduleGridComponent({
             </div>
             <div className="grid grid-cols-4 items-center gap-3">
               <Label className="text-right text-xs font-bold text-muted-foreground">
+                {t('startHour')}
+              </Label>
+              <div className="col-span-3 flex items-center gap-2">
+                <Select
+                  value={String(newStartMinute)}
+                  onValueChange={(v) => setNewStartMinute(Number(v))}
+                >
+                  <SelectTrigger className="w-28 bg-muted/50 border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {START_MINUTE_OPTIONS.map((minute) => (
+                      <SelectItem key={minute} value={String(minute)}>{String(minute).padStart(2, '0')} phút</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-xs text-muted-foreground">
+                  {formatPlanTime(editingPlan?.startHour ?? 0, newStartMinute)}
+                </span>
+              </div>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs font-bold text-muted-foreground">
                 {t('duration')}
               </Label>
               <div className="col-span-3 flex items-center gap-2">
@@ -507,7 +536,7 @@ function ScheduleGridComponent({
                   </SelectContent>
                 </Select>
                 <span className="text-xs text-muted-foreground">
-                  → {editingPlan ? editingPlan.startHour + newDuration : ''}:00
+                  → {formatPlanTime((editingPlan?.startHour ?? 0) + newDuration, newStartMinute)}
                 </span>
               </div>
             </div>

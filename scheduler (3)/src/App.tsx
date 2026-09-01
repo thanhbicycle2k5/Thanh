@@ -1302,12 +1302,12 @@ export default function App() {
   const makeNotificationId = React.useCallback((plan: Plan) => {
     const title = plan.title?.trim() || 'nhiệm vụ';
     const nameToken = title.replace(/[\s\W]+/g, '_').toLowerCase();
-    return `scheduly-${nameToken}-${plan.startHour}-${plan.date}`;
+    return `scheduly-${nameToken}-${plan.startHour}-${plan.startMinute ?? 0}-${plan.date}`;
   }, []);
 
   const getEventDate = React.useCallback((plan: Plan) => {
     const eventDate = new Date(plan.date);
-    eventDate.setHours(plan.startHour, 0, 0, 0);
+    eventDate.setHours(plan.startHour, plan.startMinute ?? 0, 0, 0);
     return eventDate;
   }, []);
 
