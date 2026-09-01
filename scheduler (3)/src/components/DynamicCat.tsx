@@ -81,9 +81,9 @@ const getColorStyles = (color: CatColor | undefined) => {
     case 'orange':
     default:
       return {
-        fill: '#f59e0b',
-        stroke: '#ff8c00',
-        tail: '#f59e0b'
+        fill: '#f4d05f',
+        stroke: '#d9861e',
+        tail: '#f4d05f'
       };
   }
 };
@@ -234,47 +234,60 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
         <g transform={`translate(60 58) rotate(${pose.tilt})`}>
           <path d={pose.tail} fill="none" stroke={colorStyles.tail} strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" opacity="0.95" />
 
-          <g transform="translate(0 10)">
-            <ellipse cx="0" cy="28" rx="34" ry="30" fill="#f4d05f" stroke="#d9881e" strokeWidth="3" />
-            <ellipse cx="0" cy="-6" rx="40" ry="35" fill="#f4d05f" stroke="#d9881e" strokeWidth="3" />
+          <g transform="translate(0 8)">
+            <g transform="translate(0 6)">
+              <path d="M-41 28 C -42 14, -35 2, -18 -8 C -6 -15, 6 -16, 18 -9 C 35 0, 42 14, 41 28 C 41 44, 31 58, 20 68 C 11 75, 6 82, 0 82 C -6 82, -11 75, -20 68 C -31 58, -41 44, -41 28 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="3.2" />
 
-            <path d="M-32 -18 L-18 -42 L-4 -18 Z" fill="#f4d05f" stroke="#d9881e" strokeWidth="3" />
-            <path d="M32 -18 L18 -42 L4 -18 Z" fill="#f4d05f" stroke="#d9881e" strokeWidth="3" />
-            <path d="M-26 -28 L-16 -35 L-8 -22 Z" fill="#f7c3b8" opacity="0.9" />
-            <path d="M26 -28 L16 -35 L8 -22 Z" fill="#f7c3b8" opacity="0.9" />
+              <path d="M-31 33 C -31 24, -22 18, -14 18 C -8 18, -5 24, -5 31 C -5 38, -8 44, -14 44 C -22 44, -31 39, -31 33 Z" fill="#f5ebd0" opacity="0.8" />
+              <path d="M5 33 C 5 24, 14 18, 22 18 C 28 18, 31 24, 31 31 C 31 38, 28 44, 22 44 C 14 44, 5 39, 5 33 Z" fill="#f5ebd0" opacity="0.8" />
 
-            <path d="M-20 -7 L-7 -12 L-18 -1 Z" fill="#e6ad32" opacity="0.9" />
-            <path d="M20 -7 L7 -12 L18 -1 Z" fill="#e6ad32" opacity="0.9" />
-            <path d="M-8 0 L0 -10 L8 0" fill="#f4d05f" stroke="#d9881e" strokeWidth="2" />
-            <path d="M-8 12 Q0 17 8 12" fill="none" stroke="#2b1f1a" strokeWidth="2.2" strokeLinecap="round" />
-            <path d="M-1 15 L0 20 L1 15" fill="none" stroke="#2b1f1a" strokeWidth="2" strokeLinecap="round" />
+              <path d="M-31 38 L-31 58" stroke={colorStyles.stroke} strokeWidth="3.4" strokeLinecap="round" />
+              <path d="M31 38 L31 58" stroke={colorStyles.stroke} strokeWidth="3.4" strokeLinecap="round" />
+              <path d="M-10 41 L-10 59" stroke={colorStyles.stroke} strokeWidth="3.4" strokeLinecap="round" />
+              <path d="M10 41 L10 59" stroke={colorStyles.stroke} strokeWidth="3.4" strokeLinecap="round" />
 
-            <g transform={`scale(${pose.eyeScale})`}>
-              <ellipse cx="-14" cy="2" rx="8" ry="9.5" fill="#fff" stroke="#1f2937" strokeWidth="2" />
-              <ellipse cx="14" cy="2" rx="8" ry="9.5" fill="#fff" stroke="#1f2937" strokeWidth="2" />
-              <circle cx="-11" cy="2" r="4" fill="#1f2937" />
-              <circle cx="17" cy="2" r="4" fill="#1f2937" />
-              <circle cx="-9" cy="-1" r="1.4" fill="#fff" />
-              <circle cx="19" cy="-1" r="1.4" fill="#fff" />
+              <path d="M-28 12 C -16 18, -8 18, 0 18 C 8 18, 16 18, 28 12" fill="none" stroke={colorStyles.stroke} strokeWidth="3" strokeLinecap="round" opacity="0.8" />
+              <path d="M-22 10 L-30 5" stroke={colorStyles.stroke} strokeWidth="3" strokeLinecap="round" opacity="0.8" />
+              <path d="M22 10 L30 5" stroke={colorStyles.stroke} strokeWidth="3" strokeLinecap="round" opacity="0.8" />
+
+              <path d="M-36 12 C -46 2, -46 -12, -40 -22" fill="none" stroke={colorStyles.stroke} strokeWidth="3" strokeLinecap="round" />
+              <path d="M36 12 C 46 2, 46 -12, 40 -22" fill="none" stroke={colorStyles.stroke} strokeWidth="3" strokeLinecap="round" />
             </g>
 
-            <path d="M-6 10 Q0 14 6 10" fill="none" stroke="#111827" strokeWidth="2.2" strokeLinecap="round" />
-            <path d="M0 11 Q0 15 0 18" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" />
-            <path d="M-18 23 C -26 18, -31 16, -38 18" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-            <path d="M18 23 C 26 18, 31 16, 38 18" fill="none" stroke="#111827" strokeWidth="2" strokeLinecap="round" opacity="0.7" />
-            <path d="M-33 12 C -40 12, -43 8, -43 2" fill="none" stroke="#111827" strokeWidth="1.7" strokeLinecap="round" opacity="0.8" />
-            <path d="M33 12 C 40 12, 43 8, 43 2" fill="none" stroke="#111827" strokeWidth="1.7" strokeLinecap="round" opacity="0.8" />
-            <path d="M-19 17 C -24 14, -29 14, -34 17" fill="none" stroke="#111827" strokeWidth="1.7" strokeLinecap="round" opacity="0.8" />
-            <path d="M19 17 C 24 14, 29 14, 34 17" fill="none" stroke="#111827" strokeWidth="1.7" strokeLinecap="round" opacity="0.8" />
+            <g transform="translate(0 -10)">
+              <path d="M-42 8 C -45 -20, -30 -40, -8 -40 C 8 -40, 22 -38, 30 -28 C 45 -9, 42 14, 27 27 C 13 39, -13 39, -27 27 C -37 18, -42 10, -42 8 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="3.2" />
+              <path d="M-28 -22 L-18 -36 L-6 -20 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="3" />
+              <path d="M28 -22 L18 -36 L6 -20 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="3" />
+              <path d="M-23 -22 L-18 -30 L-11 -23 Z" fill="#f9d1c8" opacity="0.9" />
+              <path d="M23 -22 L18 -30 L11 -23 Z" fill="#f9d1c8" opacity="0.9" />
 
-            <g transform="translate(0 30)">
-              <path d="M-18 8 C -22 0, -22 -10, -14 -14 C -7 -18, 7 -18, 14 -14 C 22 -10, 22 0, 18 8 L 14 18 C 6 12, -6 12, -14 18 Z" fill="#f4d05f" stroke="#d9881e" strokeWidth="3" />
-              <path d="M-16 18 L-18 32" stroke="#d9881e" strokeWidth="3" strokeLinecap="round" />
-              <path d="M16 18 L18 32" stroke="#d9881e" strokeWidth="3" strokeLinecap="round" />
-              <path d="M-7 19 L-9 33" stroke="#d9881e" strokeWidth="3" strokeLinecap="round" />
-              <path d="M7 19 L9 33" stroke="#d9881e" strokeWidth="3" strokeLinecap="round" />
-              <path d="M-25 18 C -32 8, -33 14, -33 25" fill="none" stroke="#d9881e" strokeWidth="3" strokeLinecap="round" />
-              <path d="M25 18 C 32 8, 33 14, 33 25" fill="none" stroke="#d9881e" strokeWidth="3" strokeLinecap="round" />
+              <path d="M-25 8 L-11 6 L-18 18 Z" fill={colorStyles.fill} opacity="0.6" />
+              <path d="M25 8 L11 6 L18 18 Z" fill={colorStyles.fill} opacity="0.6" />
+
+              <g transform={`scale(${pose.eyeScale})`}>
+                <ellipse cx="-15" cy="10" rx="9" ry="10.5" fill="#ffffff" stroke="#1f2937" strokeWidth="2.4" />
+                <ellipse cx="15" cy="10" rx="9" ry="10.5" fill="#ffffff" stroke="#1f2937" strokeWidth="2.4" />
+                <circle cx="-12" cy="11" r="4.3" fill="#1f2937" />
+                <circle cx="18" cy="11" r="4.3" fill="#1f2937" />
+                <circle cx="-10" cy="8" r="1.5" fill="#ffffff" />
+                <circle cx="20" cy="8" r="1.5" fill="#ffffff" />
+              </g>
+
+              <path d="M-6 18 Q0 23 6 18" fill="none" stroke="#2b1f1a" strokeWidth="2.4" strokeLinecap="round" />
+              <path d="M0 20 L0 25" fill="none" stroke="#2b1f1a" strokeWidth="2.1" strokeLinecap="round" />
+              <path d="M-19 22 C -28 18, -31 15, -36 18" fill="none" stroke="#2b1f1a" strokeWidth="2.2" strokeLinecap="round" opacity="0.8" />
+              <path d="M19 22 C 28 18, 31 15, 36 18" fill="none" stroke="#2b1f1a" strokeWidth="2.2" strokeLinecap="round" opacity="0.8" />
+              <path d="M-9 27 C -14 30, -18 31, -24 30" fill="none" stroke="#ec9ab2" strokeWidth="2.2" strokeLinecap="round" opacity="0.8" />
+              <path d="M9 27 C 14 30, 18 31, 24 30" fill="none" stroke="#ec9ab2" strokeWidth="2.2" strokeLinecap="round" opacity="0.8" />
+
+              <path d="M-40 5 C -48 1, -52 -10, -50 -20" fill="none" stroke="#2b1f1a" strokeWidth="2" strokeLinecap="round" opacity="0.8" />
+              <path d="M40 5 C 48 1, 52 -10, 50 -20" fill="none" stroke="#2b1f1a" strokeWidth="2" strokeLinecap="round" opacity="0.8" />
+            </g>
+
+            <g transform="translate(0 24)">
+              <path d="M-26 8 C -27 2, -23 -5, -16 -8 C -9 -11, 8 -11, 16 -8 C 23 -5, 27 2, 26 8 C 25 18, 17 26, 0 26 C -17 26, -25 18, -26 8 Z" fill={colorStyles.fill} stroke={colorStyles.stroke} strokeWidth="3" />
+              <path d="M-18 10 L-18 20" stroke={colorStyles.stroke} strokeWidth="2.8" strokeLinecap="round" />
+              <path d="M18 10 L18 20" stroke={colorStyles.stroke} strokeWidth="2.8" strokeLinecap="round" />
             </g>
           </g>
 
