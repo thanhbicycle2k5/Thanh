@@ -891,38 +891,59 @@ export default function App() {
     const pendingSettings = storage.hasPendingSyncFor(uid, 'settings');
 
     if (!pendingPlans && !pendingWeekMeta && !pendingSettings) {
+      const [cloudPlans, cloudMetas, cloudSettings] = await Promise.all([
+        cloudStorage.getPlans(uid).catch(() => [] as Plan[]),
+        cloudStorage.getWeekMetas(uid).catch(() => ({})),
+        cloudStorage.getSettings(uid).catch(() => ({})),
+      ]);
+
+      const localPlans = storage.getPlans(uid);
+      const mergedPlans = mergePlans(localPlans, cloudPlans);
+      const mergedMetas = { ...cloudMetas, ...storage.getWeekMetas(uid) };
+      const mergedSettings = normalizeSettings({ ...cloudSettings, ...storage.getSettings(uid) });
+
+      setPlans(mergedPlans);
+      setWeekMetas(mergedMetas);
+      setSettings(mergedSettings);
+      storage.savePlans(mergedPlans, uid, false);
+      storage.saveSettings(mergedSettings, uid, false);
       return;
     }
 
     setSyncing(true);
     let syncedAny = false;
     try {
-      if (pendingPlans) {
-        const localPlans = storage.getPlans(uid);
-        await cloudStorage.savePlans(uid, localPlans);
-        storage.markPlansSynced(localPlans.map((plan) => plan.id), uid);
-        storage.clearSyncedDeletedPlans(uid, true);
-        storage.clearPendingSync(uid, 'plans');
-        syncedAny = true;
-      }
+      const [localPlans, localMetas, localSettings, cloudPlans, cloudMetas, cloudSettings] = await Promise.all([
+        Promise.resolve(storage.getPlans(uid)),
+        Promise.resolve(storage.getWeekMetas(uid)),
+        Promise.resolve(storage.getSettings(uid)),
+        cloudStorage.getPlans(uid).catch(() => [] as Plan[]),
+        cloudStorage.getWeekMetas(uid).catch(() => ({})),
+        cloudStorage.getSettings(uid).catch(() => ({})),
+      ]);
 
-      if (pendingWeekMeta) {
-        const localMetas = storage.getWeekMetas(uid);
-        await Promise.all(
-          Object.entries(localMetas).map(([weekStart, meta]) =>
-            cloudStorage.saveWeekMeta(uid, weekStart, meta)
-          )
-        );
-        storage.clearPendingSync(uid, 'week_meta');
-        syncedAny = true;
-      }
+      const mergedPlans = mergePlans(localPlans, cloudPlans);
+      const mergedMetas = { ...cloudMetas, ...localMetas };
+      const mergedSettings = normalizeSettings({ ...cloudSettings, ...localSettings });
 
-      if (pendingSettings) {
-        const localSettings = storage.getSettings(uid);
-        await cloudStorage.saveSettings(uid, localSettings);
-        storage.clearPendingSync(uid, 'settings');
-        syncedAny = true;
-      }
+      await cloudStorage.savePlans(uid, mergedPlans);
+      await Promise.all(
+        Object.entries(mergedMetas).map(([weekStart, meta]) => cloudStorage.saveWeekMeta(uid, weekStart, meta))
+      );
+      await cloudStorage.saveSettings(uid, mergedSettings);
+
+      storage.savePlans(mergedPlans, uid, false);
+      Object.entries(mergedMetas).forEach(([weekStart, meta]) => storage.saveWeekMeta(weekStart, meta, uid, false));
+      storage.saveSettings(mergedSettings, uid, false);
+
+      storage.clearPendingSync(uid, 'plans');
+      storage.clearPendingSync(uid, 'week_meta');
+      storage.clearPendingSync(uid, 'settings');
+
+      setPlans(mergedPlans);
+      setWeekMetas(mergedMetas);
+      setSettings(mergedSettings);
+      syncedAny = true;
 
       if (syncedAny) {
         toast.success(t('offlineSyncRestored'));
@@ -1186,12 +1207,11 @@ export default function App() {
 
              if (navigator.onLine) {
                unsubPlans = subscribePlans(firebaseUser.uid, p => {
-                  const hasPendingPlanSync = storage.hasPendingSyncFor(firebaseUser.uid, 'plans');
-                  const shouldApplyCloudSnapshot = !hasPendingPlanSync || initialPlans.length === 0;
-                  if (shouldApplyCloudSnapshot) {
-                    setPlans(p);
-                    storage.savePlans(p, firebaseUser.uid, false);
-                  }
+                  const localPlans = storage.getPlans(firebaseUser.uid);
+                  const mergedPlans = mergePlans(localPlans, p);
+
+                  setPlans(mergedPlans);
+                  storage.savePlans(mergedPlans, firebaseUser.uid, false);
                   setSyncing(false);
                });
              } else {
