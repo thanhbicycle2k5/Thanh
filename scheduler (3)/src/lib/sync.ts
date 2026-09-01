@@ -133,23 +133,6 @@ export const mergePlans = (localPlans: Plan[], remotePlans: Plan[]): Plan[] => {
   });
 };
 
-export const getReminderNotificationTime = (plan: Plan): Date | null => {
-  if (!plan || typeof plan.startHour !== 'number') return null;
-  const reminderMinutes = Number(plan.reminderMinutes ?? 0);
-  if (!Number.isFinite(reminderMinutes) || reminderMinutes <= 0) return null;
-
-  const date = new Date(plan.date);
-  date.setHours(plan.startHour, 0, 0, 0);
-  date.setMinutes(date.getMinutes() - reminderMinutes);
-  return date;
-};
-
-export const isPlanReminderDue = (plan: Plan): boolean => {
-  const notifyAt = getReminderNotificationTime(plan);
-  if (!notifyAt) return false;
-  return notifyAt.getTime() <= Date.now();
-};
-
 export const flushSyncQueue = async (
   uid: string,
   savePlan: (plan: Plan) => Promise<void>,

@@ -6,6 +6,7 @@ export interface Plan {
   title: string;
   date: string;
   startHour: number;
+  startMinute?: number;
   duration: number;
   color: PlanColor;
   notes?: string;
