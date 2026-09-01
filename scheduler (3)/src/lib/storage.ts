@@ -96,6 +96,18 @@ export const getSettingsTimestamp = (settings?: Partial<AppSettings> | null): nu
   return Number.isNaN(ts) ? 0 : ts;
 };
 
+const countNonDefaultSettings = (settings: Partial<AppSettings>): number => {
+  const normalized = normalizeSettings(settings);
+  return Object.entries(defaultSettings).reduce((count, [key, value]) => {
+    const current = (normalized as any)[key];
+    if (key === 'updatedAt') return count;
+    if (JSON.stringify(current) !== JSON.stringify(value)) {
+      return count + 1;
+    }
+    return count;
+  }, 0);
+};
+
 export const mergeSettingsForSync = (localSettings?: Partial<AppSettings> | null, remoteSettings?: Partial<AppSettings> | null): AppSettings => {
   const local = normalizeSettings(localSettings ?? {});
   const remote = normalizeSettings(remoteSettings ?? {});
@@ -103,7 +115,18 @@ export const mergeSettingsForSync = (localSettings?: Partial<AppSettings> | null
   const remoteTs = getSettingsTimestamp(remoteSettings);
 
   if (!localTs && !remoteTs) {
-    return normalizeSettings({ ...defaultSettings, ...local, ...remote });
+    const localCustomScore = countNonDefaultSettings(localSettings ?? {});
+    const remoteCustomScore = countNonDefaultSettings(remoteSettings ?? {});
+
+    if (localCustomScore === 0 && remoteCustomScore > 0) {
+      return normalizeSettings({ ...defaultSettings, ...remote, updatedAt: remote.updatedAt ?? new Date().toISOString() });
+    }
+
+    if (remoteCustomScore === 0 && localCustomScore > 0) {
+      return normalizeSettings({ ...defaultSettings, ...local, updatedAt: local.updatedAt ?? new Date().toISOString() });
+    }
+
+    return normalizeSettings({ ...defaultSettings, ...local, ...remote, updatedAt: local.updatedAt ?? remote.updatedAt ?? new Date().toISOString() });
   }
 
   const winner = localTs >= remoteTs ? local : remote;

@@ -22,3 +22,24 @@ test('local settings win when they are newer than cloud settings', () => {
   assert.equal(merged.language, 'vi');
   assert.equal(merged.updatedAt, local.updatedAt);
 });
+
+test('default local settings do not override real user settings without timestamps', () => {
+  const local = { ...defaultSettings };
+  const remote = {
+    ...defaultSettings,
+    language: 'vi' as const,
+    theme: 'dark' as const,
+    notificationsEnabled: true,
+    startHour: 8,
+    endHour: 20,
+    showLunarCalendar: false,
+    catColor: 'blue' as const,
+  };
+
+  const merged = mergeSettingsForSync(local, remote);
+
+  assert.equal(merged.language, 'vi');
+  assert.equal(merged.theme, 'dark');
+  assert.equal(merged.notificationsEnabled, true);
+  assert.equal(merged.startHour, 8);
+});
