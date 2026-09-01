@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils';
 import { Plus, Edit2, Trash2, Clock } from 'lucide-react';
 import { Solar } from 'lunar-javascript';
 import { translations } from '../lib/i18n';
-import { playMusicalNote } from '../lib/sounds';
 import {
   Dialog,
   DialogContent,
@@ -95,7 +94,6 @@ const ScheduleCell = React.memo(function ScheduleCell({
           )}
           <button
             onClick={(e) => {
-              playMusicalNote();
               handleOpenEdit(plan, e);
             }}
             className="absolute bottom-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-muted/40 p-1 rounded hover:bg-muted/60"
@@ -234,7 +232,6 @@ function ScheduleGridComponent({
   }, []);
 
   const handleUnifiedClick = React.useCallback((date: Date, hour: number, existingPlan?: Plan) => {
-    playMusicalNote();
     const existing = existingPlan ?? plans.find(p => isSameDay(new Date(p.date), date) && p.startHour === hour);
 
     if (!existing || existing.title === '') {
@@ -555,7 +552,6 @@ function ScheduleGridComponent({
                       newColor === color && "ring-2 ring-primary ring-offset-2 scale-110"
                     )}
                     onClick={() => {
-                      playMusicalNote();
                       setNewColor(color);
                     }}
                     title={color}

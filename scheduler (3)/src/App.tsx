@@ -21,7 +21,7 @@ import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged,
 import { doc, setDoc } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
-import { playNotificationSound, playMusicalNote, playCompletionMelody, playMeow } from './lib/sounds';
+import { playNotificationSound, playCompletionMelody, playMeow } from './lib/sounds';
 import { getPlanReminderDate, getPlanStartDate } from './lib/taskTime';
 import { getSchedulyMessage, SchedulyStatus } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
@@ -135,7 +135,7 @@ function WeekNoteEditor({ weekStart, initialNote, theme, placeholder, onSave, bt
       <Button
         size="sm"
         className={cn("w-full h-6 text-[10px]", saved ? "bg-[#107C41]" : "bg-muted-foreground hover:bg-muted-foreground/80")}
-        onClick={() => { playMusicalNote(); handleSave(); }}
+        onClick={handleSave}
       >
         {saved ? `✓ ${btnSavedText}` : btnSaveText}
       </Button>
@@ -175,7 +175,6 @@ function HealthTipPanel({ theme, isSettingsOpen, t, lang, onActivate }: { theme:
         type="button"
         onPointerDown={(e) => e.stopPropagation()}
         onClick={() => {
-          playMusicalNote();
           setOpen((v) => { const next = !v; if (next && onActivate) onActivate('medical'); return next; });
         }}
         className="h-12 w-12 rounded-full shadow-2xl flex items-center justify-center border transition-all hover:scale-110 active:scale-95 group bg-background text-foreground border-border"
@@ -206,11 +205,11 @@ function HealthTipPanel({ theme, isSettingsOpen, t, lang, onActivate }: { theme:
               <CardContent className="p-0">
                 <div className="flex items-center justify-between gap-2 px-3 py-2 bg-muted">
                    <span className="text-[10px] font-bold uppercase tracking-wider">{t('healthTips')}</span>
-                   <X className="w-3.5 h-3.5 cursor-pointer hover:text-red-500 transition-colors" onClick={() => { playMusicalNote(); setOpen(false); }} />
+                   <X className="w-3.5 h-3.5 cursor-pointer hover:text-red-500 transition-colors" onClick={() => setOpen(false)} />
                 </div>
                 <div className="p-4 space-y-3">
                    <p className="text-xs leading-relaxed opacity-90">{tip}</p>
-                   <Button variant="secondary" size="xs" onClick={() => { playMusicalNote(); pickTip(); }} className="w-full text-[10px] h-7">
+                   <Button variant="secondary" size="xs" onClick={pickTip} className="w-full text-[10px] h-7">
                      {t('nextTip')}
                    </Button>
                 </div>
@@ -1341,12 +1340,28 @@ export default function App() {
   }, []);
 
   const getNotificationPermission = React.useCallback(async (): Promise<NotificationPermission> => {
-    const permission = await requestUniversalNotificationPermission();
-    if (permission === 'granted') {
-      void playNotificationSound(settingsState.notificationSound);
+    return await requestUniversalNotificationPermission();
+  }, []);
+
+  const handleToggleNotifications = React.useCallback(async (enabled: boolean) => {
+    if (enabled === settingsState.notificationsEnabled) {
+      return;
     }
-    return permission;
-  }, [settingsState.notificationSound]);
+
+    if (!enabled) {
+      handleUpdateSettings({ notificationsEnabled: false });
+      return;
+    }
+
+    const permission = await getNotificationPermission();
+    if (permission !== 'granted') {
+      toast.error('Notification permission denied.');
+      handleUpdateSettings({ notificationsEnabled: false });
+      return;
+    }
+
+    handleUpdateSettings({ notificationsEnabled: true });
+  }, [settingsState.notificationsEnabled, getNotificationPermission, handleUpdateSettings]);
 
   const sendReminderNotification = React.useCallback(async (plan: Plan) => {
     if (!isOnline || !settingsState.notificationsEnabled || plan.color === 'green') {
@@ -1969,7 +1984,6 @@ export default function App() {
                  size="sm" 
                  className="flex border-[#107C41] text-[#107C41] hover:bg-[#107C41]/5 font-bold h-9 px-2 sm:px-3"
                  onClick={async () => {
-                   playMusicalNote();
                    setLoginLoading(true);
                    try {
                      await signInWithGoogle();
@@ -1991,8 +2005,7 @@ export default function App() {
                size="icon"
                className="h-9 w-9 shrink-0"
                onClick={() => {
-                 playMusicalNote();
-                 handleUpdateSettings({ notificationsEnabled: !settingsState.notificationsEnabled });
+                 void handleToggleNotifications(!settingsState.notificationsEnabled);
                }}
                title={settingsState.notificationsEnabled ? 'Tắt nhắc nhở thông minh' : 'Bật nhắc nhở thông minh'}
                aria-label={settingsState.notificationsEnabled ? 'Disable smart reminders' : 'Enable smart reminders'}
@@ -2002,7 +2015,7 @@ export default function App() {
 
              <Popover>
                <PopoverTrigger asChild>
-                 <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => playMusicalNote()}>
+                 <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
                     <Music className={cn("w-4 h-4 transition-all", isMusicPlaying && "text-[#107C41] animate-spin-slow")} />
                  </Button>
                </PopoverTrigger>
@@ -2106,7 +2119,6 @@ export default function App() {
              </Popover>
 
              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-[#FF6B00]" onClick={() => {
-                playMusicalNote();
                 // Toggle gym panel: second press closes it
                 if (gymRestOpen) {
                   setGymRestOpen(false);
@@ -2124,7 +2136,6 @@ export default function App() {
                 <Dumbbell className="w-4 h-4" />
              </Button>
              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
-                playMusicalNote();
                 setIsSettingsOpen(true);
               }}>
                 <Settings className="w-4 h-4" />
@@ -2669,7 +2680,6 @@ export default function App() {
                   color={settingsState.catColor ?? 'orange'}
                   size="sm"
                   onClick={() => {
-                    playMusicalNote();
                     setCatMoodOverride('celebrating');
                     if (settingsState.catEnabled !== false) {
                       playMeow();
@@ -2877,7 +2887,7 @@ export default function App() {
                           <p className="text-xs text-muted-foreground dark:text-foreground/70">{t('notificationSound')}</p>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Switch checked={!!settingsState.notificationsEnabled} onCheckedChange={(v) => handleUpdateSettings({ notificationsEnabled: v })} />
+                          <Switch checked={!!settingsState.notificationsEnabled} onCheckedChange={(v) => { void handleToggleNotifications(v); }} />
                         </div>
                       </div>
 
