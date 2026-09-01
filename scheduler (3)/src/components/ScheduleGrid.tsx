@@ -145,7 +145,8 @@ function ScheduleGridComponent({
   const [newTitle, setNewTitle] = React.useState('');
   const [newColor, setNewColor] = React.useState<PlanColor>('yellow');
   const [newDuration, setNewDuration] = React.useState(1);
-  const [newReminderMinutes, setNewReminderMinutes] = React.useState<number>(0);
+  const [newStartHour, setNewStartHour] = React.useState<number>(9);
+  const [newStartMinute, setNewStartMinute] = React.useState<number>(0);
   const [newApplyMode, setNewApplyMode] = React.useState<TaskApplyMode>('none');
   const [newApplyDays, setNewApplyDays] = React.useState<NonNullable<Plan['applyDays']>>([]);
   const [newApplyWeekInterval, setNewApplyWeekInterval] = React.useState<number>(1);
@@ -197,7 +198,8 @@ function ScheduleGridComponent({
         setNewTitle(existing.title);
         setNewColor(existing.color);
         setNewDuration(existing.duration);
-        setNewReminderMinutes(Number(existing.reminderMinutes ?? 0));
+        setNewStartHour(existing.startHour);
+        setNewStartMinute(existing.startMinute ?? 0);
         setNewApplyMode(existing.applyMode || 'none');
         setNewApplyDays(existing.applyDays || []);
         setNewApplyWeekInterval(existing.applyWeekInterval || 1);
@@ -216,7 +218,8 @@ function ScheduleGridComponent({
         setNewTitle('');
         setNewColor('yellow');
         setNewDuration(1);
-        setNewReminderMinutes(0);
+        setNewStartHour(hour);
+        setNewStartMinute(0);
         setNewApplyMode('none');
         setNewApplyDays([]);
         setNewApplyWeekInterval(1);
@@ -258,7 +261,8 @@ function ScheduleGridComponent({
     setNewTitle(plan.title);
     setNewColor(plan.color);
     setNewDuration(plan.duration);
-    setNewReminderMinutes(Number(plan.reminderMinutes ?? 0));
+    setNewStartHour(plan.startHour);
+    setNewStartMinute(plan.startMinute ?? 0);
     setNewApplyMode(plan.applyMode || 'none');
     setNewApplyDays(plan.applyDays || []);
     setNewApplyWeekInterval(plan.applyWeekInterval || 1);
@@ -271,7 +275,7 @@ function ScheduleGridComponent({
   const handleSave = async () => {
     if (!editingPlan) return;
     
-    const basePlan = { ...editingPlan, title: newTitle, color: newColor, duration: newDuration, reminderMinutes: newReminderMinutes, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, notes: newNotes || undefined };
+    const basePlan = { ...editingPlan, title: newTitle, color: newColor, startHour: newStartHour, startMinute: newStartMinute, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, notes: newNotes || undefined };
     const wasGreen = plans.find(p => p.id === editingPlan.id)?.color === 'green';
     const isNew = !plans.some(p => p.id === basePlan.id);
 
@@ -421,7 +425,7 @@ function ScheduleGridComponent({
               {plans.some(p => p.id === editingPlan?.id) ? t('editPlan') : t('addPlan')}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
-              {editingPlan && `${editingPlan.startHour}:00 — ${format(new Date(editingPlan.date), 'EEE, d/M')}`}
+              {editingPlan && `${String(editingPlan.startHour).padStart(2, '0')}:${String(editingPlan.startMinute ?? 0).padStart(2, '0')} → ${String((editingPlan.startHour + editingPlan.duration) % 24).padStart(2, '0')}:00 — ${format(new Date(editingPlan.date), 'EEE, d/M')}`}
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-2">
@@ -462,20 +466,32 @@ function ScheduleGridComponent({
                 </span>
               </div>
             </div>
-            <div className="grid grid-cols-4 items-start gap-3">
-              <Label className="text-right text-xs font-bold pt-2 text-muted-foreground">
-                Reminder
+            <div className="grid grid-cols-4 items-center gap-3">
+              <Label className="text-right text-xs font-bold text-muted-foreground">
+                Start Time
               </Label>
-              <div className="col-span-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                <Input
-                  type="number"
-                  min={0}
-                  step={5}
-                  value={newReminderMinutes}
-                  onChange={(e) => setNewReminderMinutes(Number(e.target.value) || 0)}
-                  className="w-full sm:w-24 bg-muted/50 border-border"
-                />
-                <span className="text-xs text-muted-foreground">minutes before</span>
+              <div className="col-span-3 flex items-center gap-2">
+                <Select value={String(newStartHour)} onValueChange={(v) => setNewStartHour(Number(v))}>
+                  <SelectTrigger className="w-20 bg-muted/50 border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Array.from({ length: 24 }, (_, h) => h).map((hour) => (
+                      <SelectItem key={hour} value={String(hour)}>{String(hour).padStart(2, '0')}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <span className="text-xs text-muted-foreground">:</span>
+                <Select value={String(newStartMinute)} onValueChange={(v) => setNewStartMinute(Number(v))}>
+                  <SelectTrigger className="w-20 bg-muted/50 border-border">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {[0, 15, 30, 45].map((minute) => (
+                      <SelectItem key={minute} value={String(minute)}>{String(minute).padStart(2, '0')}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
             <div className="grid grid-cols-4 items-center gap-3">
