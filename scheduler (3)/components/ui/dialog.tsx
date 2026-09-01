@@ -51,15 +51,18 @@ function DialogContent({
   const [dragState, setDragState] = React.useState<{
     pointerX: number
     pointerY: number
-    initialX: number
-    initialY: number
+    originX: number
+    originY: number
   } | null>(null)
 
   const { open, ...popupProps } = props as DialogPrimitive.Popup.Props & { open?: boolean }
 
   React.useEffect(() => {
     if (open && position === null && typeof window !== "undefined") {
-      setPosition({ x: window.innerWidth / 2, y: window.innerHeight / 2 })
+      setPosition({
+        x: window.innerWidth / 2 - 220,
+        y: window.innerHeight / 2 - 180,
+      })
     }
   }, [open, position])
 
@@ -75,8 +78,8 @@ function DialogContent({
     setDragState({
       pointerX: event.clientX,
       pointerY: event.clientY,
-      initialX: position?.x ?? rect.left + rect.width / 2,
-      initialY: position?.y ?? rect.top + rect.height / 2,
+      originX: rect.left,
+      originY: rect.top,
     })
   }
 
@@ -85,8 +88,8 @@ function DialogContent({
     const deltaX = event.clientX - dragState.pointerX
     const deltaY = event.clientY - dragState.pointerY
     setPosition({
-      x: dragState.initialX + deltaX,
-      y: dragState.initialY + deltaY,
+      x: dragState.originX + deltaX,
+      y: dragState.originY + deltaY,
     })
   }
 
@@ -105,17 +108,14 @@ function DialogContent({
         style={
           position
             ? {
-                left: position.x,
-                top: position.y,
-                transform: "translate(-50%, -50%)",
+                left: `${position.x}px`,
+                top: `${position.y}px`,
                 touchAction: "none",
               }
-            : {
-                touchAction: "none",
-              }
+            : { touchAction: "none" }
         }
         className={cn(
-          "fixed left-1/2 top-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          "fixed z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
           className
         )}
         {...popupProps}
