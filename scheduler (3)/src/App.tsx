@@ -16,7 +16,7 @@ import {
 } from 'date-fns';
 import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack } from './types';
 import { storage, normalizeSettings, defaultSettings } from './lib/storage';
-import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, settleRedirectAuth } from './lib/firebase';
+import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, settleRedirectAuth } from './lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
@@ -1064,10 +1064,15 @@ export default function App() {
        });
 
      let unsubPlans: (() => void) | null = null;
+     let unsubSettings: (() => void) | null = null;
      const unsubscribeAuth = onAuthChanged(async (firebaseUser) => {
         if (unsubPlans) {
           unsubPlans();
           unsubPlans = null;
+        }
+        if (unsubSettings) {
+          unsubSettings();
+          unsubSettings = null;
         }
 
         setUser(firebaseUser);
@@ -1212,12 +1217,26 @@ export default function App() {
 
              if (navigator.onLine) {
                unsubPlans = subscribePlans(firebaseUser.uid, p => {
-                  const localPlans = storage.getPlans(firebaseUser.uid);
-                  const mergedPlans = mergePlans(localPlans, p);
+                  const mergedPlans = storage.hasPendingSyncFor(firebaseUser.uid, 'plans')
+                    ? mergePlans(storage.getPlans(firebaseUser.uid), p)
+                    : p;
 
                   setPlans(mergedPlans);
                   storage.savePlans(mergedPlans, firebaseUser.uid, false);
                   setSyncing(false);
+               }, (error) => {
+                 console.warn('Realtime plans subscription failed:', error);
+                 setSyncing(false);
+               });
+               unsubSettings = subscribeSettings(firebaseUser.uid, cloudSettingsSnapshot => {
+                 const localSettings = storage.getSettings(firebaseUser.uid);
+                 const nextSettings = storage.hasPendingSyncFor(firebaseUser.uid, 'settings')
+                   ? normalizeSettings({ ...cloudSettingsSnapshot, ...localSettings })
+                   : normalizeSettings(cloudSettingsSnapshot);
+                 setSettings(nextSettings);
+                 storage.saveSettings(nextSettings, firebaseUser.uid, false);
+               }, (error) => {
+                 console.warn('Realtime settings subscription failed:', error);
                });
              } else {
                setSyncing(false);
@@ -1247,6 +1266,9 @@ export default function App() {
        unsubscribeAuth();
        if (unsubPlans) {
          unsubPlans();
+       }
+       if (unsubSettings) {
+         unsubSettings();
        }
      };
   }, []);

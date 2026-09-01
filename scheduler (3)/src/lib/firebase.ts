@@ -292,7 +292,26 @@ export const subscribePlans = (
       callback(plans);
     },
     (error) => {
-      handleFirestoreError(error, OperationType.GET, path);
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      onError?.(normalizedError);
+    }
+  );
+};
+
+export const subscribeSettings = (
+  uid: string,
+  callback: (settings: Partial<AppSettings>) => void,
+  onError?: (e: Error) => void
+): (() => void) => {
+  const settingsRef = doc(db, "users", uid, "meta", "settings");
+  return onSnapshot(
+    settingsRef,
+    (snapshot) => {
+      callback(snapshot.exists() ? (snapshot.data() as Partial<AppSettings>) : {});
+    },
+    (error) => {
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      onError?.(normalizedError);
     }
   );
 };
