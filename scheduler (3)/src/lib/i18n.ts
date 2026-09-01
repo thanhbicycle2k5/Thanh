@@ -1,6 +1,6 @@
 export const translations = {
   en: {
-    appName: "Scheduler",
+    appName: "Scheduler - Smart planner for everyday life",
     appDescription: "Professional weekly planning with a familiar interface.",
     today: "Today",
     currentDay: "Current",
@@ -175,7 +175,7 @@ export const translations = {
     close: "Close",
   },
   vi: {
-    appName: "Scheduler",
+    appName: "Scheduler - Smart planner for everyday life",
     appDescription: "Lập kế hoạch tuần chuyên nghiệp với giao diện quen thuộc.",
     today: "Hôm nay",
     currentDay: "Hiện tại",
