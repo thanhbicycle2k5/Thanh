@@ -326,6 +326,7 @@ export default function App() {
   const [activeSettingsTab, setActiveSettingsTab] = React.useState('general');
   const [mobileExpanded, setMobileExpanded] = React.useState<string | null>(null);
   const [user, setUser] = React.useState<User | null>(null);
+  const activeUid = user?.uid ?? auth.currentUser?.uid ?? null;
   const [authLoading, setAuthLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
@@ -428,21 +429,21 @@ export default function App() {
     });
     setSettings(updated);
 
-    storage.saveSettings(updated, user?.uid, true);
+    storage.saveSettings(updated, activeUid, true);
 
     if (updated.notificationsEnabled === false) {
       void clearAllScheduledNotifications();
     }
 
-    if (user) {
-      cloudStorage.saveSettings(user.uid, updated)
-        .then(() => storage.setPendingSync(user.uid, 'settings', false))
+    if (activeUid) {
+      cloudStorage.saveSettings(activeUid, updated)
+        .then(() => storage.setPendingSync(activeUid, 'settings', false))
         .catch((error) => {
-          storage.setPendingSync(user.uid, 'settings', true);
+          storage.setPendingSync(activeUid, 'settings', true);
           console.warn('Cloud settings save failed:', error);
         });
     }
-  }, [settingsState, user, clearAllScheduledNotifications]);
+  }, [settingsState, activeUid, clearAllScheduledNotifications]);
 
   const [playlistTracks, setPlaylistTracks] = React.useState<MusicTrack[]>(PRESET_TRACKS);
   const [selectedMusicId, setSelectedMusicId] = React.useState<string | null>(null);
@@ -1113,17 +1114,6 @@ export default function App() {
           : anonymousSettings;
 
         if (firebaseUser) {
-           const mergePlans = (base: Plan[], extra: Plan[]) => {
-             const map = new Map<string, Plan>();
-             base.forEach((plan) => map.set(plan.id, plan));
-             extra.forEach((plan) => {
-               if (!map.has(plan.id)) {
-                 map.set(plan.id, plan);
-               }
-             });
-             return Array.from(map.values());
-           };
-
            const mergedPlans = mergePlans(localPlansForUid, anonymousPlans);
            const localPlanIds = new Set(localPlansForUid.map((plan) => plan.id));
            const planMergeNeeded = mergedPlans.length !== localPlansForUid.length || mergedPlans.some((plan) => !localPlanIds.has(plan.id));
@@ -1702,27 +1692,27 @@ export default function App() {
 
     const mergedPlans = mergePlans(plansRef.current, [normalized]);
     setPlans(mergedPlans);
-    storage.savePlans(mergedPlans, user?.uid ?? null, false);
+    storage.savePlans(mergedPlans, activeUid, false);
 
-    if (user) {
+    if (activeUid) {
       if (isOnline) {
         try {
-          await cloudStorage.savePlan(user.uid, normalized);
-          const finalPlans = mergePlans(storage.getPlans(user.uid), [normalized]);
+          await cloudStorage.savePlan(activeUid, normalized);
+          const finalPlans = mergePlans(storage.getPlans(activeUid), [normalized]);
           setPlans(finalPlans);
-          storage.savePlans(finalPlans, user.uid, false);
-          storage.setPendingSync(user.uid, 'plans', false);
+          storage.savePlans(finalPlans, activeUid, false);
+          storage.setPendingSync(activeUid, 'plans', false);
         } catch (error) {
-          enqueueSyncOperation(user.uid, 'update', normalized);
-          storage.setPendingSync(user.uid, 'plans', true);
+          enqueueSyncOperation(activeUid, 'update', normalized);
+          storage.setPendingSync(activeUid, 'plans', true);
           console.warn('Cloud save failed, local change persisted:', error);
         }
       } else {
-        enqueueSyncOperation(user.uid, 'update', normalized);
-        storage.setPendingSync(user.uid, 'plans', true);
+        enqueueSyncOperation(activeUid, 'update', normalized);
+        storage.setPendingSync(activeUid, 'plans', true);
       }
     }
-  }, [user, isOnline, settingsState.notificationSound, t, showSpeechBubbleText]);
+  }, [activeUid, isOnline, settingsState.notificationSound, t, showSpeechBubbleText]);
 
   const handleAddPlan = React.useCallback(async (p: Plan) => {
     const normalized = markPlanForSync({
@@ -1737,53 +1727,53 @@ export default function App() {
 
     const mergedPlans = mergePlans(plansRef.current, [normalized]);
     setPlans(mergedPlans);
-    storage.savePlans(mergedPlans, user?.uid ?? null, false);
+    storage.savePlans(mergedPlans, activeUid, false);
 
-    if (user) {
+    if (activeUid) {
       if (isOnline) {
         try {
-          await cloudStorage.savePlan(user.uid, normalized);
-          const finalPlans = mergePlans(storage.getPlans(user.uid), [normalized]);
+          await cloudStorage.savePlan(activeUid, normalized);
+          const finalPlans = mergePlans(storage.getPlans(activeUid), [normalized]);
           setPlans(finalPlans);
-          storage.savePlans(finalPlans, user.uid, false);
-          storage.setPendingSync(user.uid, 'plans', false);
+          storage.savePlans(finalPlans, activeUid, false);
+          storage.setPendingSync(activeUid, 'plans', false);
         } catch (error) {
-          enqueueSyncOperation(user.uid, 'create', normalized);
-          storage.setPendingSync(user.uid, 'plans', true);
+          enqueueSyncOperation(activeUid, 'create', normalized);
+          storage.setPendingSync(activeUid, 'plans', true);
           console.warn('Cloud save failed, local change persisted:', error);
         }
       } else {
-        enqueueSyncOperation(user.uid, 'create', normalized);
-        storage.setPendingSync(user.uid, 'plans', true);
+        enqueueSyncOperation(activeUid, 'create', normalized);
+        storage.setPendingSync(activeUid, 'plans', true);
       }
     }
-  }, [user, isOnline]);
+  }, [activeUid, isOnline]);
 
   const handleDeletePlan = React.useCallback(async (id: string) => {
     const current = plansRef.current.find((x) => x.id === id);
     const nextPlans = plansRef.current.filter((x) => x.id !== id);
     setPlans(nextPlans);
-    storage.savePlans(nextPlans, user?.uid ?? null, false);
+    storage.savePlans(nextPlans, activeUid, false);
 
-    if (user) {
+    if (activeUid) {
       if (isOnline) {
         try {
-          await cloudStorage.deletePlan(user.uid, id);
-          storage.setPendingSync(user.uid, 'plans', false);
-          storage.clearSyncedDeletedPlans(user.uid, true);
+          await cloudStorage.deletePlan(activeUid, id);
+          storage.setPendingSync(activeUid, 'plans', false);
+          storage.clearSyncedDeletedPlans(activeUid, true);
         } catch (error) {
-          enqueueSyncOperation(user.uid, 'delete', current, id);
-          storage.setPendingSync(user.uid, 'plans', true);
+          enqueueSyncOperation(activeUid, 'delete', current, id);
+          storage.setPendingSync(activeUid, 'plans', true);
           console.warn('Cloud delete failed, local change persisted:', error);
         }
       } else {
-        enqueueSyncOperation(user.uid, 'delete', current, id);
-        storage.setPendingSync(user.uid, 'plans', true);
+        enqueueSyncOperation(activeUid, 'delete', current, id);
+        storage.setPendingSync(activeUid, 'plans', true);
       }
     }
 
     void cancelScheduledNotificationById(id);
-  }, [user, isOnline]);
+  }, [activeUid, isOnline]);
 
   const handlePlanTurnGreen = React.useCallback((p: Plan) => {
     setCatMoodOverride('celebrating');

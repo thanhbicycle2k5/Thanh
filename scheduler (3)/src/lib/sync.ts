@@ -123,7 +123,16 @@ export const mergePlans = (localPlans: Plan[], remotePlans: Plan[]): Plan[] => {
 
     const currentUpdated = new Date(current.updatedAt || current.createdAt || 0).getTime();
     const incomingUpdated = new Date(plan.updatedAt || plan.createdAt || 0).getTime();
-    const winner = incomingUpdated > currentUpdated ? plan : current;
+    const currentVersion = typeof current.version === 'number' ? current.version : 0;
+    const incomingVersion = typeof plan.version === 'number' ? plan.version : 0;
+
+    let winner: Plan = current;
+    if (incomingUpdated > currentUpdated) {
+      winner = plan;
+    } else if (incomingUpdated === currentUpdated && incomingVersion > currentVersion) {
+      winner = plan;
+    }
+
     merged.set(plan.id, normalizePlanForStorage(winner));
   });
 
