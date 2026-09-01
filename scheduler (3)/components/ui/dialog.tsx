@@ -47,7 +47,16 @@ function DialogContent({
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
 }) {
-  const [position, setPosition] = React.useState<{ x: number; y: number } | null>(null)
+  const [position, setPosition] = React.useState<{ x: number; y: number }>(() => {
+    if (typeof window === "undefined") {
+      return { x: 0, y: 0 }
+    }
+
+    return {
+      x: window.innerWidth / 2 - 220,
+      y: window.innerHeight / 2 - 180,
+    }
+  })
   const [dragState, setDragState] = React.useState<{
     pointerX: number
     pointerY: number
@@ -55,16 +64,7 @@ function DialogContent({
     originY: number
   } | null>(null)
 
-  const { open, ...popupProps } = props as DialogPrimitive.Popup.Props & { open?: boolean }
-
-  React.useEffect(() => {
-    if (open && position === null && typeof window !== "undefined") {
-      setPosition({
-        x: window.innerWidth / 2 - 220,
-        y: window.innerHeight / 2 - 180,
-      })
-    }
-  }, [open, position])
+  const popupProps = props as DialogPrimitive.Popup.Props & { showCloseButton?: boolean }
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     const dragHandle = (event.target as HTMLElement).closest("[data-drag-handle]")
