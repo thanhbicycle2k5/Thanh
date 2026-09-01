@@ -67,6 +67,9 @@ function DialogContent({
     const dragHandle = (event.target as HTMLElement).closest("[data-drag-handle]")
     if (!dragHandle) return;
 
+    event.preventDefault();
+    event.stopPropagation();
+
     const rect = event.currentTarget.getBoundingClientRect()
     event.currentTarget.setPointerCapture(event.pointerId)
     setDragState({
@@ -105,8 +108,11 @@ function DialogContent({
                 left: position.x,
                 top: position.y,
                 transform: "translate(-50%, -50%)",
+                touchAction: "none",
               }
-            : undefined
+            : {
+                touchAction: "none",
+              }
         }
         className={cn(
           "fixed left-1/2 top-1/2 z-50 grid w-full max-w-[calc(100%-2rem)] -translate-x-1/2 -translate-y-1/2 gap-4 rounded-xl bg-popover p-4 text-sm text-popover-foreground ring-1 ring-foreground/10 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
@@ -140,7 +146,8 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="dialog-header"
       data-drag-handle="true"
-      className={cn("flex flex-col gap-2 cursor-grab select-none", className)}
+      style={{ touchAction: "none" }}
+      className={cn("flex flex-col gap-2 cursor-grab select-none touch-none", className)}
       {...props}
     />
   )
