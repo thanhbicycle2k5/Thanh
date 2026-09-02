@@ -22,7 +22,7 @@ import { doc, setDoc } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
 import { playNotificationSound, playCompletionMelody, playMeow } from './lib/sounds';
-import { getPlanReminderDate, getPlanStartDate } from './lib/taskTime';
+import { getPlanReminderDate, getPlanStartDate, isWithinReminderWindow } from './lib/taskTime';
 import { calculatePomodoroRemainingSeconds } from './lib/pomodoro';
 import { getSchedulyMessage, SchedulyStatus } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
@@ -1346,10 +1346,6 @@ export default function App() {
     return (getEventDate(plan).getTime() - now) / 60_000;
   }, [getEventDate]);
 
-  const isWithinReminderWindow = React.useCallback((minutesUntilStart: number) => {
-    return minutesUntilStart >= 14 && minutesUntilStart <= 15;
-  }, []);
-
   React.useEffect(() => {
     firedNotificationIdsRef.current = new Set(storage.getFiredNotificationIds(user?.uid));
   }, [user]);
@@ -1402,18 +1398,18 @@ export default function App() {
     }
 
     const notificationId = makeNotificationId(plan);
-    if (firedNotificationIdsRef.current.has(notificationId)) {
-      return;
-    }
-
-    // Mark before playing/scheduling to avoid a race with the 30s scan loop or repeated schedule passes.
-    firedNotificationIdsRef.current.add(notificationId);
-    storage.addFiredNotificationId(notificationId, user?.uid);
-
     const minutesUntilStart = getMinutesUntilStart(plan);
     if (!isWithinReminderWindow(minutesUntilStart)) {
       return;
     }
+
+    if (firedNotificationIdsRef.current.has(notificationId)) {
+      return;
+    }
+
+    // Mark once the task truly enters the reminder window so repeated scan passes do not retrigger the same sound.
+    firedNotificationIdsRef.current.add(notificationId);
+    storage.addFiredNotificationId(notificationId, user?.uid);
 
     const taskName = plan.title?.trim() || 'công việc';
     const remindAt = getPlanReminderDate({
@@ -1493,18 +1489,6 @@ export default function App() {
       const minutesUntilStart = (eventDate.getTime() - now) / 60_000;
       if (isWithinReminderWindow(minutesUntilStart)) {
         void sendReminderNotification(plan);
-        return;
-      }
-
-      if (remindAt > now) {
-        scheduleTaskNotification({
-          id: notificationId,
-          title: buildNotificationTitle(),
-          body: buildNotificationBody(plan.title?.trim() || 'công việc'),
-          fireAt: remindAt,
-        }).catch((error) => {
-          console.error('Failed to schedule task notification', error);
-        });
       }
     });
   }, [clearAllScheduledNotifications, getEventDate, makeNotificationId, sendReminderNotification, getNotificationPermission, selectedWeekStart, settingsState.notificationsEnabled, isOnline]);

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getPlanReminderDate, getPlanStartDate, getPlanEndMinutes, START_MINUTE_OPTIONS } from './taskTime';
+import { getPlanReminderDate, getPlanStartDate, getPlanEndMinutes, START_MINUTE_OPTIONS, isWithinReminderWindow } from './taskTime';
 
 test('supports start minutes in 15-minute increments', () => {
   const date = getPlanStartDate({
@@ -35,4 +35,13 @@ test('keeps the end time on a whole hour when start minute is not zero', () => {
   assert.equal(endOfFirstTask, 8 * 60);
   assert.equal(startOfNextTask, endOfFirstTask);
   assert.ok(startOfNextTask >= endOfFirstTask);
+});
+
+test('treats only the 14–15 minute reminder window as due, not any outside offset', () => {
+  assert.equal(isWithinReminderWindow(15), true);
+  assert.equal(isWithinReminderWindow(14.5), true);
+  assert.equal(isWithinReminderWindow(14), true);
+  assert.equal(isWithinReminderWindow(13.9), false);
+  assert.equal(isWithinReminderWindow(15.1), false);
+  assert.equal(isWithinReminderWindow(16), false);
 });
