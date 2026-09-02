@@ -98,6 +98,7 @@ import {
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
+import { Analytics } from '@vercel/analytics/react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -3130,6 +3131,7 @@ export default function App() {
           </div>
         </DialogContent>
       </Dialog>
+      <Analytics />
     </div>
   );
 }
