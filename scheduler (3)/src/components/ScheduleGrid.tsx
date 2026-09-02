@@ -2,7 +2,8 @@ import * as React from 'react';
 import { 
   format, 
   addDays, 
-  isSameDay 
+  isSameDay,
+  getISOWeek,
 } from 'date-fns';
 import { Plan, PlanColor, Language, Theme, TaskApplyMode } from '../types';
 import { cn } from '@/lib/utils';
@@ -170,6 +171,7 @@ function ScheduleGridComponent({
   const [newApplyUntil, setNewApplyUntil] = React.useState<string | undefined>(undefined);
   const [newNotes, setNewNotes] = React.useState('');
   const [allowTextInput, setAllowTextInput] = React.useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
 
   const startOfMonday = React.useCallback((date: Date) => {
     const d = new Date(date);
@@ -181,10 +183,12 @@ function ScheduleGridComponent({
 
   const currentTaskWeekIndex = React.useMemo(() => {
     const baseDate = editingPlan ? new Date(editingPlan.date) : new Date();
-    const start = startOfMonday(baseDate);
-    const diffDays = Math.floor((baseDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    return Math.max(1, Math.floor(diffDays / 7) + 1);
-  }, [editingPlan, startOfMonday]);
+    return getISOWeek(baseDate);
+  }, [editingPlan]);
+
+  const displayWeekTarget = React.useMemo(() => {
+    return Math.max(1, currentTaskWeekIndex + Math.max(1, newApplyWeekInterval || 1));
+  }, [currentTaskWeekIndex, newApplyWeekInterval]);
 
   const defaultApplyUntilDate = React.useMemo(() => {
     if (editingPlan?.date) {
@@ -449,7 +453,14 @@ function ScheduleGridComponent({
 
   const handleDelete = () => {
     if (editingPlan) {
+      setDeleteConfirmOpen(true);
+    }
+  };
+
+  const confirmDeletePlan = () => {
+    if (editingPlan) {
       onDeletePlan(editingPlan.id);
+      setDeleteConfirmOpen(false);
       setIsDialogOpen(false);
     }
   };
@@ -509,6 +520,22 @@ function ScheduleGridComponent({
           ))}
         </tbody>
       </table>
+
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent className="sm:rounded-2xl border-none max-w-xs bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-foreground text-base">Bạn có chắc chắn muốn xóa kế hoạch này?</DialogTitle>
+          </DialogHeader>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmOpen(false)} className="text-muted-foreground">
+              Không.
+            </Button>
+            <Button variant="destructive" size="sm" onClick={confirmDeletePlan} className="bg-red-600 hover:bg-red-700 text-white">
+              Xóa đi!
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent
@@ -656,7 +683,7 @@ function ScheduleGridComponent({
                   <div className="col-span-3 flex items-center gap-2">
                     <Input type="number" value={newApplyWeekInterval} onChange={(e) => setNewApplyWeekInterval(Number(e.target.value)||1)} className="w-20 bg-muted/50 border-border" />
                     <span className="text-xs text-muted-foreground">{t('weeks')}</span>
-                    <span className="ml-auto text-xs font-medium text-muted-foreground">{t('week')} {currentTaskWeekIndex}</span>
+                    <span className="ml-auto text-xs font-medium text-muted-foreground">{t('week')} {displayWeekTarget}</span>
                   </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-3">
