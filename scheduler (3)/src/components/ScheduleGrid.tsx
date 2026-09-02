@@ -171,6 +171,21 @@ function ScheduleGridComponent({
   const [newNotes, setNewNotes] = React.useState('');
   const [allowTextInput, setAllowTextInput] = React.useState(false);
 
+  const startOfMonday = React.useCallback((date: Date) => {
+    const d = new Date(date);
+    const day = (d.getDay() + 6) % 7;
+    d.setDate(d.getDate() - day);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+
+  const currentTaskWeekIndex = React.useMemo(() => {
+    const baseDate = editingPlan ? new Date(editingPlan.date) : new Date();
+    const start = startOfMonday(baseDate);
+    const diffDays = Math.floor((baseDate.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    return Math.max(1, Math.floor(diffDays / 7) + 1);
+  }, [editingPlan, startOfMonday]);
+
   const defaultApplyUntilDate = React.useMemo(() => {
     if (editingPlan?.date) {
       return editingPlan.date.slice(0, 10);
@@ -356,6 +371,28 @@ function ScheduleGridComponent({
     };
 
     try {
+      const addGeneratedDayPlan = async (candidateDate: Date) => {
+        const candidateKey = format(candidateDate, 'yyyy-MM-dd');
+        if (candidateDate < new Date(basePlan.date)) {
+          return;
+        }
+        if (!overlaps(candidateKey, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
+          const newPlan = { ...basePlan, id: crypto.randomUUID(), date: candidateKey };
+          await onAddPlan(newPlan);
+        }
+      };
+
+      const addGeneratedWeekPlan = async (candidateDate: Date) => {
+        const candidateKey = format(candidateDate, 'yyyy-MM-dd');
+        if (candidateDate < new Date(basePlan.date)) {
+          return;
+        }
+        if (!overlaps(candidateKey, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
+          const newPlan = { ...basePlan, id: crypto.randomUUID(), date: candidateKey };
+          await onAddPlan(newPlan);
+        }
+      };
+
       if (isNew) {
         // Always add the base plan for the selected date if no overlap
         if (!overlaps(basePlan.date, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
@@ -366,44 +403,31 @@ function ScheduleGridComponent({
         if (basePlan.applyMode === 'day' && basePlan.applyUntil) {
           let cur = new Date(basePlan.date);
           const end = new Date(basePlan.applyUntil);
+          cur.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
           cur.setDate(cur.getDate() + 1);
           while (cur <= end) {
-            const iso = cur.toISOString();
-            if (!overlaps(iso, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
-              const newPlan = { ...basePlan, id: crypto.randomUUID(), date: iso };
-              await onAddPlan(newPlan);
-            }
+            const candidate = new Date(cur);
+            candidate.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
+            await addGeneratedDayPlan(candidate);
             cur.setDate(cur.getDate() + 1);
           }
         }
 
-        // Handle applyMode 'week' -> apply weekly according to selected weekdays and interval
-        if (basePlan.applyMode === 'week' && basePlan.applyUntil) {
-          const interval = basePlan.applyWeekInterval || 1;
-          const weekdays = (basePlan.applyWeekDays || []).map(d => ['mon','tue','wed','thu','fri','sat','sun'].indexOf(d));
-          if (weekdays.length > 0) {
-            const startDate = new Date(basePlan.date);
-            const endDate = new Date(basePlan.applyUntil);
-            // iterate weeks
-            let weekStart = new Date(startDate);
-            // align to week start (same weekday as startDate)
-            while (weekStart <= endDate) {
-              for (const wd of weekdays) {
-                const candidate = new Date(weekStart);
-                const currentWeekday = candidate.getDay(); // 0=Sun,1=Mon
-                // convert wd index(0..6 where 0=Mon) to JS getDay
-                const targetDay = (wd + 1) % 7; // Mon->1 ... Sun->0
-                const diff = targetDay - currentWeekday;
-                candidate.setDate(candidate.getDate() + diff);
-                if (candidate >= startDate && candidate <= endDate) {
-                  const iso = candidate.toISOString();
-                  if (!overlaps(iso, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
-                    const newPlan = { ...basePlan, id: crypto.randomUUID(), date: iso };
-                    await onAddPlan(newPlan);
-                  }
-                }
-              }
-              weekStart.setDate(weekStart.getDate() + interval * 7);
+        // Handle applyMode 'week' -> apply for the selected number of weeks starting from the current task week.
+        if (basePlan.applyMode === 'week' && basePlan.applyWeekDays?.length) {
+          const weekCount = Math.max(1, Number(basePlan.applyWeekInterval) || 1);
+          const selectedWeekdays = (basePlan.applyWeekDays || []).map((d) => WEEK_DAYS.indexOf(d as WeekDay));
+          const baseStart = startOfMonday(new Date(basePlan.date));
+
+          for (let weekOffset = 0; weekOffset < weekCount; weekOffset += 1) {
+            const weekStart = new Date(baseStart);
+            weekStart.setDate(baseStart.getDate() + (weekOffset * 7));
+
+            for (const weekdayIndex of selectedWeekdays) {
+              const candidate = new Date(weekStart);
+              candidate.setDate(candidate.getDate() + weekdayIndex);
+              candidate.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
+              await addGeneratedWeekPlan(candidate);
             }
           }
         }
@@ -631,15 +655,8 @@ function ScheduleGridComponent({
                   </Label>
                   <div className="col-span-3 flex items-center gap-2">
                     <Input type="number" value={newApplyWeekInterval} onChange={(e) => setNewApplyWeekInterval(Number(e.target.value)||1)} className="w-20 bg-muted/50 border-border" />
-                    <span className="text-xs text-muted-foreground">weeks</span>
-                  </div>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-3">
-                  <Label className="text-right text-xs font-bold text-muted-foreground">
-                    {t('applyUntil')}
-                  </Label>
-                  <div className="col-span-3 flex gap-2 items-center">
-                    <Input type="date" value={newApplyUntil || ''} onChange={(e) => setNewApplyUntil(e.target.value || undefined)} className="w-44 bg-muted/50 border-border" />
+                    <span className="text-xs text-muted-foreground">{t('weeks')}</span>
+                    <span className="ml-auto text-xs font-medium text-muted-foreground">{t('week')} {currentTaskWeekIndex}</span>
                   </div>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-3">
