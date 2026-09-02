@@ -171,6 +171,23 @@ function ScheduleGridComponent({
   const [newNotes, setNewNotes] = React.useState('');
   const [allowTextInput, setAllowTextInput] = React.useState(false);
 
+  const defaultApplyUntilDate = React.useMemo(() => {
+    if (editingPlan?.date) {
+      return editingPlan.date.slice(0, 10);
+    }
+    const baseDate = new Date();
+    return format(baseDate, 'yyyy-MM-dd');
+  }, [editingPlan?.date]);
+
+  React.useEffect(() => {
+    if (newApplyMode === 'day' && !newApplyUntil) {
+      setNewApplyUntil(defaultApplyUntilDate);
+    }
+    if (newApplyMode === 'week' && !newApplyUntil) {
+      setNewApplyUntil(defaultApplyUntilDate);
+    }
+  }, [defaultApplyUntilDate, newApplyMode, newApplyUntil]);
+
   const daysOfCurrentWeek = React.useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   }, [currentWeekStart]);
@@ -251,7 +268,7 @@ function ScheduleGridComponent({
         setNewApplyDays(existing.applyDays || []);
         setNewApplyWeekInterval(existing.applyWeekInterval || 1);
         setNewApplyWeekDays(existing.applyWeekDays || []);
-        setNewApplyUntil(existing.applyUntil || undefined);
+        setNewApplyUntil(existing.applyUntil || existing.date.slice(0, 10));
         setNewNotes(existing.notes || '');
       } else {
         setEditingPlan({
@@ -271,7 +288,7 @@ function ScheduleGridComponent({
         setNewApplyDays([]);
         setNewApplyWeekInterval(1);
         setNewApplyWeekDays([]);
-        setNewApplyUntil(undefined);
+        setNewApplyUntil(date.toISOString().slice(0, 10));
         setNewNotes('');
       }
       setIsDialogOpen(true);
@@ -313,7 +330,7 @@ function ScheduleGridComponent({
     setNewApplyDays(plan.applyDays || []);
     setNewApplyWeekInterval(plan.applyWeekInterval || 1);
     setNewApplyWeekDays(plan.applyWeekDays || []);
-    setNewApplyUntil(plan.applyUntil || undefined);
+    setNewApplyUntil(plan.applyUntil || plan.date.slice(0, 10));
     setNewNotes(plan.notes || '');
     setIsDialogOpen(true);
   }, []);
@@ -565,20 +582,35 @@ function ScheduleGridComponent({
               <Label className="text-right text-xs font-bold text-muted-foreground">
                 {t('applyMode')}
               </Label>
-              <div className="col-span-3">
-                <Select
-                  value={newApplyMode}
-                  onValueChange={(v) => setNewApplyMode(v as TaskApplyMode)}
+              <div className="col-span-3 flex gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={newApplyMode === 'day' ? 'default' : 'outline'}
+                  className="flex-1"
+                  onClick={() => {
+                    setNewApplyMode('day');
+                    if (!newApplyUntil) {
+                      setNewApplyUntil(defaultApplyUntilDate);
+                    }
+                  }}
                 >
-                  <SelectTrigger className="w-full bg-muted/50 border-border">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">{t('none')}</SelectItem>
-                    <SelectItem value="day">{t('applyToDay')}</SelectItem>
-                    <SelectItem value="week">{t('applyToWeek')}</SelectItem>
-                  </SelectContent>
-                </Select>
+                  {t('applyToDay')}
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={newApplyMode === 'week' ? 'default' : 'outline'}
+                  className="flex-1"
+                  onClick={() => {
+                    setNewApplyMode('week');
+                    if (!newApplyUntil) {
+                      setNewApplyUntil(defaultApplyUntilDate);
+                    }
+                  }}
+                >
+                  {t('applyToWeek')}
+                </Button>
               </div>
             </div>
             {newApplyMode === 'day' && (
