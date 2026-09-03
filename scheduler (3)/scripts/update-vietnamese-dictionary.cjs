@@ -44,30 +44,34 @@ async function fetchTranslation(word) {
   try { failedWords = JSON.parse(fs.readFileSync(FAILED_WORDS_FILE, 'utf8')); } catch {}
   const failed = new Set(failedWords);
   const candidates = Object.keys(english).filter((candidate) => /^[a-z]+(?:[-'][a-z]+)*$/i.test(candidate) && candidate.length >= 2 && !vietnamese[candidate] && !failed.has(candidate));
-  const word = [...PRIORITY_WORDS, ...candidates].find((candidate) => candidates.includes(candidate));
-  if (!word) {
+  const words = [...new Set([...PRIORITY_WORDS, ...candidates])]
+    .filter((candidate) => candidates.includes(candidate))
+    .slice(0, 20);
+  if (!words.length) {
     console.log('DONE: no untranslated candidate available in the current queue.');
     return;
   }
 
-  try {
-    const translation = await fetchTranslation(word);
-    if (!translation) {
+  for (const word of words) {
+    try {
+      const translation = await fetchTranslation(word);
+      if (!translation) {
+        failed.add(word);
+        fs.writeFileSync(FAILED_WORDS_FILE, JSON.stringify([...failed]));
+        console.log(`SKIP: ${word}`);
+        continue;
+      }
+      const shardName = /^[a-z]$/i.test(word[0]) ? word[0].toLowerCase() : 'other';
+      const file = `vi-${shardName}.json.br`;
+      const shard = readShard(file);
+      shard[word] = translation;
+      const sorted = Object.fromEntries(Object.entries(shard).sort(([a], [b]) => a.localeCompare(b)));
+      fs.writeFileSync(path.join(DICTIONARY_DIR, file), zlib.brotliCompressSync(Buffer.from(JSON.stringify(sorted))));
+      console.log(`ADDED: ${word} -> ${translation}`);
+    } catch (error) {
       failed.add(word);
       fs.writeFileSync(FAILED_WORDS_FILE, JSON.stringify([...failed]));
-      console.log(`SKIP: ${word}`);
-      return;
+      console.log(`SKIP: ${word} (${error.name === 'TimeoutError' ? 'timeout' : error.message})`);
     }
-    const shardName = /^[a-z]$/i.test(word[0]) ? word[0].toLowerCase() : 'other';
-    const file = `vi-${shardName}.json.br`;
-    const shard = readShard(file);
-    shard[word] = translation;
-    const sorted = Object.fromEntries(Object.entries(shard).sort(([a], [b]) => a.localeCompare(b)));
-    fs.writeFileSync(path.join(DICTIONARY_DIR, file), zlib.brotliCompressSync(Buffer.from(JSON.stringify(sorted))));
-    console.log(`ADDED: ${word} -> ${translation}`);
-  } catch (error) {
-    failed.add(word);
-    fs.writeFileSync(FAILED_WORDS_FILE, JSON.stringify([...failed]));
-    console.log(`SKIP: ${word} (${error.name === 'TimeoutError' ? 'timeout' : error.message})`);
   }
 })();
