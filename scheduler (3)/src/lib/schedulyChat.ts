@@ -52,7 +52,9 @@ export async function streamScheduly(
 
     if (!response.ok) {
       const errorMessage = payload?.error || payload?.message || 'Không thể kết nối với Scheduly lúc này. Vui lòng thử lại sau.';
-      throw new Error(errorMessage);
+      const requestError = new Error(errorMessage) as Error & { status?: number };
+      requestError.status = response.status;
+      throw requestError;
     }
 
     const answer = typeof payload?.answer === 'string' ? payload.answer.trim() : '';

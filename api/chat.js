@@ -26,6 +26,10 @@ function classifyGeminiError(error) {
   const message = String(error?.message ?? error).toLowerCase();
   const status = Number(error?.status ?? error?.statusCode ?? 0);
 
+  if (error?.name === 'AbortError' || message.includes('timed out') || message.includes('timeout')) {
+    return { status: 503, message: 'Gemini request timed out. Please try again shortly.' };
+  }
+
   if (status === 429 || message.includes('resource_exhausted') || message.includes('rate limit') || message.includes('quota')) {
     return { status: 429, message: 'Gemini API limit reached. Please try again later.' };
   }
@@ -84,6 +88,7 @@ export default async function handler(request, response) {
             candidateCount: 1,
           },
         }),
+        signal: AbortSignal.timeout(25_000),
       },
     );
 
@@ -100,7 +105,11 @@ export default async function handler(request, response) {
       .trim();
 
     if (!answer) {
-      return response.status(502).json({ error: 'Gemini returned an empty response.' });
+      const finishReason = payload?.candidates?.[0]?.finishReason;
+      const errorMessage = finishReason === 'MAX_TOKENS'
+        ? 'Gemini ran out of response tokens. Please try a shorter question.'
+        : 'Gemini returned an empty response.';
+      return response.status(502).json({ error: errorMessage });
     }
 
     return response.status(200).json({ answer });
