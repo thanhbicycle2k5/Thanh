@@ -11,6 +11,20 @@ For sentence or passage translation, distinguish Literal translation, Natural tr
 
 Mention CEFR level (A1-C2) and labels such as common, academic, technical, formal, neutral, informal, or slang when useful. Keep default answers concise and easy to learn. Go deeper only for ambiguity, important cultural differences, or when asked. If the answer depends strongly on context, say so and ask for the full sentence. Never pretend certainty when uncertain. Respond in the language that best matches the user's question, and preserve the requested headings in English for dictionary-style answers.`;
 
+function getSchedulyError(error: unknown): Error {
+  const message = error instanceof Error ? error.message : String(error);
+  if (message.includes('SERVICE_DISABLED') || message.includes('has not been used in project')) {
+    return new Error('Gemini API chưa được bật cho project Google Cloud này. Hãy mở Google Cloud Console, bật Generative Language API, chờ vài phút rồi thử lại.');
+  }
+  if (message.includes('PERMISSION_DENIED') || message.includes('API key not valid')) {
+    return new Error('API key Gemini không có quyền sử dụng dịch vụ này. Hãy kiểm tra lại key và project được liên kết.');
+  }
+  if (message.includes('RESOURCE_EXHAUSTED')) {
+    return new Error('Scheduly đã hết hạn mức Gemini tạm thời. Vui lòng thử lại sau.');
+  }
+  return new Error('Không thể kết nối với Scheduly lúc này. Vui lòng thử lại sau.');
+}
+
 export async function askScheduly(question: string): Promise<string> {
   const configuredKey = import.meta.env.VITE_GEMINI_API_KEY;
   const apiKey = configuredKey?.trim().replace(/^("|')|("|')$/g, '');
@@ -22,14 +36,19 @@ export async function askScheduly(question: string): Promise<string> {
   }
 
   const ai = new GoogleGenAI({ apiKey });
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
-    contents: question,
-    config: {
-      systemInstruction: SCHEDULY_SYSTEM_INSTRUCTION,
-      temperature: 0.35,
-    },
-  });
+  let response;
+  try {
+    response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: question,
+      config: {
+        systemInstruction: SCHEDULY_SYSTEM_INSTRUCTION,
+        temperature: 0.35,
+      },
+    });
+  } catch (error) {
+    throw getSchedulyError(error);
+  }
 
   const answer = response.text?.trim();
   if (!answer) {
