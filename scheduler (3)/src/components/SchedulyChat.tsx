@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Loader2, Send, X } from 'lucide-react';
 import { DynamicCat } from './DynamicCat';
 import { streamScheduly } from '../lib/schedulyChat';
-import { formatGeminiUserError } from '../lib/geminiRequest';
+import { formatGeminiUserError, isShortVocabularyQuery } from '../lib/geminiRequest';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -161,7 +161,7 @@ export function SchedulyChat({ open, onClose, theme, catColor }: SchedulyChatPro
               </div>
             </div>
           ))}
-          {isLoading && <div className="flex items-center gap-2 text-sm opacity-65"><Loader2 className="h-4 w-4 animate-spin" /> Scheduly đang phân tích ngữ cảnh...</div>}
+          {isLoading && <div className="flex items-center gap-2 text-sm opacity-65"><Loader2 className="h-4 w-4 animate-spin" /> {isShortVocabularyQuery(messages[messages.length - 2]?.text ?? '') ? 'Scheduly đang tra từ...' : 'Scheduly đang phân tích ngữ cảnh...'}</div>}
           {error && <p className="rounded-xl border border-red-300/50 bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-200">{error}</p>}
         </div>
 

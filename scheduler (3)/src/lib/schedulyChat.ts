@@ -1,4 +1,4 @@
-import { classifyGeminiError, normalizeHistory, type ChatTurn } from './geminiRequest';
+import { classifyGeminiError, isShortVocabularyQuery, normalizeHistory, type ChatTurn } from './geminiRequest';
 
 const GEMINI_REQUEST_CACHE_TTL_MS = 30_000;
 const GEMINI_REQUEST_CACHE = new Map<string, { timestamp: number; answer: string }>();
@@ -10,7 +10,8 @@ export async function streamScheduly(
   history: ChatTurn[] = [],
 ): Promise<void> {
   const trimmedQuestion = String(question ?? '').trim();
-  const recentHistory = normalizeHistory(history).slice(-6);
+  const shortVocabularyQuery = isShortVocabularyQuery(trimmedQuestion);
+  const recentHistory = shortVocabularyQuery ? [] : normalizeHistory(history).slice(-6);
 
   if (!trimmedQuestion) {
     throw new Error('Vui lòng nhập câu hỏi trước khi gửi.');
@@ -71,4 +72,4 @@ export async function streamScheduly(
   }
 }
 
-export { classifyGeminiError, DEFAULT_GEMINI_MODEL, MAX_OUTPUT_TOKENS, normalizeHistory, formatGeminiUserError } from './geminiRequest';
+export { classifyGeminiError, DEFAULT_GEMINI_MODEL, MAX_OUTPUT_TOKENS, normalizeHistory, formatGeminiUserError, isShortVocabularyQuery } from './geminiRequest';

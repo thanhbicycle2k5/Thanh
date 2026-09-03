@@ -1,5 +1,5 @@
 export const DEFAULT_GEMINI_MODEL = 'gemini-3.6-flash';
-export const MAX_OUTPUT_TOKENS = 1024;
+export const MAX_OUTPUT_TOKENS = 400;
 
 export type ChatTurn = {
   role: 'user' | 'assistant';
@@ -7,6 +7,17 @@ export type ChatTurn = {
 };
 
 export const SCHEDULY_SYSTEM_INSTRUCTION = `You are Scheduly, a concise English–Vietnamese language assistant. Explain word meaning, pronunciation, part of speech, usage, examples, collocations, and natural translations. Prefer short, clear answers with practical examples. Return the final answer directly without internal reasoning. If context is needed, ask for the full sentence. Keep the answer in the user's language when appropriate.`;
+
+export const VOCABULARY_SYSTEM_INSTRUCTION = `You are Scheduly, an English-Vietnamese vocabulary assistant. For vocabulary queries, return only: WORD, IPA, Vietnamese meaning, useful English meaning, CEFR, and 3 short example contexts with Vietnamese translations. Be concise. Do not provide unnecessary explanations.`;
+
+export function isShortVocabularyQuery(query: string): boolean {
+  const trimmedQuery = String(query ?? '').trim();
+  const words = trimmedQuery.split(/\s+/).filter(Boolean);
+  return trimmedQuery.length > 0
+    && trimmedQuery.length <= 80
+    && words.length <= 4
+    && !/[?!。？！]/.test(trimmedQuery);
+}
 
 export function normalizeHistory(history: ChatTurn[] = []): ChatTurn[] {
   const safeHistory = (Array.isArray(history) ? history : [])
@@ -29,7 +40,8 @@ export function normalizeHistory(history: ChatTurn[] = []): ChatTurn[] {
 
 export function buildGeminiRequestPayload(question: string, history: ChatTurn[] = []) {
   const trimmedQuestion = String(question ?? '').trim();
-  const safeHistory = normalizeHistory(history);
+  const vocabularyQuery = isShortVocabularyQuery(trimmedQuestion);
+  const safeHistory = vocabularyQuery ? [] : normalizeHistory(history);
 
   return {
     model: DEFAULT_GEMINI_MODEL,
@@ -45,7 +57,7 @@ export function buildGeminiRequestPayload(question: string, history: ChatTurn[] 
     ],
     config: {
       systemInstruction: {
-        parts: [{ text: SCHEDULY_SYSTEM_INSTRUCTION }],
+        parts: [{ text: vocabularyQuery ? VOCABULARY_SYSTEM_INSTRUCTION : SCHEDULY_SYSTEM_INSTRUCTION }],
       },
       temperature: 0.35,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
