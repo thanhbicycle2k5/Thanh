@@ -6,6 +6,14 @@ import {
   buildGeminiRequestPayload,
   classifyGeminiError,
 } from './geminiRequest.ts';
+import { findInDictionary, lookupLocalDictionary } from './localDictionary.ts';
+
+test('local dictionary finds normalized vocabulary before any remote fallback', () => {
+  assert.equal(findInDictionary(' DEMOCRACY ')?.word, 'democracy');
+  assert.equal(findInDictionary('democracy nghĩa là gì?')?.word, 'democracy');
+  assert.match(lookupLocalDictionary('betel') ?? '', /Source: Local Dictionary/);
+  assert.equal(findInDictionary('xyzabcunknownword'), null);
+});
 
 test('buildGeminiRequestPayload keeps the payload minimal and valid', () => {
   const payload = buildGeminiRequestPayload('betel');

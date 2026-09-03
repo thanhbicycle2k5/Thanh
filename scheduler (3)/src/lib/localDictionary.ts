@@ -9,6 +9,19 @@ type DictionaryEntry = {
 };
 
 const DICTIONARY: Record<string, DictionaryEntry> = {
+  democracy: {
+    word: 'democracy',
+    ipa: '/dɪˈmɒk.rə.si/',
+    partOfSpeech: 'noun',
+    vietnamese: 'nền dân chủ; chế độ dân chủ',
+    english: 'a system of government in which people choose their representatives by voting',
+    cefr: 'B2',
+    examples: [
+      { english: 'Democracy depends on free and fair elections.', vietnamese: 'Nền dân chủ phụ thuộc vào các cuộc bầu cử tự do và công bằng.' },
+      { english: 'The students discussed the role of democracy in society.', vietnamese: 'Học sinh thảo luận về vai trò của dân chủ trong xã hội.' },
+      { english: 'A healthy democracy protects different opinions.', vietnamese: 'Một nền dân chủ lành mạnh bảo vệ các ý kiến khác nhau.' },
+    ],
+  },
   betel: {
     word: 'betel',
     ipa: '/ˈbiː.təl/',
@@ -68,11 +81,26 @@ function formatEntry(entry: DictionaryEntry): string {
     .map((example) => `- **${example.english}**\n  ${example.vietnamese}`)
     .join('\n');
 
-  return `### WORD\n**${entry.word}**\n\n### IPA\n${entry.ipa}\n\n### PART OF SPEECH\n${entry.partOfSpeech}\n\n### MEANING\n- Vietnamese: ${entry.vietnamese}\n- English: ${entry.english}\n\n### CEFR\n${entry.cefr}\n\n### EXAMPLES\n${examples}`;
+  return `### WORD\n**${entry.word}**\n\n### IPA\n${entry.ipa}\n\n### PART OF SPEECH\n${entry.partOfSpeech}\n\n### MEANING\n- Vietnamese: ${entry.vietnamese}\n- English: ${entry.english}\n\n### CEFR\n${entry.cefr}\n\n### EXAMPLES\n${examples}\n\n_Source: Local Dictionary_`;
+}
+
+export function normalizeDictionaryQuery(query: string): string {
+  const normalized = String(query ?? '')
+    .normalize('NFC')
+    .trim()
+    .replace(/[.,!?;:()[\]{}]+$/g, '')
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+  const prefixMatch = normalized.match(/^(?:what does|meaning of|define|dịch|nghĩa của|nghĩa là gì về?)\s+([a-zà-ỹ][a-zà-ỹ'-]{1,63})$/i);
+  const suffixMatch = normalized.match(/^([a-zà-ỹ][a-zà-ỹ'-]{1,63})\s+nghĩa là gì$/i);
+  return (prefixMatch?.[1] ?? suffixMatch?.[1] ?? normalized).trim();
+}
+
+export function findInDictionary(query: string): DictionaryEntry | null {
+  return DICTIONARY[normalizeDictionaryQuery(query)] ?? null;
 }
 
 export function lookupLocalDictionary(query: string): string | null {
-  const key = String(query ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
-  const entry = DICTIONARY[key];
+  const entry = findInDictionary(query);
   return entry ? formatEntry(entry) : null;
 }
