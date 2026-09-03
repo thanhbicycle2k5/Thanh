@@ -41,6 +41,8 @@ export async function streamScheduly(question: string, onChunk: (chunk: string) 
   const requestConfig = {
     systemInstruction: SCHEDULY_SYSTEM_INSTRUCTION,
     temperature: 0.35,
+    maxOutputTokens: 500,
+    httpOptions: { timeout: 30000 },
   };
   let hasAnswer = false;
 
@@ -59,22 +61,6 @@ export async function streamScheduly(question: string, onChunk: (chunk: string) 
       }
     }
   } catch (error) {
-    if (!hasAnswer) {
-      try {
-        const fallbackResponse = await ai.models.generateContent({
-          model: 'gemini-3.6-flash',
-          contents: question,
-          config: requestConfig,
-        });
-        const fallbackAnswer = fallbackResponse.text?.trim();
-        if (fallbackAnswer) {
-          onChunk(fallbackAnswer);
-          return;
-        }
-      } catch (fallbackError) {
-        throw getSchedulyError(fallbackError);
-      }
-    }
     throw getSchedulyError(error);
   }
 
