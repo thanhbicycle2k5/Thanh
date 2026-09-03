@@ -3,6 +3,7 @@ const MAX_OUTPUT_TOKENS = 400;
 const SCHEDULY_SYSTEM_INSTRUCTION = `You are Scheduly, a concise English-Vietnamese language assistant. Explain word meaning, pronunciation, part of speech, usage, examples, collocations, and natural translations. Prefer short, clear answers with practical examples. Return the final answer directly without internal reasoning. If context is needed, ask for the full sentence. Keep the answer in the user's language when appropriate.`;
 const VOCABULARY_SYSTEM_INSTRUCTION = `You are Scheduly, an English-Vietnamese vocabulary assistant. For vocabulary queries, return only: WORD, IPA, Vietnamese meaning, useful English meaning, CEFR, and 3 short example contexts with Vietnamese translations. Be concise. Do not provide unnecessary explanations.`;
 const DICTIONARY_CACHE = new Map();
+const TRANSLATION_CACHE = new Map();
 
 function isShortVocabularyQuery(query) {
   const trimmedQuery = String(query ?? '').trim();
@@ -17,7 +18,7 @@ function isEnglishWordQuery(query) {
   return /^[a-z]+(?:[-'][a-z]+)?$/i.test(query);
 }
 
-function formatDictionaryEntry(entry) {
+function formatDictionaryEntry(entry, vietnameseDefinition = null) {
   const phonetic = entry.phonetics?.find((item) => item?.text)?.text ?? 'Not available';
   const meanings = entry.meanings?.slice(0, 2) ?? [];
   const definitionLines = meanings.flatMap((meaning) => {
@@ -29,12 +30,35 @@ function formatDictionaryEntry(entry) {
   }).join('\n');
   const firstDefinition = meanings[0]?.definitions?.[0]?.definition ?? 'Meaning not available.';
 
-  return `### WORD\n**${entry.word}**\n\n### IPA\n${phonetic}\n\n### PART OF SPEECH\n${meanings[0]?.partOfSpeech ?? 'Not available'}\n\n### MEANING\n- English: ${firstDefinition}\n- Vietnamese: Scheduly chưa có bản dịch tiếng Việt trực tiếp cho mục từ này.\n\n### EXAMPLES\n${definitionLines || '- No example available.'}\n\n_Source: Free Dictionary API_`;
+  return `### WORD\n**${entry.word}**\n\n### IPA\n${phonetic}\n\n### PART OF SPEECH\n${meanings[0]?.partOfSpeech ?? 'Not available'}\n\n### MEANING\n- English: ${firstDefinition}\n- Vietnamese: ${vietnameseDefinition || 'Scheduly chưa có bản dịch tiếng Việt trực tiếp cho mục từ này.'}\n\n### EXAMPLES\n${definitionLines || '- No example available.'}\n\n_Source: Open dictionary + automatic Vietnamese translation_`;
+}
+
+async function translateText(text, languagePair) {
+  const key = `${languagePair}:${text.toLowerCase()}`;
+  const cached = TRANSLATION_CACHE.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.value;
+
+  try {
+    const translationResponse = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${languagePair}`, {
+      signal: AbortSignal.timeout(4_000),
+    });
+    if (!translationResponse.ok) return null;
+    const payload = await translationResponse.json();
+    const value = String(payload?.responseData?.translatedText ?? '').trim();
+    if (!value) return null;
+    TRANSLATION_CACHE.set(key, { value, expiresAt: Date.now() + 86_400_000 });
+    return value;
+  } catch {
+    return null;
+  }
 }
 
 async function lookupDictionary(query) {
-  if (!isEnglishWordQuery(query)) return null;
-  const key = query.toLowerCase();
+  const englishQuery = isEnglishWordQuery(query)
+    ? query
+    : await translateText(query, 'vi|en');
+  if (!isEnglishWordQuery(englishQuery)) return null;
+  const key = englishQuery.toLowerCase();
   const cached = DICTIONARY_CACHE.get(key);
   if (cached && cached.expiresAt > Date.now()) return cached.answer;
 
@@ -44,7 +68,11 @@ async function lookupDictionary(query) {
     });
     if (!dictionaryResponse.ok) return null;
     const payload = await dictionaryResponse.json();
-    const answer = Array.isArray(payload) && payload[0] ? formatDictionaryEntry(payload[0]) : null;
+    const entry = Array.isArray(payload) ? payload[0] : null;
+    if (!entry) return null;
+    const firstDefinition = entry.meanings?.[0]?.definitions?.[0]?.definition ?? '';
+    const vietnameseDefinition = firstDefinition ? await translateText(firstDefinition, 'en|vi') : null;
+    const answer = formatDictionaryEntry(entry, vietnameseDefinition);
     if (answer) DICTIONARY_CACHE.set(key, { answer, expiresAt: Date.now() + 86_400_000 });
     return answer;
   } catch {
