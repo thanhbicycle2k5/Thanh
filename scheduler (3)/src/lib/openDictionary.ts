@@ -37,15 +37,28 @@ async function loadShard(shardName: string): Promise<DictionaryShard> {
 }
 
 function formatOpenDictionaryEntry(word: string, definition: string): string {
-  const readableDefinition = definition
+  const definitionParts = definition
     .replace(/\s+/g, ' ')
     .trim()
     .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
     .map((sentence) => sentence.trim())
-    .filter(Boolean)
-    .slice(0, 12)
-    .map((sentence) => `- ${sentence}`)
-    .join('\n');
+    .filter(Boolean);
+  const readableParts: string[] = [];
+
+  for (const part of definitionParts) {
+    const previous = readableParts[readableParts.length - 1];
+    if (/^\d+\.$/.test(part)) {
+      readableParts.push(part);
+      continue;
+    }
+    if (/^\d+\.$/.test(previous ?? '')) {
+      readableParts[readableParts.length - 1] = `${previous} ${part}`;
+      continue;
+    }
+    readableParts.push(part);
+  }
+
+  const readableDefinition = readableParts.slice(0, 12).join('\n\n');
 
   return `### WORD\n**${word}**\n\n### MEANING\n${readableDefinition || '- Meaning not available.'}\n\n### VIETNAMESE\nScheduly chưa có bản dịch tiếng Việt trong dữ liệu local.\n\n_Source: Local Open Dictionary_`;
 }
