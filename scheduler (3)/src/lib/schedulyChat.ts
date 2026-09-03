@@ -34,7 +34,7 @@ export async function streamScheduly(
   GEMINI_REQUEST_IN_FLIGHT.add(cacheKey);
 
   try {
-    const response = await fetch('/api/gemini', {
+    const response = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
