@@ -90,6 +90,7 @@ export function SchedulyChat({ open, onClose, theme, catColor }: SchedulyChatPro
         )));
       });
     } catch (requestError) {
+      setMessages((current) => current.filter((message, index) => !(index === current.length - 1 && message.role === 'assistant' && !message.text)));
       setError(requestError instanceof Error ? requestError.message : 'Không thể kết nối với Scheduly.');
     } finally {
       setIsLoading(false);

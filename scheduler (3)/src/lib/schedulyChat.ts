@@ -22,6 +22,12 @@ function getSchedulyError(error: unknown): Error {
   if (message.includes('RESOURCE_EXHAUSTED')) {
     return new Error('Scheduly đã hết hạn mức Gemini tạm thời. Vui lòng thử lại sau.');
   }
+  if (message.includes('Failed to fetch') || message.includes('NetworkError') || message.includes('fetch failed')) {
+    return new Error('Không thể kết nối đến Gemini. Hãy kiểm tra mạng hoặc thử lại sau.');
+  }
+  if (message.includes('INVALID_ARGUMENT')) {
+    return new Error('Gemini không chấp nhận yêu cầu này. Hãy thử câu hỏi ngắn hơn.');
+  }
   return new Error('Không thể kết nối với Scheduly lúc này. Vui lòng thử lại sau.');
 }
 
@@ -32,9 +38,8 @@ export async function streamScheduly(question: string, onChunk: (chunk: string) 
     throw new Error('Chưa cấu hình VITE_GEMINI_API_KEY cho Scheduly.');
   }
   const ai = new GoogleGenAI({ apiKey });
-  let response;
   try {
-    response = await ai.models.generateContentStream({
+    const response = await ai.models.generateContentStream({
       model: 'gemini-3.6-flash',
       contents: question,
       config: {
@@ -42,19 +47,18 @@ export async function streamScheduly(question: string, onChunk: (chunk: string) 
         temperature: 0.35,
       },
     });
+    let hasAnswer = false;
+    for await (const chunk of response) {
+      const text = chunk.text ?? '';
+      if (text) {
+        hasAnswer = true;
+        onChunk(text);
+      }
+    }
+    if (!hasAnswer) {
+      throw new Error('Scheduly chưa tạo được câu trả lời. Vui lòng thử lại.');
+    }
   } catch (error) {
     throw getSchedulyError(error);
-  }
-
-  let hasAnswer = false;
-  for await (const chunk of response) {
-    const text = chunk.text ?? '';
-    if (text) {
-      hasAnswer = true;
-      onChunk(text);
-    }
-  }
-  if (!hasAnswer) {
-    throw new Error('Scheduly chưa tạo được câu trả lời. Vui lòng thử lại.');
   }
 }
