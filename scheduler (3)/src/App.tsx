@@ -401,19 +401,29 @@ export default function App() {
       setPomodoroSecondsLeft(remaining);
 
       if (remaining <= 0) {
-        setPomodoroRunning(false);
-        setPomodoroDeadline(null);
-        setPomodoroSecondsLeft(0);
         playNotificationSound(settingsState.notificationSound);
-        if (pomodoroMode === 'work') setPomodoroSessions(v => v + 1);
         toast.success(t(pomodoroMode === 'work' ? 'workCompleted' : 'breakOver'));
+
+        if (pomodoroMode === 'work') {
+          const completedSessions = pomodoroSessions + 1;
+          const nextMode: PomodoroMode = completedSessions % 4 === 0 ? 'long' : 'short';
+          setPomodoroSessions(completedSessions);
+          setPomodoroMode(nextMode);
+          setPomodoroSecondsLeft(POMODORO_DURATIONS[nextMode]);
+          setPomodoroDeadline(Date.now() + POMODORO_DURATIONS[nextMode] * 1000);
+        } else {
+          setPomodoroMode('work');
+          setPomodoroSecondsLeft(POMODORO_DURATIONS.work);
+          setPomodoroDeadline(Date.now() + POMODORO_DURATIONS.work * 1000);
+        }
+        setPomodoroRunning(true);
       }
     };
 
     tick();
     const interval = window.setInterval(tick, 250);
     return () => window.clearInterval(interval);
-  }, [pomodoroRunning, pomodoroDeadline, pomodoroMode, settingsState.notificationSound]);
+  }, [pomodoroRunning, pomodoroDeadline, pomodoroMode, pomodoroSessions, settingsState.notificationSound]);
 
   const togglePomodoro = () => {
     if (pomodoroRunning) {
