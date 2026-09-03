@@ -41,7 +41,8 @@ export async function streamScheduly(question: string, onUpdate: (answer: string
   const requestConfig = {
     systemInstruction: SCHEDULY_SYSTEM_INSTRUCTION,
     temperature: 0.35,
-    maxOutputTokens: 500,
+    maxOutputTokens: 800,
+    thinkingConfig: { thinkingBudget: 0 },
     httpOptions: { timeout: 30000 },
   };
   let hasAnswer = false;
