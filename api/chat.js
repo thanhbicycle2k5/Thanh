@@ -173,6 +173,10 @@ export default async function handler(request, response) {
   if (vocabularyQuery) {
     const dictionaryAnswer = await lookupDictionary(question);
     if (dictionaryAnswer) return response.status(200).json({ answer: dictionaryAnswer, source: 'dictionary' });
+    return response.status(404).json({
+      error: 'Scheduly chưa tìm thấy từ này trong các nguồn từ điển miễn phí.',
+      source: 'dictionary',
+    });
   }
 
   const apiKey = String(process.env.GEMINI_API_KEY ?? '').trim();

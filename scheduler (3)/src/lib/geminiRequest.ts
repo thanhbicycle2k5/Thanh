@@ -91,6 +91,10 @@ export function classifyGeminiError(error: unknown): Error {
     return new Error('Không tìm thấy API /api/chat trên deployment Vercel. Hãy kiểm tra Root Directory và redeploy.');
   }
 
+  if (status === 404 && message.includes('từ điển')) {
+    return new Error('Scheduly chưa tìm thấy từ này trong các nguồn từ điển miễn phí.');
+  }
+
   if (status === 429 || message.includes('resource_exhausted') || message.includes('rate limit') || message.includes('quota')) {
     return new Error('Scheduly is busy right now. Please try again in a few minutes.');
   }
