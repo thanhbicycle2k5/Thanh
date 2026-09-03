@@ -16,11 +16,11 @@ test('buildGeminiRequestPayload keeps the payload minimal and valid', () => {
     parts: [{ text: 'betel' }],
   }]);
   assert.ok(payload.config);
-  assert.equal(payload.config.maxOutputTokens, 512);
+  assert.equal(payload.config.maxOutputTokens, 400);
 });
 
-test('classifyGeminiError distinguishes API and quota failures', () => {
-  assert.match(classifyGeminiError({ status: 429 }).message, /API limit reached/i);
+test('classifyGeminiError distinguishes quota and service failures', () => {
+  assert.match(classifyGeminiError({ status: 429 }).message, /Scheduly is busy/i);
   assert.match(classifyGeminiError({ status: 400 }).message, /invalid request/i);
   assert.match(classifyGeminiError({ status: 500 }).message, /temporarily unavailable/i);
 });

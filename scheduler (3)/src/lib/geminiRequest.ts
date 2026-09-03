@@ -84,7 +84,7 @@ export function classifyGeminiError(error: unknown): Error {
     : 0;
 
   if (message.includes('gemini_api_key') || message.includes('server configuration')) {
-    return new Error('Gemini API key chưa được cấu hình trên máy chủ Vercel.');
+    return new Error('Scheduly chưa sẵn sàng trên máy chủ. Vui lòng thử lại sau.');
   }
 
   if (status === 404 && (message.includes('page could not be found') || message.includes('api/chat'))) {
@@ -92,15 +92,15 @@ export function classifyGeminiError(error: unknown): Error {
   }
 
   if (status === 429 || message.includes('resource_exhausted') || message.includes('rate limit') || message.includes('quota')) {
-    return new Error('API limit reached. Please try again later.');
+    return new Error('Scheduly is busy right now. Please try again in a few minutes.');
   }
 
   if (status === 401 || status === 403 || message.includes('api key') || message.includes('permission_denied') || message.includes('unauthorized')) {
-    return new Error('Gemini API key is invalid or unauthorized. Please check the server configuration.');
+    return new Error('Scheduly chưa thể xử lý yêu cầu lúc này. Vui lòng thử lại sau.');
   }
 
   if (status === 404 || message.includes('model not found') || message.includes('not found') || message.includes('404')) {
-    return new Error('Gemini model or endpoint is not available. Please check the selected model.');
+    return new Error('Scheduly đang được cập nhật. Vui lòng thử lại sau.');
   }
 
   if (status === 400 || message.includes('invalid_argument') || message.includes('safety') || message.includes('malformed') || message.includes('bad request')) {
@@ -127,15 +127,15 @@ export function formatGeminiUserError(error: unknown): string {
   const lower = message.toLowerCase();
 
   if (lower.includes('api limit reached') || lower.includes('resource_exhausted') || lower.includes('rate limit') || lower.includes('quota')) {
-    return 'Gemini API đang tạm đạt giới hạn. Vui lòng thử lại sau.';
+    return 'Scheduly đang được nhiều người dùng cùng lúc. Vui lòng thử lại sau ít phút.';
   }
 
   if (lower.includes('api key') || lower.includes('unauthorized') || lower.includes('permission_denied')) {
-    return 'Gemini API key hoặc quyền truy cập không hợp lệ. Vui lòng kiểm tra cấu hình máy chủ.';
+    return 'Scheduly chưa sẵn sàng trên máy chủ. Vui lòng thử lại sau.';
   }
 
   if (lower.includes('model or endpoint') || lower.includes('model not found') || lower.includes('not found') || lower.includes('404')) {
-    return 'Model hoặc endpoint Gemini không hợp lệ hoặc không còn khả dụng.';
+    return 'Scheduly đang được cập nhật. Vui lòng thử lại sau.';
   }
 
   if (lower.includes('invalid request') || lower.includes('invalid_argument') || lower.includes('bad request') || lower.includes('malformed')) {
