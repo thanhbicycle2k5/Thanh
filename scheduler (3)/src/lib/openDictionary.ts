@@ -17,7 +17,7 @@ async function loadShard(shardName: string): Promise<DictionaryShard> {
   const pendingRequest = shardRequests.get(shardName);
   if (pendingRequest) return pendingRequest;
 
-  const request = fetch(`/dictionary/en-${shardName}.json`)
+  const request = fetch(`/dictionary/en-${shardName}.json.br`)
     .then((response) => {
       if (!response.ok) throw new Error(`Dictionary shard unavailable: ${shardName}`);
       return response.json() as Promise<DictionaryShard>;

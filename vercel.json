@@ -2,5 +2,15 @@
   "version": 2,
   "installCommand": "cd \"scheduler (3)\" && npm install --ignore-scripts",
   "buildCommand": "cd \"scheduler (3)\" && npm run build",
-  "outputDirectory": "scheduler (3)/dist"
+  "outputDirectory": "scheduler (3)/dist",
+  "headers": [
+    {
+      "source": "/dictionary/(.*).json.br",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Content-Encoding", "value": "br" },
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ]
 }
