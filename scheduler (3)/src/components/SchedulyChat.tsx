@@ -82,10 +82,10 @@ export function SchedulyChat({ open, onClose, theme, catColor }: SchedulyChatPro
     setMessages((current) => [...current, { role: 'user', text: trimmedQuestion }, { role: 'assistant', text: '' }]);
     setIsLoading(true);
     try {
-      await streamScheduly(trimmedQuestion, (chunk) => {
+      await streamScheduly(trimmedQuestion, (answer) => {
         setMessages((current) => current.map((message, index) => (
           index === current.length - 1 && message.role === 'assistant'
-            ? { ...message, text: message.text + chunk }
+            ? { ...message, text: answer }
             : message
         )));
       });

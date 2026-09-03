@@ -31,7 +31,7 @@ function getSchedulyError(error: unknown): Error {
   return new Error('Không thể kết nối với Scheduly lúc này. Vui lòng thử lại sau.');
 }
 
-export async function streamScheduly(question: string, onChunk: (chunk: string) => void): Promise<void> {
+export async function streamScheduly(question: string, onUpdate: (answer: string) => void): Promise<void> {
   const configuredKey = import.meta.env.VITE_GEMINI_API_KEY;
   const apiKey = configuredKey?.trim().replace(/^("|')|("|')$/g, '');
   if (!apiKey) {
@@ -45,6 +45,7 @@ export async function streamScheduly(question: string, onChunk: (chunk: string) 
     httpOptions: { timeout: 30000 },
   };
   let hasAnswer = false;
+  let answer = '';
 
   try {
     const response = await ai.models.generateContentStream({
@@ -57,7 +58,8 @@ export async function streamScheduly(question: string, onChunk: (chunk: string) 
       const text = chunk.text ?? '';
       if (text) {
         hasAnswer = true;
-        onChunk(text);
+        answer += text;
+        onUpdate(answer);
       }
     }
   } catch (error) {
