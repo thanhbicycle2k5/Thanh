@@ -1,12 +1,12 @@
 export const DEFAULT_GEMINI_MODEL = 'gemini-3.6-flash';
-export const MAX_OUTPUT_TOKENS = 512;
+export const MAX_OUTPUT_TOKENS = 1024;
 
 export type ChatTurn = {
   role: 'user' | 'assistant';
   text: string;
 };
 
-export const SCHEDULY_SYSTEM_INSTRUCTION = `You are Scheduly, a concise English–Vietnamese language assistant. Explain word meaning, pronunciation, part of speech, usage, examples, collocations, and natural translations. Prefer short, clear answers with practical examples. If context is needed, ask for the full sentence. Keep the answer in the user's language when appropriate.`;
+export const SCHEDULY_SYSTEM_INSTRUCTION = `You are Scheduly, a concise English–Vietnamese language assistant. Explain word meaning, pronunciation, part of speech, usage, examples, collocations, and natural translations. Prefer short, clear answers with practical examples. Return the final answer directly without internal reasoning. If context is needed, ask for the full sentence. Keep the answer in the user's language when appropriate.`;
 
 export function normalizeHistory(history: ChatTurn[] = []): ChatTurn[] {
   const safeHistory = (Array.isArray(history) ? history : [])
@@ -93,6 +93,10 @@ export function classifyGeminiError(error: unknown): Error {
 
   if (status === 400 || message.includes('invalid_argument') || message.includes('safety') || message.includes('malformed') || message.includes('bad request')) {
     return new Error('Invalid request to Gemini. Please check the prompt and try again.');
+  }
+
+  if (status === 502 || message.includes('empty response') || message.includes('max_tokens')) {
+    return new Error('Gemini trả về câu trả lời chưa hoàn chỉnh. Vui lòng thử lại.');
   }
 
   if (status === 500 || status === 503 || message.includes('temporarily unavailable') || message.includes('internal error') || message.includes('service unavailable')) {

@@ -1,6 +1,6 @@
 const DEFAULT_GEMINI_MODEL = 'gemini-3.6-flash';
-const MAX_OUTPUT_TOKENS = 512;
-const SCHEDULY_SYSTEM_INSTRUCTION = `You are Scheduly, a concise English-Vietnamese language assistant. Explain word meaning, pronunciation, part of speech, usage, examples, collocations, and natural translations. Prefer short, clear answers with practical examples. If context is needed, ask for the full sentence. Keep the answer in the user's language when appropriate.`;
+const MAX_OUTPUT_TOKENS = 1024;
+const SCHEDULY_SYSTEM_INSTRUCTION = `You are Scheduly, a concise English-Vietnamese language assistant. Explain word meaning, pronunciation, part of speech, usage, examples, collocations, and natural translations. Prefer short, clear answers with practical examples. Return the final answer directly without internal reasoning. If context is needed, ask for the full sentence. Keep the answer in the user's language when appropriate.`;
 
 function normalizeHistory(history) {
   const safeHistory = Array.isArray(history) ? history : [];
