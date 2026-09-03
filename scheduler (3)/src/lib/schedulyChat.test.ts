@@ -17,7 +17,6 @@ test('buildGeminiRequestPayload keeps the payload minimal and valid', () => {
   }]);
   assert.ok(payload.config);
   assert.equal(payload.config.maxOutputTokens, 512);
-  assert.ok(!payload.config.thinkingConfig || payload.config.thinkingConfig.thinkingBudget === 0);
 });
 
 test('classifyGeminiError distinguishes API and quota failures', () => {

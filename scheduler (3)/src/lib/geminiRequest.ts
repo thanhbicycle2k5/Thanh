@@ -10,7 +10,7 @@ export const SCHEDULY_SYSTEM_INSTRUCTION = `You are Scheduly, a concise Englishâ
 
 export function normalizeHistory(history: ChatTurn[] = []): ChatTurn[] {
   const safeHistory = (Array.isArray(history) ? history : [])
-    .map((turn) => ({
+    .map<ChatTurn>((turn) => ({
       role: turn?.role === 'assistant' ? 'assistant' : 'user',
       text: String(turn?.text ?? '').trim(),
     }))
