@@ -33,6 +33,18 @@ function formatDictionaryEntry(entry, vietnameseDefinition = null) {
   return `### WORD\n**${entry.word}**\n\n### IPA\n${phonetic}\n\n### PART OF SPEECH\n${meanings[0]?.partOfSpeech ?? 'Not available'}\n\n### MEANING\n- English: ${firstDefinition}\n- Vietnamese: ${vietnameseDefinition || 'Scheduly chưa có bản dịch tiếng Việt trực tiếp cho mục từ này.'}\n\n### EXAMPLES\n${definitionLines || '- No example available.'}\n\n_Source: Open dictionary + automatic Vietnamese translation_`;
 }
 
+function formatWiktionaryEntry(entry, vietnameseDefinition = null) {
+  const definitions = (entry.definitions ?? []).slice(0, 4);
+  const examples = definitions
+    .map((definition) => definition.examples?.[0])
+    .filter(Boolean)
+    .map((example) => `- **${example}**`)
+    .join('\n');
+  const firstDefinition = definitions[0]?.definition ?? 'Meaning not available.';
+
+  return `### WORD\n**${entry.word}**\n\n### IPA\n${entry.phonetic || 'Not available'}\n\n### PART OF SPEECH\n${entry.partOfSpeech || 'Not available'}\n\n### MEANING\n- English: ${firstDefinition}\n- Vietnamese: ${vietnameseDefinition || 'Scheduly chưa có bản dịch tiếng Việt trực tiếp cho mục từ này.'}\n\n### EXAMPLES\n${examples || '- No example available.'}\n\n_Source: Wiktionary + automatic Vietnamese translation_`;
+}
+
 async function translateText(text, languagePair) {
   const key = `${languagePair}:${text.toLowerCase()}`;
   const cached = TRANSLATION_CACHE.get(key);
@@ -66,14 +78,34 @@ async function lookupDictionary(query) {
     const dictionaryResponse = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(key)}`, {
       signal: AbortSignal.timeout(4_000),
     });
-    if (!dictionaryResponse.ok) return null;
-    const payload = await dictionaryResponse.json();
-    const entry = Array.isArray(payload) ? payload[0] : null;
-    if (!entry) return null;
-    const firstDefinition = entry.meanings?.[0]?.definitions?.[0]?.definition ?? '';
-    const vietnameseDefinition = firstDefinition ? await translateText(firstDefinition, 'en|vi') : null;
-    const answer = formatDictionaryEntry(entry, vietnameseDefinition);
-    if (answer) DICTIONARY_CACHE.set(key, { answer, expiresAt: Date.now() + 86_400_000 });
+    if (dictionaryResponse.ok) {
+      const payload = await dictionaryResponse.json();
+      const entry = Array.isArray(payload) ? payload[0] : null;
+      if (entry) {
+        const firstDefinition = entry.meanings?.[0]?.definitions?.[0]?.definition ?? '';
+        const vietnameseDefinition = firstDefinition ? await translateText(firstDefinition, 'en|vi') : null;
+        const answer = formatDictionaryEntry(entry, vietnameseDefinition);
+        DICTIONARY_CACHE.set(key, { answer, expiresAt: Date.now() + 86_400_000 });
+        return answer;
+      }
+    }
+
+    const wiktionaryResponse = await fetch(`https://en.wiktionary.org/api/rest_v1/page/definition/${encodeURIComponent(key)}`, {
+      signal: AbortSignal.timeout(4_000),
+    });
+    if (!wiktionaryResponse.ok) return null;
+    const wiktionaryPayload = await wiktionaryResponse.json();
+    const languageEntry = wiktionaryPayload?.en?.[0];
+    const definition = languageEntry?.definitions?.[0]?.definition ?? '';
+    if (!languageEntry || !definition) return null;
+    const vietnameseDefinition = await translateText(definition, 'en|vi');
+    const answer = formatWiktionaryEntry({
+      word: englishQuery,
+      phonetic: languageEntry.pronunciations?.[0]?.pronunciation,
+      partOfSpeech: languageEntry.partOfSpeech,
+      definitions: languageEntry.definitions,
+    }, vietnameseDefinition);
+    DICTIONARY_CACHE.set(key, { answer, expiresAt: Date.now() + 86_400_000 });
     return answer;
   } catch {
     return null;
