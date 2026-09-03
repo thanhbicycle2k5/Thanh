@@ -2,6 +2,7 @@ const DEFAULT_GEMINI_MODEL = 'gemini-3.6-flash';
 const MAX_OUTPUT_TOKENS = 400;
 const SCHEDULY_SYSTEM_INSTRUCTION = `You are Scheduly, a concise English-Vietnamese language assistant. Explain word meaning, pronunciation, part of speech, usage, examples, collocations, and natural translations. Prefer short, clear answers with practical examples. Return the final answer directly without internal reasoning. If context is needed, ask for the full sentence. Keep the answer in the user's language when appropriate.`;
 const VOCABULARY_SYSTEM_INSTRUCTION = `You are Scheduly, an English-Vietnamese vocabulary assistant. For vocabulary queries, return only: WORD, IPA, Vietnamese meaning, useful English meaning, CEFR, and 3 short example contexts with Vietnamese translations. Be concise. Do not provide unnecessary explanations.`;
+const DICTIONARY_CACHE = new Map();
 
 function isShortVocabularyQuery(query) {
   const trimmedQuery = String(query ?? '').trim();
@@ -10,6 +11,45 @@ function isShortVocabularyQuery(query) {
     && trimmedQuery.length <= 80
     && words.length <= 4
     && !/[?!。？！]/.test(trimmedQuery);
+}
+
+function isEnglishWordQuery(query) {
+  return /^[a-z]+(?:[-'][a-z]+)?$/i.test(query);
+}
+
+function formatDictionaryEntry(entry) {
+  const phonetic = entry.phonetics?.find((item) => item?.text)?.text ?? 'Not available';
+  const meanings = entry.meanings?.slice(0, 2) ?? [];
+  const definitionLines = meanings.flatMap((meaning) => {
+    const definitions = meaning.definitions?.slice(0, 2) ?? [];
+    return definitions.map((definition) => {
+      const example = definition.example ? `\n  Example: **${definition.example}**` : '';
+      return `- ${definition.definition}${example}`;
+    });
+  }).join('\n');
+  const firstDefinition = meanings[0]?.definitions?.[0]?.definition ?? 'Meaning not available.';
+
+  return `### WORD\n**${entry.word}**\n\n### IPA\n${phonetic}\n\n### PART OF SPEECH\n${meanings[0]?.partOfSpeech ?? 'Not available'}\n\n### MEANING\n- English: ${firstDefinition}\n- Vietnamese: Scheduly chưa có bản dịch tiếng Việt trực tiếp cho mục từ này.\n\n### EXAMPLES\n${definitionLines || '- No example available.'}\n\n_Source: Free Dictionary API_`;
+}
+
+async function lookupDictionary(query) {
+  if (!isEnglishWordQuery(query)) return null;
+  const key = query.toLowerCase();
+  const cached = DICTIONARY_CACHE.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.answer;
+
+  try {
+    const dictionaryResponse = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${encodeURIComponent(key)}`, {
+      signal: AbortSignal.timeout(4_000),
+    });
+    if (!dictionaryResponse.ok) return null;
+    const payload = await dictionaryResponse.json();
+    const answer = Array.isArray(payload) && payload[0] ? formatDictionaryEntry(payload[0]) : null;
+    if (answer) DICTIONARY_CACHE.set(key, { answer, expiresAt: Date.now() + 86_400_000 });
+    return answer;
+  } catch {
+    return null;
+  }
 }
 
 function normalizeHistory(history) {
@@ -69,12 +109,17 @@ export default async function handler(request, response) {
     return response.status(400).json({ error: 'Please enter a question before sending.' });
   }
 
+  const vocabularyQuery = isShortVocabularyQuery(question);
+  if (vocabularyQuery) {
+    const dictionaryAnswer = await lookupDictionary(question);
+    if (dictionaryAnswer) return response.status(200).json({ answer: dictionaryAnswer, source: 'dictionary' });
+  }
+
   const apiKey = String(process.env.GEMINI_API_KEY ?? '').trim();
   if (!apiKey) {
     return response.status(500).json({ error: 'GEMINI_API_KEY is not configured in Vercel Environment Variables.' });
   }
 
-  const vocabularyQuery = isShortVocabularyQuery(question);
   const history = vocabularyQuery ? [] : normalizeHistory(body.history);
   const contents = [
     ...history.map((turn) => ({

@@ -1,4 +1,5 @@
 import { classifyGeminiError, isShortVocabularyQuery, normalizeHistory, type ChatTurn } from './geminiRequest';
+import { lookupLocalDictionary } from './localDictionary';
 
 const GEMINI_REQUEST_CACHE_TTL_MS = 30_000;
 const GEMINI_REQUEST_CACHE = new Map<string, { timestamp: number; answer: string }>();
@@ -21,6 +22,13 @@ export async function streamScheduly(
     question: trimmedQuestion,
     history: recentHistory,
   });
+
+  const localAnswer = lookupLocalDictionary(trimmedQuestion);
+  if (localAnswer) {
+    GEMINI_REQUEST_CACHE.set(cacheKey, { timestamp: Date.now(), answer: localAnswer });
+    onUpdate(localAnswer);
+    return;
+  }
 
   const cachedResponse = GEMINI_REQUEST_CACHE.get(cacheKey);
   if (cachedResponse && Date.now() - cachedResponse.timestamp < GEMINI_REQUEST_CACHE_TTL_MS) {
