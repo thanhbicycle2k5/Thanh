@@ -2,8 +2,38 @@ import { classifyGeminiError, isShortVocabularyQuery, normalizeHistory, type Cha
 import { lookupLocalDictionary } from './localDictionary';
 
 const GEMINI_REQUEST_CACHE_TTL_MS = 30_000;
+const PERSISTED_CACHE_KEY = 'scheduly-vocabulary-cache-v1';
+const PERSISTED_CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const GEMINI_REQUEST_CACHE = new Map<string, { timestamp: number; answer: string }>();
 const GEMINI_REQUEST_IN_FLIGHT = new Set<string>();
+
+function readPersistedAnswer(cacheKey: string): string | null {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(PERSISTED_CACHE_KEY) ?? '{}');
+    const cached = stored[cacheKey];
+    if (cached && Date.now() - cached.timestamp < PERSISTED_CACHE_TTL_MS) return cached.answer;
+    if (cached) delete stored[cacheKey];
+    window.localStorage.setItem(PERSISTED_CACHE_KEY, JSON.stringify(stored));
+  } catch {
+    return null;
+  }
+  return null;
+}
+
+function persistAnswer(cacheKey: string, answer: string): void {
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(PERSISTED_CACHE_KEY) ?? '{}');
+    const entries = Object.entries(stored)
+      .filter(([, value]) => Date.now() - (value as { timestamp: number }).timestamp < PERSISTED_CACHE_TTL_MS)
+      .slice(-99);
+    window.localStorage.setItem(PERSISTED_CACHE_KEY, JSON.stringify(Object.fromEntries([
+      ...entries,
+      [cacheKey, { timestamp: Date.now(), answer }],
+    ])));
+  } catch {
+    // Cache is an optimization; a blocked localStorage must not block chat.
+  }
+}
 
 export async function streamScheduly(
   question: string,
@@ -26,6 +56,7 @@ export async function streamScheduly(
   const localAnswer = lookupLocalDictionary(trimmedQuestion);
   if (localAnswer) {
     GEMINI_REQUEST_CACHE.set(cacheKey, { timestamp: Date.now(), answer: localAnswer });
+    persistAnswer(cacheKey, localAnswer);
     onUpdate(localAnswer);
     return;
   }
@@ -34,6 +65,15 @@ export async function streamScheduly(
   if (cachedResponse && Date.now() - cachedResponse.timestamp < GEMINI_REQUEST_CACHE_TTL_MS) {
     onUpdate(cachedResponse.answer);
     return;
+  }
+
+  if (shortVocabularyQuery && typeof window !== 'undefined') {
+    const persistedAnswer = readPersistedAnswer(cacheKey);
+    if (persistedAnswer) {
+      GEMINI_REQUEST_CACHE.set(cacheKey, { timestamp: Date.now(), answer: persistedAnswer });
+      onUpdate(persistedAnswer);
+      return;
+    }
   }
 
   if (GEMINI_REQUEST_IN_FLIGHT.has(cacheKey)) {
@@ -72,6 +112,7 @@ export async function streamScheduly(
     }
 
     GEMINI_REQUEST_CACHE.set(cacheKey, { timestamp: Date.now(), answer });
+    if (shortVocabularyQuery) persistAnswer(cacheKey, answer);
     onUpdate(answer);
   } catch (error) {
     throw classifyGeminiError(error);
