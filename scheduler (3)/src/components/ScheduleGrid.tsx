@@ -41,6 +41,7 @@ const COLOR_MAP: Record<PlanColor, string> = {
   gray: 'bg-[#7F7F7F] text-[#fff]',
   red: 'bg-[#FF0000] text-[#fff]',
   blue: 'bg-[#0070C0] text-[#fff]',
+  pink: 'bg-[#FF69B4] text-[#000]',
 };
 
 interface ScheduleCellProps {
