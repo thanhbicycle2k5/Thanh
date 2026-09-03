@@ -38,16 +38,19 @@ export async function streamScheduly(question: string, onChunk: (chunk: string) 
     throw new Error('Chưa cấu hình VITE_GEMINI_API_KEY cho Scheduly.');
   }
   const ai = new GoogleGenAI({ apiKey });
+  const requestConfig = {
+    systemInstruction: SCHEDULY_SYSTEM_INSTRUCTION,
+    temperature: 0.35,
+  };
+  let hasAnswer = false;
+
   try {
     const response = await ai.models.generateContentStream({
       model: 'gemini-3.6-flash',
       contents: question,
-      config: {
-        systemInstruction: SCHEDULY_SYSTEM_INSTRUCTION,
-        temperature: 0.35,
-      },
+      config: requestConfig,
     });
-    let hasAnswer = false;
+
     for await (const chunk of response) {
       const text = chunk.text ?? '';
       if (text) {
@@ -55,10 +58,27 @@ export async function streamScheduly(question: string, onChunk: (chunk: string) 
         onChunk(text);
       }
     }
-    if (!hasAnswer) {
-      throw new Error('Scheduly chưa tạo được câu trả lời. Vui lòng thử lại.');
-    }
   } catch (error) {
+    if (!hasAnswer) {
+      try {
+        const fallbackResponse = await ai.models.generateContent({
+          model: 'gemini-3.6-flash',
+          contents: question,
+          config: requestConfig,
+        });
+        const fallbackAnswer = fallbackResponse.text?.trim();
+        if (fallbackAnswer) {
+          onChunk(fallbackAnswer);
+          return;
+        }
+      } catch (fallbackError) {
+        throw getSchedulyError(fallbackError);
+      }
+    }
     throw getSchedulyError(error);
+  }
+
+  if (!hasAnswer) {
+    throw new Error('Scheduly chưa tạo được câu trả lời. Vui lòng thử lại.');
   }
 }
