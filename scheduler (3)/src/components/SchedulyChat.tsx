@@ -2,6 +2,7 @@ import * as React from 'react';
 import { Loader2, Send, X } from 'lucide-react';
 import { DynamicCat } from './DynamicCat';
 import { streamScheduly } from '../lib/schedulyChat';
+import { formatGeminiUserError } from '../lib/geminiRequest';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -62,6 +63,9 @@ export function SchedulyChat({ open, onClose, theme, catColor }: SchedulyChatPro
   const [error, setError] = React.useState('');
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const messagesRef = React.useRef<HTMLDivElement>(null);
+  const submitLockRef = React.useRef(false);
+  const lastSubmitAtRef = React.useRef(0);
+  const lastRequestKeyRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     if (open) window.setTimeout(() => inputRef.current?.focus(), 100);
@@ -75,7 +79,24 @@ export function SchedulyChat({ open, onClose, theme, catColor }: SchedulyChatPro
   const submitQuestion = async (event: React.FormEvent) => {
     event.preventDefault();
     const trimmedQuestion = question.trim();
-    if (!trimmedQuestion || isLoading) return;
+    const now = Date.now();
+
+    if (!trimmedQuestion || isLoading || submitLockRef.current) return;
+    if (now - lastSubmitAtRef.current < 250) return;
+
+    const priorHistory = messages.slice(-6).map((message) => ({
+      role: message.role,
+      text: message.text,
+    }));
+    const requestKey = JSON.stringify({ question: trimmedQuestion, history: priorHistory });
+
+    if (lastRequestKeyRef.current === requestKey) {
+      return;
+    }
+
+    lastSubmitAtRef.current = now;
+    lastRequestKeyRef.current = requestKey;
+    submitLockRef.current = true;
 
     setQuestion('');
     setError('');
@@ -88,12 +109,13 @@ export function SchedulyChat({ open, onClose, theme, catColor }: SchedulyChatPro
             ? { ...message, text: answer }
             : message
         )));
-      });
+      }, priorHistory);
     } catch (requestError) {
       setMessages((current) => current.filter((message, index) => !(index === current.length - 1 && message.role === 'assistant' && !message.text)));
-      setError(requestError instanceof Error ? requestError.message : 'Không thể kết nối với Scheduly.');
+      setError(formatGeminiUserError(requestError));
     } finally {
       setIsLoading(false);
+      submitLockRef.current = false;
     }
   };
 
@@ -148,7 +170,7 @@ export function SchedulyChat({ open, onClose, theme, catColor }: SchedulyChatPro
             <Textarea ref={inputRef} value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); }
             }} placeholder="Nhập câu hỏi của bạn..." aria-label="Câu hỏi cho Scheduly" rows={2} className="min-h-12 resize-none border-0 bg-transparent shadow-none focus-visible:ring-0" disabled={isLoading} />
-            <Button type="submit" size="icon" aria-label="Gửi câu hỏi" disabled={!question.trim() || isLoading} className="mb-0.5 shrink-0 bg-[#107C41] text-white hover:bg-[#0c6334]">
+            <Button type="submit" size="icon" aria-label="Gửi câu hỏi" disabled={!question.trim() || isLoading || submitLockRef.current} className="mb-0.5 shrink-0 bg-[#107C41] text-white hover:bg-[#0c6334]">
               <Send className="h-4 w-4" />
             </Button>
           </div>
