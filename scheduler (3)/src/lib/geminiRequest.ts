@@ -71,6 +71,14 @@ export function classifyGeminiError(error: unknown): Error {
     ? Number((error as Record<string, unknown>).status ?? (error as Record<string, unknown>).statusCode ?? 0)
     : 0;
 
+  if (message.includes('gemini_api_key') || message.includes('server configuration')) {
+    return new Error('Gemini API key chưa được cấu hình trên máy chủ Vercel.');
+  }
+
+  if (status === 404 && (message.includes('page could not be found') || message.includes('api/chat'))) {
+    return new Error('Không tìm thấy API /api/chat trên deployment Vercel. Hãy kiểm tra Root Directory và redeploy.');
+  }
+
   if (status === 429 || message.includes('resource_exhausted') || message.includes('rate limit') || message.includes('quota')) {
     return new Error('API limit reached. Please try again later.');
   }
