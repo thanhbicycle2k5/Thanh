@@ -14,6 +14,7 @@ interface DynamicCatProps {
   size?: 'sm' | 'md' | 'lg';
   className?: string;
   onClick?: () => void;
+  onDoubleClick?: () => void;
 }
 
 const getColorStyles = (color: CatColor | undefined) => {
@@ -190,12 +191,13 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
   color = 'orange',
   size = 'md',
   className,
-  onClick
+  onClick,
+  onDoubleClick,
 }) => {
   const [isClicked, setIsClicked] = React.useState(false);
   const pose = CatPoses[mood];
   const isAnimating = mood === 'gym' || mood === 'celebrating';
-  const colorStyles = getColorStyles(color);
+  const colorStyles = getColorStyles(color as CatColor);
 
   const handleClick = () => {
     setIsClicked(true);
@@ -222,6 +224,7 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
       whileHover={{ scale: 1.08 }}
       whileTap={{ scale: 0.96 }}
       onClick={handleClick}
+      onDoubleClick={onDoubleClick}
       className={cn(sizeMap[size], className, 'cursor-pointer select-none')}
     >
       <svg

@@ -76,6 +76,7 @@ import { SpeechBubbleOverlay } from './components/SpeechBubbleOverlay';
 import { BackgroundCustomizer } from './components/BackgroundCustomizer';
 import { CelebrationEffect } from './components/CelebrationEffect';
 import { QuickNoteEditor } from './components/QuickNoteEditor';
+import { SchedulyChat } from './components/SchedulyChat';
 
 import { 
   Dialog,
@@ -390,6 +391,7 @@ export default function App() {
   const [speechBubble, setSpeechBubble] = React.useState<{ id: string; text: string; status: SchedulyStatus } | null>(null);
   const speechBubbleTimeoutRef = React.useRef<number | null>(null);
   const [catPosition, setCatPosition] = React.useState<{ left: number; top: number } | null>(null);
+  const [isSchedulyChatOpen, setIsSchedulyChatOpen] = React.useState(false);
 
   React.useEffect(() => {
     if (!pomodoroRunning || pomodoroDeadline === null) return;
@@ -2709,6 +2711,7 @@ export default function App() {
                     }
                     setTimeout(() => setCatMoodOverride(null), 3000);
                   }}
+                  onDoubleClick={() => setIsSchedulyChatOpen(true)}
                 />
               </motion.div>
             </div>
@@ -2716,6 +2719,13 @@ export default function App() {
         )}
         
       </div>
+
+      <SchedulyChat
+        open={isSchedulyChatOpen}
+        onClose={() => setIsSchedulyChatOpen(false)}
+        theme={settingsState.theme}
+        catColor={settingsState.catColor ?? 'orange'}
+      />
 
       {!isMobile && <CelebrationEffect trigger={showCelebration} count={25} />}
       <Toaster />
