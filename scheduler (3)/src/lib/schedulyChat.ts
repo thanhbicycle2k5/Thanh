@@ -25,7 +25,7 @@ function getSchedulyError(error: unknown): Error {
   return new Error('Không thể kết nối với Scheduly lúc này. Vui lòng thử lại sau.');
 }
 
-export async function askScheduly(question: string): Promise<string> {
+export async function streamScheduly(question: string, onChunk: (chunk: string) => void): Promise<void> {
   const configuredKey = import.meta.env.VITE_GEMINI_API_KEY;
   const apiKey = configuredKey?.trim().replace(/^("|')|("|')$/g, '');
   if (!apiKey) {
@@ -34,7 +34,7 @@ export async function askScheduly(question: string): Promise<string> {
   const ai = new GoogleGenAI({ apiKey });
   let response;
   try {
-    response = await ai.models.generateContent({
+    response = await ai.models.generateContentStream({
       model: 'gemini-3.6-flash',
       contents: question,
       config: {
@@ -46,9 +46,15 @@ export async function askScheduly(question: string): Promise<string> {
     throw getSchedulyError(error);
   }
 
-  const answer = response.text?.trim();
-  if (!answer) {
+  let hasAnswer = false;
+  for await (const chunk of response) {
+    const text = chunk.text ?? '';
+    if (text) {
+      hasAnswer = true;
+      onChunk(text);
+    }
+  }
+  if (!hasAnswer) {
     throw new Error('Scheduly chưa tạo được câu trả lời. Vui lòng thử lại.');
   }
-  return answer;
 }

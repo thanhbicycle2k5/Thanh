@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Loader2, Send, X } from 'lucide-react';
 import { DynamicCat } from './DynamicCat';
-import { askScheduly } from '../lib/schedulyChat';
+import { streamScheduly } from '../lib/schedulyChat';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
@@ -79,11 +79,16 @@ export function SchedulyChat({ open, onClose, theme, catColor }: SchedulyChatPro
 
     setQuestion('');
     setError('');
-    setMessages((current) => [...current, { role: 'user', text: trimmedQuestion }]);
+    setMessages((current) => [...current, { role: 'user', text: trimmedQuestion }, { role: 'assistant', text: '' }]);
     setIsLoading(true);
     try {
-      const answer = await askScheduly(trimmedQuestion);
-      setMessages((current) => [...current, { role: 'assistant', text: answer }]);
+      await streamScheduly(trimmedQuestion, (chunk) => {
+        setMessages((current) => current.map((message, index) => (
+          index === current.length - 1 && message.role === 'assistant'
+            ? { ...message, text: message.text + chunk }
+            : message
+        )));
+      });
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : 'Không thể kết nối với Scheduly.');
     } finally {
