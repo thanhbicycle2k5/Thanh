@@ -31,10 +31,6 @@ export async function askScheduly(question: string): Promise<string> {
   if (!apiKey) {
     throw new Error('Chưa cấu hình VITE_GEMINI_API_KEY cho Scheduly.');
   }
-  if (!/^[\x21-\x7E]+$/.test(apiKey)) {
-    throw new Error('VITE_GEMINI_API_KEY chứa ký tự không hợp lệ. Hãy nhập lại key chỉ gồm ký tự ASCII, không có dấu nháy hoặc khoảng trắng.');
-  }
-
   const ai = new GoogleGenAI({ apiKey });
   let response;
   try {
