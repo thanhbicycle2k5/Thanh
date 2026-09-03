@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { CatColor, CatMood, Theme } from '../types';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface SchedulyChatProps {
   open: boolean;
@@ -17,6 +19,40 @@ interface SchedulyChatProps {
 interface ChatMessage {
   role: 'user' | 'assistant';
   text: string;
+}
+
+const DICTIONARY_SECTIONS = /^(WORD|PRONUNCIATION|PART OF SPEECH|MEANING|COMMON MEANINGS|EXAMPLE|VIETNAMESE|COLLOCATIONS|USAGE|CEFR|LITERAL TRANSLATION|NATURAL TRANSLATION|PROFESSIONAL TRANSLATION):?$/i;
+
+function prepareSchedulyMarkdown(text: string) {
+  return text.split('\n').map((line) => {
+    const section = line.trim().replace(/^\*\*(.+?)\*\*:?$/, '$1').trim();
+    return DICTIONARY_SECTIONS.test(section) ? `### ${section}` : line;
+  }).join('\n');
+}
+
+function SchedulyAnswer({ text }: { text: string }) {
+  return (
+    <div className="scheduly-answer text-sm leading-7">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        skipHtml
+        components={{
+          h3: ({ children }) => <h3 className="mt-5 mb-1.5 border-b border-[#107C41]/15 pb-1 text-[11px] font-black uppercase tracking-[0.12em] text-[#107C41] first:mt-0 dark:text-[#6ee7a5]">{children}</h3>,
+          p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+          strong: ({ children }) => <strong className="font-bold text-foreground">{children}</strong>,
+          em: ({ children }) => <em className="italic">{children}</em>,
+          ol: ({ children }) => <ol className="mb-3 list-decimal space-y-1 pl-5 last:mb-0">{children}</ol>,
+          ul: ({ children }) => <ul className="mb-3 list-disc space-y-1 pl-5 last:mb-0">{children}</ul>,
+          li: ({ children }) => <li className="pl-1">{children}</li>,
+          blockquote: ({ children }) => <blockquote className="my-3 border-l-2 border-[#107C41]/40 pl-3 italic opacity-80">{children}</blockquote>,
+          code: ({ children, className }) => <code className={cn('rounded-md bg-background/70 px-1.5 py-0.5 font-mono text-[0.9em]', className?.includes('language-') && 'block whitespace-pre-wrap p-3')}>{children}</code>,
+          a: ({ children, href }) => <a href={href} target="_blank" rel="noreferrer" className="font-medium text-[#107C41] underline underline-offset-2">{children}</a>,
+        }}
+      >
+        {prepareSchedulyMarkdown(text)}
+      </ReactMarkdown>
+    </div>
+  );
 }
 
 export function SchedulyChat({ open, onClose, theme, catColor }: SchedulyChatProps) {
@@ -92,8 +128,8 @@ export function SchedulyChat({ open, onClose, theme, catColor }: SchedulyChatPro
           )}
           {messages.map((message, index) => (
             <div key={`${message.role}-${index}`} className={cn('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}>
-              <div className={cn('max-w-[88%] whitespace-pre-wrap rounded-2xl px-4 py-3 text-sm leading-relaxed', message.role === 'user' ? 'bg-[#107C41] text-white' : 'bg-muted')}>
-                {message.text}
+              <div className={cn('max-w-[88%] rounded-2xl px-4 py-3', message.role === 'user' ? 'bg-[#107C41] text-white' : 'bg-muted')}>
+                {message.role === 'assistant' ? <SchedulyAnswer text={message.text} /> : <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.text}</p>}
               </div>
             </div>
           ))}
