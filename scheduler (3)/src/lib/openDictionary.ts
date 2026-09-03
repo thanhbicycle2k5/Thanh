@@ -37,7 +37,17 @@ async function loadShard(shardName: string): Promise<DictionaryShard> {
 }
 
 function formatOpenDictionaryEntry(word: string, definition: string): string {
-  return `### WORD\n**${word}**\n\n### MEANING\n${definition}\n\n### VIETNAMESE\nScheduly chưa có bản dịch tiếng Việt trong dữ liệu local.\n\n_Source: Local Open Dictionary_`;
+  const readableDefinition = definition
+    .replace(/\s+/g, ' ')
+    .trim()
+    .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean)
+    .slice(0, 12)
+    .map((sentence) => `- ${sentence}`)
+    .join('\n');
+
+  return `### WORD\n**${word}**\n\n### MEANING\n${readableDefinition || '- Meaning not available.'}\n\n### VIETNAMESE\nScheduly chưa có bản dịch tiếng Việt trong dữ liệu local.\n\n_Source: Local Open Dictionary_`;
 }
 
 export async function lookupOpenDictionary(query: string): Promise<string | null> {
