@@ -1,5 +1,6 @@
 import { classifyGeminiError, isShortVocabularyQuery, normalizeHistory, type ChatTurn } from './geminiRequest';
 import { lookupLocalDictionary } from './localDictionary';
+import { lookupOpenDictionary } from './openDictionary';
 
 const GEMINI_REQUEST_CACHE_TTL_MS = 30_000;
 const PERSISTED_CACHE_KEY = 'scheduly-vocabulary-cache-v1';
@@ -58,6 +59,14 @@ export async function streamScheduly(
     GEMINI_REQUEST_CACHE.set(cacheKey, { timestamp: Date.now(), answer: localAnswer });
     persistAnswer(cacheKey, localAnswer);
     onUpdate(localAnswer);
+    return;
+  }
+
+  const openDictionaryAnswer = await lookupOpenDictionary(trimmedQuestion);
+  if (openDictionaryAnswer) {
+    GEMINI_REQUEST_CACHE.set(cacheKey, { timestamp: Date.now(), answer: openDictionaryAnswer });
+    persistAnswer(cacheKey, openDictionaryAnswer);
+    onUpdate(openDictionaryAnswer);
     return;
   }
 
