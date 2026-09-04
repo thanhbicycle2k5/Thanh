@@ -29,8 +29,7 @@ import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
-import { Toaster } from '@/components/ui/sonner';
-import { toast } from 'sonner';
+import { Toaster, toast } from 'sonner';
 import { 
   Calendar as CalendarIcon, 
   ChevronLeft, 

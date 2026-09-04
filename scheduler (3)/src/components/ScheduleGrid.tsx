@@ -29,6 +29,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { toJpeg, toPng } from 'html-to-image';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -487,9 +488,27 @@ function ScheduleGridComponent({
       const link = document.createElement('a');
       link.download = `scheduler-week-${format(currentWeekStart, 'yyyy-MM-dd')}.${imageFormat}`;
       link.href = dataUrl;
+      link.style.display = 'none';
+      document.body.appendChild(link);
       link.click();
+      link.remove();
+
+      toast.custom(() => (
+        <div className="flex w-[min(22rem,calc(100vw-2rem))] items-center gap-3 rounded-xl border border-border bg-card p-2.5 text-card-foreground shadow-xl">
+          <img
+            src={dataUrl}
+            alt="Lịch tuần đã tải xuống"
+            className="h-14 w-20 shrink-0 rounded-md border border-border object-cover object-top"
+          />
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Đã tải lịch xuống</p>
+            <p className="truncate text-xs text-muted-foreground">{link.download}</p>
+          </div>
+        </div>
+      ), { duration: 4000 });
     } catch (error) {
       console.error('Unable to export schedule image:', error);
+      toast.error('Không thể tải ảnh lịch xuống');
     } finally {
       setIsExporting(false);
     }
