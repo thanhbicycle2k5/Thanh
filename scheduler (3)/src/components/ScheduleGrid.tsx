@@ -42,6 +42,13 @@ import { START_MINUTE_OPTIONS, formatPlanTime, getPlanEndMinutes } from '../lib/
 
 const WEEK_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 export type WeekDay = (typeof WEEK_DAYS)[number];
+type ExportPreview = {
+  dataUrl: string;
+  objectUrl: string;
+  blob: Blob;
+  filename: string;
+  kind: 'image' | 'pdf';
+};
 
 const COLOR_MAP: Record<PlanColor, string> = {
   default: 'bg-card grayscale',
@@ -197,6 +204,26 @@ function ScheduleGridComponent({
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
   const scheduleTableRef = React.useRef<HTMLTableElement>(null);
   const [isExporting, setIsExporting] = React.useState(false);
+  const [exportPreview, setExportPreview] = React.useState<ExportPreview | null>(null);
+
+  const closeExportPreview = React.useCallback(() => {
+    setExportPreview((preview) => {
+      if (preview) URL.revokeObjectURL(preview.objectUrl);
+      return null;
+    });
+  }, []);
+
+  const confirmExportPreview = React.useCallback(() => {
+    if (!exportPreview) return;
+    const link = document.createElement('a');
+    link.href = exportPreview.objectUrl;
+    link.download = exportPreview.filename;
+    link.click();
+    toast.success(`Đã tải ${exportPreview.filename}`);
+    const objectUrl = exportPreview.objectUrl;
+    setExportPreview(null);
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  }, [closeExportPreview, exportPreview]);
 
   const startOfMonday = React.useCallback((date: Date) => {
     const d = new Date(date);
@@ -509,35 +536,7 @@ function ScheduleGridComponent({
 
       const filename = `scheduler-week-${format(currentWeekStart, 'yyyy-MM-dd')}.${imageFormat}`;
       const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = objectUrl;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-
-      toast.custom(() => (
-        <div className="flex w-[min(22rem,calc(100vw-2rem))] items-center gap-3 rounded-xl border border-border bg-card p-2.5 text-card-foreground shadow-xl">
-          <img
-            src={dataUrl}
-            alt="Lịch tuần đã tải xuống"
-            className="h-14 w-20 shrink-0 rounded-md border border-border object-cover object-top"
-          />
-          <div className="min-w-0">
-            <p className="text-sm font-semibold">Đã tạo ảnh lịch</p>
-            <p className="truncate text-xs text-muted-foreground">{filename}</p>
-            <button
-              type="button"
-              className="mt-1 text-xs font-semibold text-primary underline underline-offset-2"
-              onClick={() => void shareOrOpenFile(blob, filename, objectUrl)}
-            >
-              Lưu vào máy
-            </button>
-          </div>
-        </div>
-      ), { duration: 30000 });
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
+      setExportPreview({ dataUrl, objectUrl, blob, filename, kind: 'image' });
     } catch (error) {
       console.error('Unable to export schedule image:', error);
       toast.error('Không thể tải ảnh lịch xuống');
@@ -574,30 +573,7 @@ function ScheduleGridComponent({
       const filename = `scheduler-week-${format(currentWeekStart, 'yyyy-MM-dd')}.pdf`;
       const blob = pdf.output('blob');
       const objectUrl = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.download = filename;
-      link.href = objectUrl;
-      link.style.display = 'none';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      toast.custom(() => (
-        <div className="flex w-[min(22rem,calc(100vw-2rem))] items-center gap-3 rounded-xl border border-border bg-card p-3 text-card-foreground shadow-xl">
-          <div className="flex h-14 w-12 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-xs font-bold">PDF</div>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold">Đã tạo file PDF</p>
-            <p className="truncate text-xs text-muted-foreground">{filename}</p>
-            <button
-              type="button"
-              className="mt-1 text-xs font-semibold text-primary underline underline-offset-2"
-              onClick={() => void shareOrOpenFile(blob, filename, objectUrl)}
-            >
-              Lưu vào máy
-            </button>
-          </div>
-        </div>
-      ), { duration: 30000 });
-      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
+      setExportPreview({ dataUrl, objectUrl, blob, filename, kind: 'pdf' });
     } catch (error) {
       console.error('Unable to export schedule PDF:', error);
       toast.error('Không thể tải PDF lịch xuống');
@@ -686,6 +662,36 @@ function ScheduleGridComponent({
           ))}
         </tbody>
       </table>
+
+      <Dialog open={exportPreview !== null} onOpenChange={(open) => { if (!open) closeExportPreview(); }}>
+        <DialogContent className="max-w-2xl bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-foreground">Xem trước file tải xuống</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              Kiểm tra lịch rồi bấm Tải xuống để lưu file vào máy.
+            </DialogDescription>
+          </DialogHeader>
+          {exportPreview && (
+            <>
+              <div className="max-h-[60vh] overflow-auto rounded-lg border border-border bg-white p-2">
+                <img src={exportPreview.dataUrl} alt="Xem trước lịch tuần" className="h-auto w-full" />
+              </div>
+              <p className="truncate text-xs text-muted-foreground">{exportPreview.filename}</p>
+              <DialogFooter className="gap-2 sm:justify-between">
+                <Button type="button" variant="ghost" onClick={closeExportPreview}>Hủy</Button>
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => void shareOrOpenFile(exportPreview.blob, exportPreview.filename, exportPreview.objectUrl)}>
+                    Chia sẻ
+                  </Button>
+                  <Button type="button" onClick={confirmExportPreview}>
+                    Tải xuống
+                  </Button>
+                </div>
+              </DialogFooter>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <DialogContent className="sm:rounded-2xl border-none max-w-xs bg-card">
