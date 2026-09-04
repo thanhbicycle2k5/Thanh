@@ -482,12 +482,22 @@ function ScheduleGridComponent({
 
     setIsExporting(true);
     try {
+      const imageOptions = {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: '#ffffff',
+        ...(imageFormat === 'jpg' ? { quality: 0.95 } : {}),
+      };
       const dataUrl = imageFormat === 'png'
-        ? await toPng(table, { pixelRatio: 2, cacheBust: true, backgroundColor: '#ffffff' })
-        : await toJpeg(table, { pixelRatio: 2, quality: 0.95, cacheBust: true, backgroundColor: '#ffffff' });
+        ? await toPng(table, imageOptions)
+        : await toJpeg(table, imageOptions);
+      const blob = await (await fetch(dataUrl)).blob();
+
+      const filename = `scheduler-week-${format(currentWeekStart, 'yyyy-MM-dd')}.${imageFormat}`;
+      const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.download = `scheduler-week-${format(currentWeekStart, 'yyyy-MM-dd')}.${imageFormat}`;
-      link.href = dataUrl;
+      link.download = filename;
+      link.href = objectUrl;
       link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
@@ -501,11 +511,19 @@ function ScheduleGridComponent({
             className="h-14 w-20 shrink-0 rounded-md border border-border object-cover object-top"
           />
           <div className="min-w-0">
-            <p className="text-sm font-semibold">Đã tải lịch xuống</p>
-            <p className="truncate text-xs text-muted-foreground">{link.download}</p>
+            <p className="text-sm font-semibold">Đã tạo ảnh lịch</p>
+            <p className="truncate text-xs text-muted-foreground">{filename}</p>
+            <button
+              type="button"
+              className="mt-1 text-xs font-semibold text-primary underline underline-offset-2"
+              onClick={() => window.open(objectUrl, '_blank', 'noopener,noreferrer')}
+            >
+              Mở ảnh
+            </button>
           </div>
         </div>
-      ), { duration: 4000 });
+      ), { duration: 30000 });
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
     } catch (error) {
       console.error('Unable to export schedule image:', error);
       toast.error('Không thể tải ảnh lịch xuống');
