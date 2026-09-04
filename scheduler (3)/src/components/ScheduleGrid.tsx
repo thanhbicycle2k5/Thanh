@@ -30,6 +30,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { toJpeg, toPng } from 'html-to-image';
 import { toast } from 'sonner';
+import { jsPDF } from 'jspdf';
 import {
   Select,
   SelectContent,
@@ -532,6 +533,41 @@ function ScheduleGridComponent({
     }
   }, [currentWeekStart, isExporting]);
 
+  const downloadSchedulePdf = React.useCallback(async () => {
+    const table = scheduleTableRef.current;
+    if (!table || isExporting) return;
+
+    setIsExporting(true);
+    try {
+      const dataUrl = await toPng(table, {
+        pixelRatio: 2,
+        cacheBust: true,
+        backgroundColor: '#ffffff',
+      });
+      const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+      const pageWidth = 297;
+      const pageHeight = 210;
+      const margin = 8;
+      const imageRatio = table.scrollWidth / Math.max(table.scrollHeight, 1);
+      const availableWidth = pageWidth - margin * 2;
+      const availableHeight = pageHeight - margin * 2;
+      let imageWidth = availableWidth;
+      let imageHeight = imageWidth / imageRatio;
+      if (imageHeight > availableHeight) {
+        imageHeight = availableHeight;
+        imageWidth = imageHeight * imageRatio;
+      }
+      pdf.addImage(dataUrl, 'PNG', (pageWidth - imageWidth) / 2, (pageHeight - imageHeight) / 2, imageWidth, imageHeight);
+      pdf.save(`scheduler-week-${format(currentWeekStart, 'yyyy-MM-dd')}.pdf`);
+      toast.success('Đã tải lịch xuống dạng PDF');
+    } catch (error) {
+      console.error('Unable to export schedule PDF:', error);
+      toast.error('Không thể tải PDF lịch xuống');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [currentWeekStart, isExporting]);
+
   const maxDuration = (hour: number) => Math.min(12, endHour - hour + 1);
 
   return (
@@ -560,6 +596,9 @@ function ScheduleGridComponent({
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => void downloadScheduleImage('jpg')}>
                     Tải JPG
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => void downloadSchedulePdf()}>
+                    Tải PDF
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
