@@ -53,6 +53,19 @@ const COLOR_MAP: Record<PlanColor, string> = {
   pink: 'bg-[#FF69B4] text-[#000]',
 };
 
+async function shareOrOpenFile(blob: Blob, filename: string, objectUrl: string) {
+  const file = new File([blob], filename, { type: blob.type });
+  if (navigator.share && navigator.canShare?.({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file], title: filename });
+      return;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === 'AbortError') return;
+    }
+  }
+  window.open(objectUrl, '_blank', 'noopener,noreferrer');
+}
+
 interface ScheduleCellProps {
   dayKey: string;
   dayIndex: number;
@@ -517,9 +530,9 @@ function ScheduleGridComponent({
             <button
               type="button"
               className="mt-1 text-xs font-semibold text-primary underline underline-offset-2"
-              onClick={() => window.open(objectUrl, '_blank', 'noopener,noreferrer')}
+              onClick={() => void shareOrOpenFile(blob, filename, objectUrl)}
             >
-              Mở ảnh
+              Lưu vào máy
             </button>
           </div>
         </div>
@@ -558,8 +571,33 @@ function ScheduleGridComponent({
         imageWidth = imageHeight * imageRatio;
       }
       pdf.addImage(dataUrl, 'PNG', (pageWidth - imageWidth) / 2, (pageHeight - imageHeight) / 2, imageWidth, imageHeight);
-      pdf.save(`scheduler-week-${format(currentWeekStart, 'yyyy-MM-dd')}.pdf`);
-      toast.success('Đã tải lịch xuống dạng PDF');
+      const filename = `scheduler-week-${format(currentWeekStart, 'yyyy-MM-dd')}.pdf`;
+      const blob = pdf.output('blob');
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = objectUrl;
+      link.style.display = 'none';
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      toast.custom(() => (
+        <div className="flex w-[min(22rem,calc(100vw-2rem))] items-center gap-3 rounded-xl border border-border bg-card p-3 text-card-foreground shadow-xl">
+          <div className="flex h-14 w-12 shrink-0 items-center justify-center rounded-md border border-border bg-muted text-xs font-bold">PDF</div>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">Đã tạo file PDF</p>
+            <p className="truncate text-xs text-muted-foreground">{filename}</p>
+            <button
+              type="button"
+              className="mt-1 text-xs font-semibold text-primary underline underline-offset-2"
+              onClick={() => void shareOrOpenFile(blob, filename, objectUrl)}
+            >
+              Lưu vào máy
+            </button>
+          </div>
+        </div>
+      ), { duration: 30000 });
+      window.setTimeout(() => URL.revokeObjectURL(objectUrl), 30000);
     } catch (error) {
       console.error('Unable to export schedule PDF:', error);
       toast.error('Không thể tải PDF lịch xuống');
