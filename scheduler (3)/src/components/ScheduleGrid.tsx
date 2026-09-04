@@ -555,10 +555,10 @@ function ScheduleGridComponent({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="min-w-32">
-                  <DropdownMenuItem onSelect={() => void downloadScheduleImage('png')}>
+                  <DropdownMenuItem onClick={() => void downloadScheduleImage('png')}>
                     Tải PNG
                   </DropdownMenuItem>
-                  <DropdownMenuItem onSelect={() => void downloadScheduleImage('jpg')}>
+                  <DropdownMenuItem onClick={() => void downloadScheduleImage('jpg')}>
                     Tải JPG
                   </DropdownMenuItem>
                 </DropdownMenuContent>
