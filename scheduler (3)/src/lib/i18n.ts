@@ -174,6 +174,14 @@ export const translations = {
     seconds: "seconds",
     setProgress: "Set {current} / {total}",
     close: "Close",
+    searchTasks: "Search tasks",
+    searchTasksPlaceholder: "Search title, notes, or tags...",
+    searchTaskHint: "Press Ctrl+F or Cmd+F anytime to search",
+    searchResults: "Search results",
+    tasksFound: "tasks found",
+    completionRate: "completion rate",
+    keywordMatches: "keyword matches",
+    noMatchingTasks: "No matching tasks",
   },
   vi: {
     appName: "Scheduler",
@@ -348,6 +356,14 @@ export const translations = {
     seconds: "giây",
     setProgress: "Hiệp {current} / {total}",
     close: "Đóng",
+    searchTasks: "Tìm kiếm công việc",
+    searchTasksPlaceholder: "Tìm theo tiêu đề, ghi chú hoặc nhãn...",
+    searchTaskHint: "Nhấn Ctrl+F hoặc Cmd+F để tìm kiếm bất cứ lúc nào",
+    searchResults: "Kết quả tìm kiếm",
+    tasksFound: "công việc tìm thấy",
+    completionRate: "tỷ lệ hoàn thành",
+    keywordMatches: "lượt khớp từ khóa",
+    noMatchingTasks: "Không tìm thấy công việc phù hợp",
   }
 };
 

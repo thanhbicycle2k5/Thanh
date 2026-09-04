@@ -62,6 +62,7 @@ import {
   Zap,
   BookOpen,
   Move,
+  Search,
 } from 'lucide-react';
 import { Calendar as CalendarUI } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -312,6 +313,9 @@ export default function App() {
   const [plans, setPlans] = React.useState<Plan[]>([]);
   const [weekMetas, setWeekMetas] = React.useState<Record<string, any>>({});
   const [isSummaryOpen, setIsSummaryOpen] = React.useState(false);
+  const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const searchInputRef = React.useRef<HTMLInputElement>(null);
   const plansRef = React.useRef<Plan[]>(plans);
   const weekMetasRef = React.useRef<Record<string, any>>(weekMetas);
   const settingsRef = React.useRef<AppSettings>(normalizeSettings(defaultSettings));
@@ -1668,6 +1672,55 @@ export default function App() {
     return plans.filter(p => isSameWeek(new Date(p.date), selectedWeekStart, { weekStartsOn: 1 }));
   }, [plans, selectedWeekStart]);
 
+  const searchResults = React.useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    if (!query) return currentWeekPlans;
+
+    return currentWeekPlans.filter((plan) => {
+      const searchableText = [plan.title, plan.notes, ...(plan.tags ?? [])]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase();
+      return searchableText.includes(query);
+    });
+  }, [currentWeekPlans, searchQuery]);
+
+  const keywordMatchCount = React.useMemo(() => {
+    const query = searchQuery.trim().toLocaleLowerCase();
+    if (!query) return 0;
+
+    return searchResults.reduce((count, plan) => {
+      const searchableText = [plan.title, plan.notes, ...(plan.tags ?? [])]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase();
+      return count + searchableText.split(query).length - 1;
+    }, 0);
+  }, [searchQuery, searchResults]);
+
+  const searchCompletedCount = searchResults.filter((plan) => plan.color === 'green').length;
+  const searchCompletionRate = searchResults.length === 0
+    ? 0
+    : Math.round((searchCompletedCount / searchResults.length) * 100);
+
+  React.useEffect(() => {
+    const handleSearchShortcut = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'f') {
+        event.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+
+    window.addEventListener('keydown', handleSearchShortcut);
+    return () => window.removeEventListener('keydown', handleSearchShortcut);
+  }, []);
+
+  React.useEffect(() => {
+    if (!isSearchOpen) return;
+    const focusTimer = window.setTimeout(() => searchInputRef.current?.focus(), 50);
+    return () => window.clearTimeout(focusTimer);
+  }, [isSearchOpen]);
+
   // Cat auto-move: find empty schedule cells and teleport the cat there periodically
   React.useEffect(() => {
     if (isMobile || settingsState.catEnabled === false) return;
@@ -2037,6 +2090,16 @@ export default function App() {
              >
                {settingsState.notificationsEnabled ? <Bell className="w-4 h-4 text-[#107C41]" /> : <BellOff className="w-4 h-4" />}
              </Button>
+             <Button
+               variant="ghost"
+               size="icon"
+               className="h-9 w-9 shrink-0"
+               onClick={() => setIsSearchOpen(true)}
+               title={t('searchTasks')}
+               aria-label={t('searchTasks')}
+             >
+               <Search className="w-4 h-4" />
+             </Button>
 
              <Popover>
                <PopoverTrigger asChild>
@@ -2206,7 +2269,7 @@ export default function App() {
                >
                  <ScheduleGrid 
                     currentWeekStart={selectedWeekStart}
-                    plans={currentWeekPlans}
+                    plans={isSearchOpen && searchQuery.trim() ? searchResults : currentWeekPlans}
                     onAddPlan={handleAddPlan}
                     onUpdatePlan={handleUpdatePlan}
                     onDeletePlan={handleDeletePlan}
@@ -2739,6 +2802,71 @@ export default function App() {
 
       {!isMobile && <CelebrationEffect trigger={showCelebration} count={25} />}
       <Toaster />
+
+      <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
+        <DialogContent className="max-w-xl">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Search className="w-4 h-4 text-[#107C41]" />
+              {t('searchTasks')}
+            </DialogTitle>
+            <DialogDescription>{t('searchTaskHint')}</DialogDescription>
+          </DialogHeader>
+
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              ref={searchInputRef}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder={t('searchTasksPlaceholder')}
+              className="h-11 pl-9 pr-3 text-base"
+              aria-label={t('searchTasks')}
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-2">
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-xl font-black">{searchResults.length}</p>
+              <p className="text-[11px] text-muted-foreground">{t('tasksFound')}</p>
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-xl font-black">{searchCompletedCount}</p>
+              <p className="text-[11px] text-muted-foreground">{t('tasksCompleted')}</p>
+            </div>
+            <div className="rounded-lg border bg-muted/40 p-3">
+              <p className="text-xl font-black text-[#107C41]">{searchCompletionRate}%</p>
+              <p className="text-[11px] text-muted-foreground">{t('completionRate')}</p>
+            </div>
+          </div>
+
+          {searchQuery.trim() && (
+            <p className="text-xs text-muted-foreground">
+              {keywordMatchCount} {t('keywordMatches')}
+            </p>
+          )}
+
+          <div className="max-h-52 overflow-y-auto rounded-lg border">
+            {searchResults.length > 0 ? (
+              <div className="divide-y">
+                {searchResults.map((plan) => (
+                  <div key={plan.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-semibold">{plan.title || t('enterTask')}</p>
+                      {plan.tags && plan.tags.length > 0 && (
+                        <p className="truncate text-[11px] text-muted-foreground">{plan.tags.join(', ')}</p>
+                      )}
+                    </div>
+                    {plan.color === 'green' && <CheckCircle2 className="w-4 h-4 shrink-0 text-[#107C41]" />}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="p-6 text-center text-sm text-muted-foreground">{t('noMatchingTasks')}</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
          <DialogContent className={cn(
