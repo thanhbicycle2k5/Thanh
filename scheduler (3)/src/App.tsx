@@ -424,7 +424,7 @@ export default function App() {
     };
 
     tick();
-    const interval = window.setInterval(tick, 250);
+    const interval = window.setInterval(tick, 1000);
     return () => window.clearInterval(interval);
   }, [pomodoroRunning, pomodoroDeadline, pomodoroMode, pomodoroSessions, settingsState.notificationSound]);
 
@@ -1663,7 +1663,7 @@ export default function App() {
       }
     };
     tick();
-    const intervalId = window.setInterval(tick, 250);
+    const intervalId = window.setInterval(tick, 1000);
     return () => window.clearInterval(intervalId);
   }, [gymRestRunning, gymRestEndAt, gymRestRound, gymRestSets, settingsState.gymRestSoundEnabled, settingsState.gymRestVibrationEnabled, settingsState.notificationSound, t]);
 
