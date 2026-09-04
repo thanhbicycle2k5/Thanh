@@ -7,7 +7,7 @@ import {
 } from 'date-fns';
 import { Plan, PlanColor, Language, Theme, TaskApplyMode } from '../types';
 import { cn } from '@/lib/utils';
-import { Plus, Edit2, Trash2, Clock } from 'lucide-react';
+import { Plus, Edit2, Trash2, Download } from 'lucide-react';
 import { Solar } from 'lunar-javascript';
 import { translations } from '../lib/i18n';
 import {
@@ -22,6 +22,13 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { toJpeg, toPng } from 'html-to-image';
 import {
   Select,
   SelectContent,
@@ -173,6 +180,8 @@ function ScheduleGridComponent({
   const [newNotes, setNewNotes] = React.useState('');
   const [allowTextInput, setAllowTextInput] = React.useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
+  const scheduleTableRef = React.useRef<HTMLTableElement>(null);
+  const [isExporting, setIsExporting] = React.useState(false);
 
   const startOfMonday = React.useCallback((date: Date) => {
     const d = new Date(date);
@@ -466,15 +475,57 @@ function ScheduleGridComponent({
     }
   };
 
+  const downloadScheduleImage = React.useCallback(async (imageFormat: 'png' | 'jpg') => {
+    const table = scheduleTableRef.current;
+    if (!table || isExporting) return;
+
+    setIsExporting(true);
+    try {
+      const dataUrl = imageFormat === 'png'
+        ? await toPng(table, { pixelRatio: 2, cacheBust: true, backgroundColor: '#ffffff' })
+        : await toJpeg(table, { pixelRatio: 2, quality: 0.95, cacheBust: true, backgroundColor: '#ffffff' });
+      const link = document.createElement('a');
+      link.download = `scheduler-week-${format(currentWeekStart, 'yyyy-MM-dd')}.${imageFormat}`;
+      link.href = dataUrl;
+      link.click();
+    } catch (error) {
+      console.error('Unable to export schedule image:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [currentWeekStart, isExporting]);
+
   const maxDuration = (hour: number) => Math.min(12, endHour - hour + 1);
 
   return (
     <div id="schedule-scroll-container" className="w-full overflow-x-auto rounded-xl border transition-colors bg-card border-border">
-      <table className="w-full border-collapse table-fixed min-w-[600px]">
+      <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px]">
         <thead className="sticky top-0 z-30">
           <tr className="bg-muted/95 backdrop-blur">
             <th className="w-14 md:w-20 border p-2 text-[10px] font-black uppercase tracking-wider sticky left-0 z-30 bg-card border-border text-muted-foreground">
-              <Clock className="w-3 h-3 mx-auto" />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="mx-auto h-7 w-7 text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                    aria-label="Tải lịch xuống"
+                    title="Tải lịch xuống"
+                    disabled={isExporting}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-32">
+                  <DropdownMenuItem onSelect={() => void downloadScheduleImage('png')}>
+                    Tải PNG
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => void downloadScheduleImage('jpg')}>
+                    Tải JPG
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </th>
             {daysOfCurrentWeek.map((day, i) => (
               <th key={i} className={cn(
