@@ -1672,18 +1672,23 @@ export default function App() {
     return plans.filter(p => isSameWeek(new Date(p.date), selectedWeekStart, { weekStartsOn: 1 }));
   }, [plans, selectedWeekStart]);
 
+  const annualPlans = React.useMemo(() => {
+    const selectedYear = selectedWeekStart.getFullYear();
+    return plans.filter((plan) => new Date(plan.date).getFullYear() === selectedYear);
+  }, [plans, selectedWeekStart]);
+
   const searchResults = React.useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase();
-    if (!query) return currentWeekPlans;
+    if (!query) return annualPlans;
 
-    return currentWeekPlans.filter((plan) => {
+    return annualPlans.filter((plan) => {
       const searchableText = [plan.title, plan.notes, ...(plan.tags ?? [])]
         .filter(Boolean)
         .join(' ')
         .toLocaleLowerCase();
       return searchableText.includes(query);
     });
-  }, [currentWeekPlans, searchQuery]);
+  }, [annualPlans, searchQuery]);
 
   const keywordMatchCount = React.useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase();
@@ -2850,15 +2855,24 @@ export default function App() {
             {searchResults.length > 0 ? (
               <div className="divide-y">
                 {searchResults.map((plan) => (
-                  <div key={plan.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                  <button
+                    key={plan.id}
+                    type="button"
+                    className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left transition-colors hover:bg-muted/60"
+                    onClick={() => {
+                      setSelectedWeekStart(startOfWeek(new Date(plan.date), { weekStartsOn: 1 }));
+                      setIsSearchOpen(false);
+                    }}
+                  >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold">{plan.title || t('enterTask')}</p>
+                      <p className="text-[11px] text-muted-foreground">{format(new Date(plan.date), 'd MMMM yyyy')}</p>
                       {plan.tags && plan.tags.length > 0 && (
                         <p className="truncate text-[11px] text-muted-foreground">{plan.tags.join(', ')}</p>
                       )}
                     </div>
                     {plan.color === 'green' && <CheckCircle2 className="w-4 h-4 shrink-0 text-[#107C41]" />}
-                  </div>
+                  </button>
                 ))}
               </div>
             ) : (
