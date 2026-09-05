@@ -122,7 +122,7 @@ export function SchedulyChat({ open, onClose, theme, catColor }: SchedulyChatPro
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/35 p-3 sm:p-6" role="presentation" onMouseDown={(event) => {
+    <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/35 p-3 pt-3 sm:p-6 sm:pt-5" role="presentation" onMouseDown={(event) => {
       if (event.target === event.currentTarget) onClose();
     }}>
       <section
@@ -130,7 +130,7 @@ export function SchedulyChat({ open, onClose, theme, catColor }: SchedulyChatPro
         aria-modal="true"
         aria-labelledby="scheduly-chat-title"
         className={cn(
-          'flex h-[min(720px,calc(100vh-1.5rem))] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border shadow-2xl',
+          'mt-0 flex h-[min(680px,calc(100vh-2rem))] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border shadow-2xl',
           theme === 'dark' ? 'border-white/10 bg-[#17201b] text-white' : 'border-[#107C41]/15 bg-white text-slate-900'
         )}
       >
