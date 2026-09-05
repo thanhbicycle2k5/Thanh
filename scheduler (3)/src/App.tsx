@@ -41,6 +41,7 @@ import {
   Moon,
   Sun,
   Volume2,
+  VolumeX,
   LogIn,
   LogOut,
   CloudIcon,
@@ -387,6 +388,7 @@ export default function App() {
   const [pomodoroMode, setPomodoroMode] = React.useState<PomodoroMode>('work');
   const [pomodoroSecondsLeft, setPomodoroSecondsLeft] = React.useState(POMODORO_DURATIONS.work);
   const [pomodoroRunning, setPomodoroRunning] = React.useState(false);
+  const [pomodoroSoundEnabled, setPomodoroSoundEnabled] = React.useState(true);
   const [pomodoroDeadline, setPomodoroDeadline] = React.useState<number | null>(null);
   const [pomodoroSessions, setPomodoroSessions] = React.useState(0);
   const [showCelebration, setShowCelebration] = React.useState(false);
@@ -565,7 +567,7 @@ export default function App() {
     const persisted = loadMusicPlayerState();
     setSelectedMusicId(persisted.currentTrackId ?? settingsState.musicTrackId ?? null);
     setMusicPlaybackMode(persisted.playbackMode ?? settingsState.musicPlaybackMode ?? 'loop_all');
-    setIsMusicPlaying(persisted.isPlaying);
+    setIsMusicPlaying(false);
   }, []);
 
   React.useEffect(() => {
@@ -626,7 +628,7 @@ export default function App() {
     }
   }, [musicPlaybackMode, persistMusicState, playlistTracks, selectedMusicId]);
 
-  const playTrack = React.useCallback(async (trackId: string | null, shouldPlay = true) => {
+  const playTrack = React.useCallback(async (trackId: string | null, shouldPlay = true, forcePlay = false) => {
     if (!trackId) {
       stopAudioPlayback();
       stopYoutubePlayer();
@@ -642,7 +644,7 @@ export default function App() {
     }
 
     setSelectedMusicId(track.id);
-    const shouldActuallyPlay = shouldPlay && settingsState.musicEnabled;
+    const shouldActuallyPlay = shouldPlay && (forcePlay || settingsState.musicEnabled);
 
     if (track.provider === 'youtube') {
       stopAudioPlayback();
@@ -735,6 +737,16 @@ export default function App() {
   }, [ensureYouTubeApi, getYouTubeConfig, handleYouTubeEnded, handleUpdateSettings, musicPlaybackMode, persistMusicState, playlistTracks, settingsState.musicEnabled, settingsState.musicVolume, stopAudioPlayback, stopYoutubePlayer]);
 
   React.useEffect(() => {
+    if (!pomodoroRunning || !pomodoroSoundEnabled || isMusicPlaying) return;
+    const trackId = selectedMusicId ?? playlistTracks[0]?.id;
+    if (!trackId) return;
+    if (!settingsState.musicEnabled) {
+      handleUpdateSettings({ musicEnabled: true });
+    }
+    void playTrack(trackId, true, true);
+  }, [handleUpdateSettings, isMusicPlaying, playlistTracks, playTrack, pomodoroRunning, pomodoroSoundEnabled, selectedMusicId, settingsState.musicEnabled]);
+
+  React.useEffect(() => {
     if (!audioRef.current) return;
     audioRef.current.volume = settingsState.musicVolume ?? 0.3;
     if (selectedMusicId && settingsState.musicEnabled && isMusicPlaying) {
@@ -771,7 +783,8 @@ export default function App() {
     if (!selectedMusicId) {
       const firstTrack = playlistTracks[0];
       if (firstTrack) {
-        void playTrack(firstTrack.id, true);
+        handleUpdateSettings({ musicEnabled: true });
+        void playTrack(firstTrack.id, true, true);
       }
       return;
     }
@@ -785,18 +798,37 @@ export default function App() {
       setIsMusicPlaying(false);
       persistMusicState(selectedMusicId, musicPlaybackMode, false);
     } else {
+      handleUpdateSettings({ musicEnabled: true });
       if (selectedTrackRef.current?.provider === 'youtube') {
         if (youtubePlayerRef.current) {
           youtubePlayerRef.current.playVideo?.();
         } else {
-          void playTrack(selectedMusicId, true);
+          void playTrack(selectedMusicId, true, true);
         }
       } else if (audioRef.current) {
         void audioRef.current.play().then(() => setIsMusicPlaying(true)).catch(() => setIsMusicPlaying(false));
       } else {
-        void playTrack(selectedMusicId, true);
+        void playTrack(selectedMusicId, true, true);
       }
       persistMusicState(selectedMusicId, musicPlaybackMode, true);
+    }
+  };
+
+  const togglePomodoroSound = () => {
+    const nextEnabled = !pomodoroSoundEnabled;
+    setPomodoroSoundEnabled(nextEnabled);
+    handleUpdateSettings({ musicEnabled: nextEnabled });
+
+    if (nextEnabled) {
+      const trackId = selectedMusicId ?? playlistTracks[0]?.id;
+      if (trackId) {
+        void playTrack(trackId, true, true);
+      }
+      return;
+    }
+
+    if (isMusicPlaying) {
+      toggleMusic();
     }
   };
 
@@ -2107,7 +2139,7 @@ export default function App() {
 
              <Popover>
                <PopoverTrigger asChild>
-                 <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0">
+                 <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" title={t('music')} aria-label={t('music')}>
                     <Music className={cn("w-4 h-4 transition-all", isMusicPlaying && "text-[#107C41] animate-spin-slow")} />
                  </Button>
                </PopoverTrigger>
@@ -2601,6 +2633,24 @@ export default function App() {
                           {t(m === 'work' ? 'work' : m === 'short' ? 'shortBreak' : 'longBreak' as any)}
                         </Button>
                       ))}
+                    </div>
+
+                    <div className="flex items-center justify-between rounded-xl border border-border bg-muted/40 px-3 py-2">
+                      <div className="flex items-center gap-2 text-xs font-semibold">
+                        {pomodoroSoundEnabled ? <Volume2 className="h-4 w-4 text-[#107C41]" /> : <VolumeX className="h-4 w-4 text-muted-foreground" />}
+                        <span>{t('focusMusic')}</span>
+                      </div>
+                      <Button
+                        type="button"
+                        variant={pomodoroSoundEnabled ? 'secondary' : 'ghost'}
+                        size="icon"
+                        className="h-8 w-8 rounded-lg"
+                        onClick={togglePomodoroSound}
+                        aria-label={t(pomodoroSoundEnabled ? 'disableFocusMusic' : 'enableFocusMusic')}
+                        title={t(pomodoroSoundEnabled ? 'disableFocusMusic' : 'enableFocusMusic')}
+                      >
+                        {pomodoroSoundEnabled ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+                      </Button>
                     </div>
 
                     <div className="flex gap-2 pt-2">
