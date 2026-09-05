@@ -403,7 +403,7 @@ export default function App() {
 
     const tick = () => {
       const remaining = calculatePomodoroRemainingSeconds(pomodoroDeadline, Date.now());
-      setPomodoroSecondsLeft(remaining);
+      React.startTransition(() => setPomodoroSecondsLeft(remaining));
 
       if (remaining <= 0) {
         playNotificationSound(settingsState.notificationSound);
@@ -441,6 +441,15 @@ export default function App() {
     setPomodoroSecondsLeft(remainingSeconds);
     setPomodoroDeadline(Date.now() + remainingSeconds * 1000);
     setPomodoroRunning(true);
+    if (pomodoroSoundEnabled) {
+      const trackId = selectedMusicId ?? playlistTracks[0]?.id;
+      if (trackId) {
+        if (!settingsState.musicEnabled) {
+          handleUpdateSettings({ musicEnabled: true });
+        }
+        void playTrack(trackId, true, true);
+      }
+    }
   };
 
   const resetPomodoro = () => {
@@ -467,16 +476,18 @@ export default function App() {
   }, []);
 
   const handleUpdateSettings = React.useCallback((newSettings: Partial<AppSettings>) => {
+    const currentSettings = settingsRef.current;
     const updated = normalizeSettings({
-      ...settingsState,
+      ...currentSettings,
       ...newSettings,
       updatedAt: new Date().toISOString(),
     });
+    settingsRef.current = updated;
     setSettings(updated);
 
     storage.saveSettings(updated, activeUid, true);
 
-    if (updated.notificationsEnabled === false) {
+    if (currentSettings.notificationsEnabled && !updated.notificationsEnabled) {
       void clearAllScheduledNotifications();
     }
 
@@ -488,7 +499,7 @@ export default function App() {
           console.warn('Cloud settings save failed:', error);
         });
     }
-  }, [settingsState, activeUid, clearAllScheduledNotifications]);
+  }, [activeUid, clearAllScheduledNotifications]);
 
   const [playlistTracks, setPlaylistTracks] = React.useState<MusicTrack[]>(PRESET_TRACKS);
   const [selectedMusicId, setSelectedMusicId] = React.useState<string | null>(null);
