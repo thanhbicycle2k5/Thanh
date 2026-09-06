@@ -276,37 +276,7 @@ const WEEK_COLORS = [
 ];
 
 const Logo = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 1024 1024" className={className} fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="1024" height="1024" rx="192" fill="#107C41"/>
-    
-    {/* Horizontal Bar */}
-    <rect x="64" y="176" width="896" height="240" rx="40" fill="white"/>
-    <circle cx="500" cy="200" r="60" fill="white"/>
-    <circle cx="500" cy="392" r="60" fill="white"/>
-    
-    {/* Stem */}
-    <rect x="478" y="416" width="64" height="88" fill="white"/>
-    
-    {/* Clock Circle */}
-    <circle cx="510" cy="740" r="236" fill="white"/>
-    
-    {/* Ticks */}
-    <rect x="498" y="540" width="24" height="60" rx="12" fill="#107C41"/>
-    <rect x="666" y="728" width="56" height="24" rx="12" fill="#107C41"/>
-    <rect x="498" y="890" width="24" height="50" rx="12" fill="#107C41"/>
-    <rect x="300" y="728" width="54" height="24" rx="12" fill="#107C41"/>
-    
-    {/* Hands */}
-    <rect x="495" y="560" width="30" height="180" rx="15" fill="#107C41"/>
-    <rect x="495" y="620" width="30" height="120" rx="15" fill="#107C41" transform="rotate(-60 510 740)"/>
-    <circle cx="510" cy="740" r="36" fill="#107C41"/>
-
-    {/* Details on book */}
-    <rect x="120" y="260" width="300" height="24" rx="12" fill="#75B891"/>
-    <rect x="120" y="320" width="300" height="24" rx="12" fill="#75B891"/>
-    <rect x="614" y="260" width="300" height="24" rx="12" fill="#75B891"/>
-    <rect x="614" y="320" width="300" height="24" rx="12" fill="#75B891"/>
-  </svg>
+  <img src="/task2goal-icon.svg" alt="Task2Goal" className={className} />
 );
 
 export default function App() {

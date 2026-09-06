@@ -94,8 +94,8 @@ export function showImmediateNotification(taskName: string) {
 
   new Notification(buildNotificationTitle(), {
     body: buildNotificationBody(taskName),
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
+    icon: '/task2goal-icon.svg',
+    badge: '/task2goal-icon.svg',
     tag: `scheduly-${taskName}-${Date.now()}`,
   });
 }
@@ -160,8 +160,8 @@ export async function showNowNotification(title: string, body: string, tag?: str
       // Use the service worker to show the notification so it can appear when app is backgrounded
       registration.showNotification(title, {
         body,
-        icon: '/favicon.svg',
-        badge: '/favicon.svg',
+        icon: '/task2goal-icon.svg',
+        badge: '/task2goal-icon.svg',
         tag: tag ?? `scheduly-${Date.now()}`,
       });
       return;
@@ -174,8 +174,8 @@ export async function showNowNotification(title: string, body: string, tag?: str
   try {
     new Notification(title, {
       body,
-      icon: '/favicon.svg',
-      badge: '/favicon.svg',
+      icon: '/task2goal-icon.svg',
+      badge: '/task2goal-icon.svg',
       tag: tag ?? `scheduly-${Date.now()}`,
     });
   } catch (e) {
@@ -208,8 +208,8 @@ export async function scheduleTaskNotification(payload: ScheduledNotificationPay
     if (Notification.permission === 'granted') {
       new Notification(payload.title, {
         body: payload.body,
-        icon: '/favicon.svg',
-        badge: '/favicon.svg',
+        icon: '/task2goal-icon.svg',
+        badge: '/task2goal-icon.svg',
         tag: payload.id,
       });
     }

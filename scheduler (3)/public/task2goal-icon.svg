@@ -1,0 +1,17 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="task2goal-green" x1="96" y1="72" x2="408" y2="440" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#70E239"/>
+      <stop offset="0.5" stop-color="#20BF5A"/>
+      <stop offset="1" stop-color="#007B5C"/>
+    </linearGradient>
+  </defs>
+  <path d="M92 137C130 111 177 111 236 158L256 179L276 158C335 111 382 111 420 137" stroke="url(#task2goal-green)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M76 176C130 151 185 155 256 204C327 155 382 151 436 176" stroke="url(#task2goal-green)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M61 214H451" stroke="url(#task2goal-green)" stroke-width="28" stroke-linecap="round"/>
+  <path d="M256 214V395" stroke="url(#task2goal-green)" stroke-width="28" stroke-linecap="round"/>
+  <path d="M256 306C256 363 299 408 352 408C405 408 432 374 432 327V271H329" stroke="url(#task2goal-green)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M352 313V351L323 330" stroke="url(#task2goal-green)" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M352 283V293M352 382V392M408 338H418M286 338H296" stroke="url(#task2goal-green)" stroke-width="11" stroke-linecap="round"/>
+  <path d="M424 96L441 66M453 124L484 105M454 153H488" stroke="url(#task2goal-green)" stroke-width="17" stroke-linecap="round"/>
+</svg>

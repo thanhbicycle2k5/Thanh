@@ -8,14 +8,14 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('push', (event) => {
   const payload = event.data?.json?.() || {};
-  const title = payload.title || 'Scheduler reminder';
+  const title = payload.title || 'Task2Goal reminder';
   const body = payload.body || 'Your plan is coming up.';
 
   const options = {
     body,
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
-    tag: 'scheduler-reminder',
+    icon: '/task2goal-icon.svg',
+    badge: '/task2goal-icon.svg',
+    tag: 'task2goal-reminder',
     renotify: true,
   };
 

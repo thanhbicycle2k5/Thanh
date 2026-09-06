@@ -16,7 +16,7 @@ export function showBrowserNotification(title: string, body: string) {
   const notification = new Notification(title, {
     body,
     requireInteraction: false,
-    tag: 'scheduler-reminder',
+    tag: 'task2goal-reminder',
   });
 
   setTimeout(() => notification.close(), 15000);
@@ -32,11 +32,11 @@ export function scheduleReminderNotification(plan: { id: string; title: string; 
 
   const delta = reminderTime.getTime() - Date.now();
   if (delta <= 0) {
-    showBrowserNotification('Scheduler', `${plan.title || 'Plan'} is due now.`);
+    showBrowserNotification('Task2Goal', `${plan.title || 'Plan'} is due now.`);
     return;
   }
 
-  const key = `scheduler-reminder-${plan.id}`;
+  const key = `task2goal-reminder-${plan.id}`;
   const existing = window.localStorage.getItem(key);
   const nextValue = String(reminderTime.getTime());
 
@@ -44,7 +44,7 @@ export function scheduleReminderNotification(plan: { id: string; title: string; 
   window.localStorage.setItem(key, nextValue);
 
   window.setTimeout(() => {
-    showBrowserNotification('Scheduler reminder', `${plan.title || 'Plan'} starts at ${plan.startHour}:00.`);
+    showBrowserNotification('Task2Goal reminder', `${plan.title || 'Plan'} starts at ${plan.startHour}:00.`);
     window.localStorage.removeItem(key);
   }, delta);
 }

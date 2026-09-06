@@ -1,6 +1,6 @@
 {
-  "name": "Scheduler - Smart planner for everyday",
-  "short_name": "Scheduler",
+  "name": "Task2Goal - Smart planner for everyday",
+  "short_name": "Task2Goal",
   "description": "Smart planner for everyday",
   "start_url": "/",
   "scope": "/",
@@ -10,7 +10,7 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/favicon.svg",
+      "src": "/task2goal-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"

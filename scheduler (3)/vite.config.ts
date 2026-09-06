@@ -14,15 +14,15 @@ export default defineConfig(({ mode }) => {
         injectRegister: null,
         includeAssets: ['favicon.svg', 'manifest.webmanifest'],
         manifest: {
-          name: 'Scheduler - Smart planner for everyday',
-          short_name: 'Scheduler',
+          name: 'Task2Goal - Smart planner for everyday',
+          short_name: 'Task2Goal',
           description: 'Smart planner for everyday',
           theme_color: '#ffffff',
           background_color: '#ffffff',
           display: 'standalone',
           icons: [
             {
-              src: '/favicon.svg',
+              src: '/task2goal-icon.svg',
               sizes: 'any',
               type: 'image/svg+xml',
               purpose: 'any maskable',

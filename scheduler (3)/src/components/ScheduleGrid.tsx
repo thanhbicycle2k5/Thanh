@@ -535,7 +535,7 @@ function ScheduleGridComponent({
         : await toJpeg(table, imageOptions);
       const blob = await (await fetch(dataUrl)).blob();
 
-      const filename = `scheduler-week-${format(currentWeekStart, 'yyyy-MM-dd')}.${imageFormat}`;
+      const filename = `task2goal-week-${format(currentWeekStart, 'yyyy-MM-dd')}.${imageFormat}`;
       const objectUrl = URL.createObjectURL(blob);
       setExportPreview({ dataUrl, objectUrl, blob, filename, kind: 'image' });
     } catch (error) {
@@ -571,7 +571,7 @@ function ScheduleGridComponent({
         imageWidth = imageHeight * imageRatio;
       }
       pdf.addImage(dataUrl, 'PNG', (pageWidth - imageWidth) / 2, (pageHeight - imageHeight) / 2, imageWidth, imageHeight);
-      const filename = `scheduler-week-${format(currentWeekStart, 'yyyy-MM-dd')}.pdf`;
+      const filename = `task2goal-week-${format(currentWeekStart, 'yyyy-MM-dd')}.pdf`;
       const blob = pdf.output('blob');
       const objectUrl = URL.createObjectURL(blob);
       setExportPreview({ dataUrl, objectUrl, blob, filename, kind: 'pdf' });
