@@ -426,6 +426,8 @@ function ScheduleGridComponent({
       });
     };
 
+    setIsDialogOpen(false);
+
     try {
       const addGeneratedDayPlan = async (candidateDate: Date) => {
         const candidateKey = format(candidateDate, 'yyyy-MM-dd');
@@ -497,7 +499,6 @@ function ScheduleGridComponent({
         onPlanTurnGreen?.(basePlan);
       }
 
-      setIsDialogOpen(false);
     } catch (e) {
       console.error('Error saving plan:', e);
     }
