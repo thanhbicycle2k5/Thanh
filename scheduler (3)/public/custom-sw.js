@@ -1,8 +1,8 @@
-const APP_SHELL_CACHE = 'scheduly-app-shell-v1';
+const APP_SHELL_CACHE = 'task2goal-app-shell-v2';
 const SCHEDULE_CACHE_NAME = 'scheduly-notifications-v1';
 const SCHEDULY_NOTIFICATION_MESSAGE = 'SCHEDULY_SCHEDULE_NOTIFICATION';
 const SCHEDULY_CLEAR_ALL_NOTIFICATIONS = 'SCHEDULY_CLEAR_ALL_NOTIFICATIONS';
-const APP_SHELL_URLS = ['/', '/index.html', '/favicon.svg', '/manifest.webmanifest'];
+const APP_SHELL_URLS = ['/', '/index.html', '/task2goal-icon.svg', '/task2goal-logo.svg', '/manifest.webmanifest'];
 
 const fallbackScheduledTimeouts = new Map();
 
@@ -61,8 +61,8 @@ function showNotification(payload) {
     body: payload.body,
     tag: payload.id,
     renotify: false,
-    icon: '/favicon.svg',
-    badge: '/favicon.svg',
+    icon: '/task2goal-icon.svg',
+    badge: '/task2goal-icon.svg',
     data: payload,
   });
 }
