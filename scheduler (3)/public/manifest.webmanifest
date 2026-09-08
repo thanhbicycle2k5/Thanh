@@ -10,7 +10,7 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/task2goal-icon.svg",
+      "src": "/task2goal-icon-cropped.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any maskable"
