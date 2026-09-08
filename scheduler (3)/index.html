@@ -12,7 +12,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="msapplication-TileColor" content="#ffffff" />
     <meta name="msapplication-TileImage" content="/task2goal-icon-cropped.svg" />
-    <link rel="manifest" href="/manifest.webmanifest?v=task2goal-2" />
+    <link rel="manifest" href="/manifest.webmanifest?v=task2goal-3" />
     <link rel="apple-touch-icon" sizes="180x180" href="/task2goal-icon-cropped.svg" />
     <link rel="mask-icon" href="/task2goal-icon-cropped.svg" color="#20BF5A" />
     <script>
@@ -83,10 +83,13 @@
         background: #ffffff;
       }
       .splash-screen__logo img {
-        display: block;
-        width: 100%;
+        position: absolute;
+        top: 0;
+        left: 50%;
+        width: auto;
         height: 100%;
-        object-fit: contain;
+        max-width: none;
+        transform: translateX(-50%);
       }
       .splash-screen__title {
         font-size: clamp(2rem, 8vw, 4rem);
@@ -112,7 +115,7 @@
     <div id="splash-screen" class="splash-screen visible">
       <div class="splash-screen__content">
         <div class="splash-screen__logo">
-          <img src="/task2goal-splash-cropped.svg" alt="Task2Goal - From Tasks to Goals" />
+          <img src="/task2goal-splash.jpg" alt="Task2Goal - From Tasks to Goals" />
         </div>
       </div>
     </div>
