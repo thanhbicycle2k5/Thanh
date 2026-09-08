@@ -2,7 +2,7 @@ const APP_SHELL_CACHE = 'task2goal-app-shell-v2';
 const SCHEDULE_CACHE_NAME = 'scheduly-notifications-v1';
 const SCHEDULY_NOTIFICATION_MESSAGE = 'SCHEDULY_SCHEDULE_NOTIFICATION';
 const SCHEDULY_CLEAR_ALL_NOTIFICATIONS = 'SCHEDULY_CLEAR_ALL_NOTIFICATIONS';
-const APP_SHELL_URLS = ['/', '/index.html', '/task2goal-icon-cropped.svg', '/task2goal-splash.jpg', '/manifest.webmanifest'];
+const APP_SHELL_URLS = ['/', '/index.html', '/task2goal-icon-cropped.svg', '/task2goal-splash.jpg', '/task2goal-splash-cropped.svg', '/manifest.webmanifest'];
 
 const fallbackScheduledTimeouts = new Map();
 
