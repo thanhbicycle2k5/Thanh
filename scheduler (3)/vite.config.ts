@@ -14,9 +14,9 @@ export default defineConfig(({ mode }) => {
         injectRegister: null,
         includeAssets: ['favicon.svg', 'manifest.webmanifest'],
         manifest: {
-          name: 'Task2Goal - Smart planner for everyday',
+          name: 'Task2Goal - From Tasks to Goals',
           short_name: 'Task2Goal',
-          description: 'Smart planner for everyday',
+          description: 'From Tasks to Goals',
           theme_color: '#ffffff',
           background_color: '#ffffff',
           display: 'standalone',
