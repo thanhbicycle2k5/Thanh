@@ -39,6 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { START_MINUTE_OPTIONS, formatPlanTime, getPlanEndMinutes } from '../lib/taskTime';
+import { getColorForClickCount } from '../lib/taskColor';
 
 const WEEK_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 export type WeekDay = (typeof WEEK_DAYS)[number];
@@ -373,17 +374,18 @@ function ScheduleGridComponent({
     }
 
     clickTimer.current = setTimeout(() => {
+      const nextColor = getColorForClickCount(existing.color, clickCount.current);
+      const updated = { ...existing, color: nextColor };
+
       if (clickCount.current === 1) {
-        const updated = { ...existing, color: 'yellow' as PlanColor };
         onUpdatePlan(updated);
       } else if (clickCount.current === 2) {
-        const updated = { ...existing, color: 'green' as PlanColor };
         onUpdatePlan(updated);
         if (existing.color !== 'green') {
           onPlanTurnGreen?.(updated);
         }
       } else if (clickCount.current >= 3) {
-        onUpdatePlan({ ...existing, color: 'default' as PlanColor });
+        onUpdatePlan(updated);
       }
       clickCount.current = 0;
       clickTimer.current = null;
