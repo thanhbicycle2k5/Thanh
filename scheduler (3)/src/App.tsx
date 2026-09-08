@@ -2043,25 +2043,29 @@ export default function App() {
     const handleTouchEnd = (e: TouchEvent) => {
       const touchEndX = e.changedTouches[0].clientX;
       const diff = touchStartX - touchEndX;
-      const threshold = 50; // minimum swipe distance in pixels
+      const threshold = 50;
 
-      if (Math.abs(diff) > threshold) {
-        const scrollContainer = document.getElementById('schedule-scroll-container');
-        
-        if (scrollContainer) {
-          const scrollContainerEndX = scrollContainer.scrollLeft;
-          
-          // If scroll position changed, browser handled the horizontal scroll - don't switch weeks
-          if (scrollContainerEndX !== scrollContainerStartX) {
-            return;
-          }
-        }
+      if (Math.abs(diff) <= threshold) {
+        return;
+      }
 
-        if (diff > 0) {
-          // Swipe left = next week
+      const scrollContainer = document.getElementById('schedule-scroll-container');
+      if (!scrollContainer) {
+        return;
+      }
+
+      const maxScroll = Math.max(0, scrollContainer.scrollWidth - scrollContainer.clientWidth);
+      const atLeftEdge = scrollContainer.scrollLeft <= 8;
+      const atRightEdge = scrollContainer.scrollLeft >= maxScroll - 8;
+
+      if (diff > 0) {
+        // Swipe left = next week; only when already at the right edge of the table
+        if (atRightEdge) {
           setSelectedWeekStart(addWeeks(selectedWeekStart, 1));
-        } else {
-          // Swipe right = previous week
+        }
+      } else {
+        // Swipe right = previous week; only when already at the left edge of the table
+        if (atLeftEdge) {
           setSelectedWeekStart(subWeeks(selectedWeekStart, 1));
         }
       }
