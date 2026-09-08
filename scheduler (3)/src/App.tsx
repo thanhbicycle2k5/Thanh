@@ -448,6 +448,9 @@ export default function App() {
     setPomodoroDeadline(null);
     setPomodoroRunning(false);
   };
+  const toggleTutorMode = () => {
+    switchPomodoroMode(pomodoroMode === 'tutor' ? 'work' : 'tutor');
+  };
 
   const firedNotificationIdsRef = React.useRef<Set<string>>(new Set());
   const notificationScannerRef = React.useRef<number | null>(null);
@@ -2602,7 +2605,7 @@ export default function App() {
                           "h-7 rounded-lg px-2 text-[10px] font-semibold",
                           pomodoroMode === 'tutor' && "bg-background text-red-600 shadow-sm"
                         )}
-                        onClick={() => switchPomodoroMode('tutor')}
+                        onClick={toggleTutorMode}
                       >
                         {t('tutorMode')}
                       </Button>
