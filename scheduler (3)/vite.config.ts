@@ -22,8 +22,8 @@ export default defineConfig(({ mode }) => {
           display: 'standalone',
           icons: [
             {
-              src: '/task2goal-app-icon.png?v=1',
-              sizes: '1254x1254',
+              src: '/task2goal-app-icon.png',
+              sizes: '192x192 512x512',
               type: 'image/png',
               purpose: 'any maskable',
             },
