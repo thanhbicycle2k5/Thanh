@@ -2592,8 +2592,20 @@ export default function App() {
                   className="absolute z-40 w-64 right-0 bottom-14 border shadow-2xl rounded-xl overflow-hidden cursor-move bg-card"
                 >
                   <div className="p-4 space-y-4">
-                    <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
                       <h3 className="font-bold text-sm uppercase tracking-wider">{t('pomodoro')}</h3>
+                      <Button
+                        type="button"
+                        variant={pomodoroMode === 'tutor' ? 'secondary' : 'ghost'}
+                        size="xs"
+                        className={cn(
+                          "h-7 rounded-lg px-2 text-[10px] font-semibold",
+                          pomodoroMode === 'tutor' && "bg-background text-red-600 shadow-sm"
+                        )}
+                        onClick={() => switchPomodoroMode('tutor')}
+                      >
+                        {t('tutorMode')}
+                      </Button>
                       <Badge variant="outline">{pomodoroSessions} {t('sessions')}</Badge>
                     </div>
                     
@@ -2611,7 +2623,7 @@ export default function App() {
                     </div>
 
                     <div className="flex gap-1.5 p-1 bg-muted rounded-xl">
-                      {(['work', 'short', 'long', 'tutor'] as PomodoroMode[]).map(m => (
+                      {(['work', 'short', 'long'] as PomodoroMode[]).map(m => (
                         <Button 
                           key={m}
                           variant={pomodoroMode === m ? 'secondary' : 'ghost'} 
