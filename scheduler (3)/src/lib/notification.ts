@@ -15,6 +15,37 @@ const fallbackTimeouts = new Map<string, number>();
 
 const normalizeTaskName = (taskName: string) => taskName?.trim() || DEFAULT_TASK_LABEL;
 
+function scheduleInPageFallback(payload: ScheduledNotificationPayload): number | null {
+  const delay = payload.fireAt - Date.now();
+  if (delay <= 0 || typeof window === 'undefined') {
+    return null;
+  }
+
+  const existingTimeout = fallbackTimeouts.get(payload.id);
+  if (existingTimeout !== undefined) {
+    window.clearTimeout(existingTimeout);
+  }
+
+  const timeoutId = window.setTimeout(() => {
+    if (Notification.permission === 'granted') {
+      try {
+        new Notification(payload.title, {
+          body: payload.body,
+          icon: '/task2goal-icon.svg',
+          badge: '/task2goal-icon.svg',
+          tag: payload.id,
+        });
+      } catch (error) {
+        console.warn('Fallback notification failed', error);
+      }
+    }
+    fallbackTimeouts.delete(payload.id);
+  }, delay);
+
+  fallbackTimeouts.set(payload.id, timeoutId);
+  return timeoutId;
+}
+
 export const buildNotificationTitle = () => '🐱 Scheduly nhắc nhở nè!';
 export const buildNotificationBody = (taskName: string) => {
   const label = normalizeTaskName(taskName);
@@ -190,31 +221,19 @@ export async function scheduleTaskNotification(payload: ScheduledNotificationPay
   }
 
   const registration = await getWorkerRegistration();
+  const fallbackTimeoutId = scheduleInPageFallback(payload);
   if (registration?.active) {
-    registration.active.postMessage({
-      type: SCHEDULY_NOTIFICATION_MESSAGE,
-      payload,
-    });
-    return null;
+    try {
+      registration.active.postMessage({
+        type: SCHEDULY_NOTIFICATION_MESSAGE,
+        payload,
+      });
+      return fallbackTimeoutId;
+    } catch (error) {
+      console.warn('Failed to send scheduled notification to service worker', error);
+    }
   }
 
   // Fallback if service worker is not available.
-  const delay = payload.fireAt - Date.now();
-  if (delay <= 0) {
-    return null;
-  }
-
-  const timeoutId = window.setTimeout(() => {
-    if (Notification.permission === 'granted') {
-      new Notification(payload.title, {
-        body: payload.body,
-        icon: '/task2goal-icon.svg',
-        badge: '/task2goal-icon.svg',
-        tag: payload.id,
-      });
-    }
-    fallbackTimeouts.delete(payload.id);
-  }, delay);
-  fallbackTimeouts.set(payload.id, timeoutId);
-  return timeoutId;
+  return fallbackTimeoutId;
 }

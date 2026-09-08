@@ -90,6 +90,7 @@ self.addEventListener('activate', (event) => {
         })
       );
       await self.clients.claim();
+      await triggerStoredNotifications();
     })()
   );
 });
@@ -198,6 +199,13 @@ self.addEventListener('message', async (event) => {
   }
 
   await storeScheduledPayload(payload);
+  if ('sync' in self.registration) {
+    try {
+      await self.registration.sync.register('scheduly-notification-sync');
+    } catch (error) {
+      console.warn('Background notification sync registration failed', error);
+    }
+  }
   const delay = payload.fireAt - Date.now();
   if (delay <= 0) {
     return;

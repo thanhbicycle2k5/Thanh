@@ -1419,6 +1419,7 @@ export default function App() {
     }
 
     if (!enabled) {
+      await clearAllScheduledNotifications();
       handleUpdateSettings({ notificationsEnabled: false });
       return;
     }
@@ -1426,6 +1427,7 @@ export default function App() {
     const permission = await getNotificationPermission();
     if (permission !== 'granted') {
       toast.error('Notification permission denied.');
+      await clearAllScheduledNotifications();
       handleUpdateSettings({ notificationsEnabled: false });
       return;
     }
@@ -1484,7 +1486,9 @@ export default function App() {
       }
     } catch (error) {
       console.error('Failed to schedule notification', error);
-      showImmediateNotification(taskName);
+      if (settingsRef.current.notificationsEnabled) {
+        showImmediateNotification(taskName);
+      }
     }
   }, [makeNotificationId, user, showSpeechBubbleText, getEventDate, getMinutesUntilStart, isWithinReminderWindow, isOnline, settingsState]);
 
