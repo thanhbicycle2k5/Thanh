@@ -276,11 +276,11 @@ const WEEK_COLORS = [
 ];
 
 const Logo = ({ className }: { className?: string }) => (
-  <span className={cn('inline-flex shrink-0 overflow-hidden', className)}>
+  <span className={cn('inline-flex shrink-0 overflow-hidden border-2 border-white bg-white', className)}>
     <img
       src="/task2goal-icon-new.jpg"
       alt="Task2Goal"
-      className="h-full w-full scale-[1.08] object-cover object-center"
+      className="h-full w-full scale-[1.44] object-cover object-center"
     />
   </span>
 );

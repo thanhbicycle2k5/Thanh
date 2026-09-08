@@ -2,7 +2,7 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/jpeg" href="/task2goal-icon-new.jpg" />
+    <link rel="icon" type="image/jpeg" href="/task2goal-icon-new.jpg?v=4" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#ffffff" />
     <meta name="application-name" content="Task2Goal - From Tasks to Goals" />
@@ -11,10 +11,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="msapplication-TileColor" content="#ffffff" />
-    <meta name="msapplication-TileImage" content="/task2goal-icon-new.jpg" />
+    <meta name="msapplication-TileImage" content="/task2goal-icon-new.jpg?v=4" />
     <link rel="manifest" href="/manifest.webmanifest?v=task2goal-3" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/task2goal-icon-new.jpg" />
-    <link rel="mask-icon" href="/task2goal-icon-new.jpg" color="#20BF5A" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/task2goal-icon-new.jpg?v=4" />
+    <link rel="mask-icon" href="/task2goal-icon-new.jpg?v=4" color="#20BF5A" />
     <script>
       (function () {
         try {
@@ -81,15 +81,18 @@
         aspect-ratio: 1;
         overflow: hidden;
         background: #ffffff;
+        border: clamp(6px, 1.2vw, 12px) solid #ffffff;
+        box-sizing: border-box;
       }
       .splash-screen__logo img {
         position: absolute;
-        top: 0;
-        left: 50%;
-        width: auto;
-        height: 100%;
+        top: -22%;
+        left: -22%;
+        width: 144%;
+        height: 144%;
         max-width: none;
-        transform: translateX(-50%);
+        object-fit: cover;
+        object-position: center;
       }
       .splash-screen__title {
         font-size: clamp(2rem, 8vw, 4rem);
