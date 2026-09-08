@@ -39,7 +39,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { START_MINUTE_OPTIONS, formatPlanTime, getPlanEndMinutes } from '../lib/taskTime';
-import { getColorForClickCount } from '../lib/taskColor';
+import { getColorForClickCount, shouldSkipGeneratedDate } from '../lib/taskColor';
 
 const WEEK_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 export type WeekDay = (typeof WEEK_DAYS)[number];
@@ -487,6 +487,9 @@ function ScheduleGridComponent({
               const candidate = new Date(weekStart);
               candidate.setDate(candidate.getDate() + weekdayIndex);
               candidate.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
+              if (shouldSkipGeneratedDate(basePlan.date, candidate)) {
+                continue;
+              }
               await addGeneratedWeekPlan(candidate);
             }
           }
