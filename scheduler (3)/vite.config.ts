@@ -12,7 +12,7 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       VitePWA({
         injectRegister: null,
-        includeAssets: ['favicon.svg', 'task2goal-icon-new.jpg', 'task2goal-icon-cropped.svg', 'task2goal-splash.jpg', 'task2goal-splash-cropped.svg', 'manifest.webmanifest'],
+        includeAssets: ['favicon.svg', 'task2goal-app-icon.png', 'task2goal-splash-square.png', 'manifest.webmanifest'],
         manifest: {
           name: 'Task2Goal - From Tasks to Goals',
           short_name: 'Task2Goal',
@@ -22,9 +22,9 @@ export default defineConfig(({ mode }) => {
           display: 'standalone',
           icons: [
             {
-              src: '/task2goal-icon-new.jpg?v=4',
-              sizes: 'any',
-              type: 'image/jpeg',
+              src: '/task2goal-app-icon.png?v=1',
+              sizes: '1254x1254',
+              type: 'image/png',
               purpose: 'any maskable',
             },
           ],

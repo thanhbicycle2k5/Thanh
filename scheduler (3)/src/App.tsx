@@ -278,9 +278,9 @@ const WEEK_COLORS = [
 const Logo = ({ className }: { className?: string }) => (
   <span className={cn('inline-flex shrink-0 overflow-hidden border-2 border-white bg-white', className)}>
     <img
-      src="/task2goal-icon-new.jpg"
+      src="/task2goal-app-icon.png"
       alt="Task2Goal"
-      className="h-full w-full scale-[1.44] object-cover object-center"
+      className="h-full w-full object-contain object-center"
     />
   </span>
 );

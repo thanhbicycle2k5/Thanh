@@ -13,8 +13,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body,
-    icon: '/task2goal-icon-new.jpg',
-    badge: '/task2goal-icon-new.jpg',
+    icon: '/task2goal-app-icon.png',
+    badge: '/task2goal-app-icon.png',
     tag: 'task2goal-reminder',
     renotify: true,
   };

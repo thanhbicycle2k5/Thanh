@@ -31,8 +31,8 @@ function scheduleInPageFallback(payload: ScheduledNotificationPayload): number |
       try {
         new Notification(payload.title, {
           body: payload.body,
-          icon: '/task2goal-icon-new.jpg',
-          badge: '/task2goal-icon-new.jpg',
+          icon: '/task2goal-app-icon.png',
+          badge: '/task2goal-app-icon.png',
           tag: payload.id,
         });
       } catch (error) {
@@ -125,8 +125,8 @@ export function showImmediateNotification(taskName: string) {
 
   new Notification(buildNotificationTitle(), {
     body: buildNotificationBody(taskName),
-    icon: '/task2goal-icon-new.jpg',
-    badge: '/task2goal-icon-new.jpg',
+    icon: '/task2goal-app-icon.png',
+    badge: '/task2goal-app-icon.png',
     tag: `scheduly-${taskName}-${Date.now()}`,
   });
 }
@@ -191,8 +191,8 @@ export async function showNowNotification(title: string, body: string, tag?: str
       // Use the service worker to show the notification so it can appear when app is backgrounded
       registration.showNotification(title, {
         body,
-        icon: '/task2goal-icon-new.jpg',
-        badge: '/task2goal-icon-new.jpg',
+        icon: '/task2goal-app-icon.png',
+        badge: '/task2goal-app-icon.png',
         tag: tag ?? `scheduly-${Date.now()}`,
       });
       return;
@@ -205,8 +205,8 @@ export async function showNowNotification(title: string, body: string, tag?: str
   try {
     new Notification(title, {
       body,
-      icon: '/task2goal-icon-new.jpg',
-      badge: '/task2goal-icon-new.jpg',
+      icon: '/task2goal-app-icon.png',
+      badge: '/task2goal-app-icon.png',
       tag: tag ?? `scheduly-${Date.now()}`,
     });
   } catch (e) {

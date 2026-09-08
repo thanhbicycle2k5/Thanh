@@ -10,9 +10,9 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/task2goal-icon-new.jpg?v=4",
-      "sizes": "any",
-      "type": "image/jpeg",
+      "src": "/task2goal-app-icon.png?v=1",
+      "sizes": "1254x1254",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
