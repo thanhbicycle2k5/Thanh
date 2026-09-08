@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => {
           display: 'standalone',
           icons: [
             {
-              src: '/task2goal-icon-cropped.svg',
+              src: '/task2goal-icon.svg',
               sizes: 'any',
               type: 'image/svg+xml',
               purpose: 'any maskable',

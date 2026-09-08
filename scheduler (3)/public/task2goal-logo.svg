@@ -17,7 +17,7 @@
     <path d="M424 96L441 66M453 124L484 105M454 153H488" stroke="url(#logo-green)" stroke-width="17" stroke-linecap="round"/>
   </g>
   <text x="384" y="570" text-anchor="middle" fill="url(#logo-text)" font-family="Arial, sans-serif" font-size="76" font-weight="900">Task2Goal</text>
-  <text x="384" y="628" text-anchor="middle" fill="#29C75A" font-family="Arial, sans-serif" font-size="24" font-weight="700">Hoàn thành task, đạt mục tiêu!</text>
+  <text x="384" y="628" text-anchor="middle" fill="#29C75A" font-family="Arial, sans-serif" font-size="24" font-weight="700">From Tasks to Goals</text>
   <defs>
     <linearGradient id="logo-text" x1="190" y1="520" x2="580" y2="600" gradientUnits="userSpaceOnUse">
       <stop stop-color="#70E239"/>

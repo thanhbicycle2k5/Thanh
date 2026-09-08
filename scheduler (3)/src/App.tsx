@@ -276,7 +276,7 @@ const WEEK_COLORS = [
 ];
 
 const Logo = ({ className }: { className?: string }) => (
-  <img src="/task2goal-icon-cropped.svg" alt="Task2Goal" className={className} />
+  <img src="/task2goal-icon.svg" alt="Task2Goal" className={className} />
 );
 
 export default function App() {
