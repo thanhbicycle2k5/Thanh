@@ -815,10 +815,13 @@ function ScheduleGridComponent({
                   variant={newApplyMode === 'day' ? 'default' : 'outline'}
                   className="flex-1"
                   onClick={() => {
-                    setNewApplyMode('day');
-                    if (!newApplyUntil) {
-                      setNewApplyUntil(defaultApplyUntilDate);
-                    }
+                    setNewApplyMode((prev) => {
+                      const nextMode = prev === 'day' ? 'none' : 'day';
+                      if (nextMode === 'day' && !newApplyUntil) {
+                        setNewApplyUntil(defaultApplyUntilDate);
+                      }
+                      return nextMode;
+                    });
                   }}
                 >
                   {t('applyToDay')}
@@ -829,10 +832,13 @@ function ScheduleGridComponent({
                   variant={newApplyMode === 'week' ? 'default' : 'outline'}
                   className="flex-1"
                   onClick={() => {
-                    setNewApplyMode('week');
-                    if (!newApplyUntil) {
-                      setNewApplyUntil(defaultApplyUntilDate);
-                    }
+                    setNewApplyMode((prev) => {
+                      const nextMode = prev === 'week' ? 'none' : 'week';
+                      if (nextMode === 'week' && !newApplyUntil) {
+                        setNewApplyUntil(defaultApplyUntilDate);
+                      }
+                      return nextMode;
+                    });
                   }}
                 >
                   {t('applyToWeek')}
