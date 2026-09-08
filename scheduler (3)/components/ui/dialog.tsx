@@ -58,13 +58,13 @@ function DialogContent({
   const popupProps = props as DialogPrimitive.Popup.Props & { showCloseButton?: boolean }
 
   React.useEffect(() => {
-    if (open && position === null && typeof window !== "undefined") {
+    if (position === null && typeof window !== "undefined") {
       setPosition({
         x: window.innerWidth / 2,
         y: window.innerHeight / 2,
       })
     }
-  }, [open, position])
+  }, [position])
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     const dragHandle = (event.target as HTMLElement).closest("[data-drag-handle]")
@@ -78,8 +78,8 @@ function DialogContent({
     setDragState({
       pointerX: event.clientX,
       pointerY: event.clientY,
-      originX: rect.left,
-      originY: rect.top,
+      originX: rect.left + rect.width / 2,
+      originY: rect.top + rect.height / 2,
     })
   }
 
