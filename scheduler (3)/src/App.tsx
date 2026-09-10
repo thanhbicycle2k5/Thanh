@@ -2158,7 +2158,7 @@ export default function App() {
         "h-screen flex flex-col transition-colors duration-300 overflow-hidden relative",
         settingsState.theme === 'dark' && "dark",
         "bg-background text-foreground",
-        settingsState.language === 'vi' ? 'font-vietnamese' : 'font-sans'
+        "font-vietnamese"
       )}
       style={getBackgroundStyle()}
     >
