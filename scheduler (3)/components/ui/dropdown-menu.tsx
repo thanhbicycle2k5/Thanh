@@ -70,7 +70,7 @@ function DropdownMenuContent({
   return (
     <div
       className={cn(
-        "absolute top-full mt-2 z-50 min-w-[8rem] overflow-hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-xl animate-in fade-in-0 zoom-in-95",
+        "absolute top-full mt-2 z-50 min-w-[8rem] overflow-hidden rounded-xl border border-border bg-white dark:bg-slate-800 shadow-xl animate-in fade-in-0 zoom-in-95",
         alignClass,
         className
       )}

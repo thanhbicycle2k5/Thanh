@@ -700,7 +700,7 @@ function ScheduleGridComponent({
       </Dialog>
 
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="sm:rounded-2xl border-none max-w-xs bg-card">
+        <DialogContent className="sm:rounded-2xl border-border max-w-xs bg-card">
           <DialogHeader>
             <DialogTitle className="text-foreground text-base">Bạn có chắc chắn muốn xóa kế hoạch này?</DialogTitle>
           </DialogHeader>
@@ -717,7 +717,7 @@ function ScheduleGridComponent({
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent
-          className="sm:rounded-2xl border-none max-w-sm bg-card"
+          className="sm:rounded-2xl border-border max-w-sm bg-card"
         >
           <DialogHeader>
             <DialogTitle className="text-foreground">
