@@ -2676,7 +2676,17 @@ export default function App() {
                         {Math.floor(pomodoroSecondsLeft / 60).toString().padStart(2, '0')}:
                         {(pomodoroSecondsLeft % 60).toString().padStart(2, '0')}
                       </div>
-                      <p className="text-[10px] uppercase opacity-70 mt-1 font-bold tracking-widest">{t(pomodoroMode as any)}</p>
+                      <p className="text-[10px] uppercase opacity-70 mt-1 font-bold tracking-widest">
+                        {t(
+                          pomodoroMode === 'short'
+                            ? 'shortBreak'
+                            : pomodoroMode === 'long'
+                              ? 'longBreak'
+                              : pomodoroMode === 'tutorBreak'
+                                ? 'tutorBreak'
+                                : pomodoroMode
+                        )}
+                      </p>
                     </div>
 
                     <div className="flex gap-1.5 p-1 bg-muted rounded-xl">
