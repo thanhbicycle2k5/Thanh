@@ -267,13 +267,21 @@ class SettingsErrorBoundary extends React.Component<{
 
 const WEEK_COLORS = [
   { name: 'Default', value: 'bg-muted' },
-  { name: 'Red', value: 'bg-red-500/10 border-red-500/20' },
-  { name: 'Green', value: 'bg-green-500/10 border-green-500/20' },
-  { name: 'Blue', value: 'bg-blue-500/10 border-blue-500/20' },
-  { name: 'Yellow', value: 'bg-yellow-500/10 border-yellow-500/20' },
-  { name: 'Purple', value: 'bg-purple-500/10 border-purple-500/20' },
-  { name: 'Orange', value: 'bg-orange-500/10 border-orange-500/20' },
+  { name: 'Red', value: 'bg-red-500/30 border-red-500/60' },
+  { name: 'Green', value: 'bg-green-500/30 border-green-500/60' },
+  { name: 'Blue', value: 'bg-blue-500/30 border-blue-500/60' },
+  { name: 'Yellow', value: 'bg-yellow-500/30 border-yellow-500/60' },
+  { name: 'Purple', value: 'bg-purple-500/30 border-purple-500/60' },
+  { name: 'Orange', value: 'bg-orange-500/30 border-orange-500/60' },
 ];
+const LEGACY_WEEK_COLOR_CLASSES: Record<string, string> = {
+  'bg-red-500/10 border-red-500/20': 'bg-red-500/30 border-red-500/60',
+  'bg-green-500/10 border-green-500/20': 'bg-green-500/30 border-green-500/60',
+  'bg-blue-500/10 border-blue-500/20': 'bg-blue-500/30 border-blue-500/60',
+  'bg-yellow-500/10 border-yellow-500/20': 'bg-yellow-500/30 border-yellow-500/60',
+  'bg-purple-500/10 border-purple-500/20': 'bg-purple-500/30 border-purple-500/60',
+  'bg-orange-500/10 border-orange-500/20': 'bg-orange-500/30 border-orange-500/60',
+};
 
 const Logo = ({ className }: { className?: string }) => (
   <span className={cn('inline-flex shrink-0 overflow-hidden border-2 border-white bg-white', className)}>
@@ -317,6 +325,7 @@ export default function App() {
   const [authLoading, setAuthLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+  const [openWeekPopoverKey, setOpenWeekPopoverKey] = React.useState<string | null>(null);
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(defaultSettings));
   const [settingsError, setSettingsError] = React.useState<string | null>(null);
@@ -330,6 +339,21 @@ export default function App() {
   const [isMobile, setIsMobile] = React.useState(false);
   const [isMobileNote, setIsMobileNote] = React.useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
+  React.useEffect(() => {
+    if (!openWeekPopoverKey) return;
+
+    const handleOutsidePointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest('[data-week-popover-content]')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setOpenWeekPopoverKey(null);
+    };
+
+    document.addEventListener('pointerdown', handleOutsidePointerDown, true);
+    return () => document.removeEventListener('pointerdown', handleOutsidePointerDown, true);
+  }, [openWeekPopoverKey]);
 
   React.useEffect(() => {
     const query = window.matchMedia('(max-width: 768px)');
@@ -2379,14 +2403,18 @@ export default function App() {
                 const isActive = isSameWeek(ws, selectedWeekStart, { weekStartsOn: 1 });
                 const key = format(ws, 'yyyy-MM-dd');
                 const meta = weekMetas[key] || {};
-                const colorValue = meta.color || 'bg-muted dark:bg-muted';
+                const colorValue = LEGACY_WEEK_COLOR_CLASSES[meta.color] || meta.color || 'bg-muted dark:bg-muted';
                 
                 return (
                   <React.Fragment key={i}>
-                    <Popover>
+                    <Popover
+                      open={openWeekPopoverKey === key}
+                      onOpenChange={(open) => setOpenWeekPopoverKey(open ? key : null)}
+                    >
                       <PopoverTrigger asChild>
                         <button
                           id={isActive ? "active-week-tab" : undefined}
+                          data-week-popover-trigger
                           className={cn(
                             "px-4 py-1.5 text-[11px] font-bold rounded-xl whitespace-nowrap transition-all border shrink-0",
                             isActive 
@@ -2399,7 +2427,7 @@ export default function App() {
                           {meta.note && <span className="ml-1 opacity-50">✎</span>}
                         </button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-64 p-4 space-y-4 rounded-2xl shadow-2xl border bg-popover" side="top" align="center" sideOffset={10}>
+                      <PopoverContent data-week-popover-content className="w-64 p-4 space-y-4 rounded-2xl shadow-2xl border bg-popover" side="top" align="center" sideOffset={10}>
                          <div className="space-y-3">
                             <div className="flex items-center justify-between">
                                <Label className="text-[10px] font-black uppercase tracking-widest opacity-50">{t('weekColor')}</Label>
