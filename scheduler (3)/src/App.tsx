@@ -78,6 +78,7 @@ import { BackgroundCustomizer } from './components/BackgroundCustomizer';
 import { CelebrationEffect } from './components/CelebrationEffect';
 import { QuickNoteEditor } from './components/QuickNoteEditor';
 import { SchedulyChat } from './components/SchedulyChat';
+import { getRandomCatQuote } from './data/catQuotes';
 
 import { 
   Dialog,
@@ -413,6 +414,8 @@ export default function App() {
   const [catMoodOverride, setCatMoodOverride] = React.useState<CatMood | null>(null);
   const [speechBubble, setSpeechBubble] = React.useState<{ id: string; text: string; status: SchedulyStatus } | null>(null);
   const speechBubbleTimeoutRef = React.useRef<number | null>(null);
+  const catClickTimeoutRef = React.useRef<number | null>(null);
+  const lastCatQuoteIdRef = React.useRef<number | undefined>(undefined);
   const [catPosition, setCatPosition] = React.useState<{ left: number; top: number } | null>(null);
   const [isSchedulyChatOpen, setIsSchedulyChatOpen] = React.useState(false);
 
@@ -1449,6 +1452,37 @@ export default function App() {
       setSpeechBubble(null);
       speechBubbleTimeoutRef.current = null;
     }, 5000);
+  }, []);
+
+  const handleCatClick = React.useCallback(() => {
+    setCatMoodOverride('celebrating');
+    if (settingsState.catEnabled !== false) {
+      playMeow();
+    }
+    window.setTimeout(() => setCatMoodOverride(null), 3000);
+
+    if (catClickTimeoutRef.current !== null) {
+      window.clearTimeout(catClickTimeoutRef.current);
+    }
+
+    catClickTimeoutRef.current = window.setTimeout(() => {
+      const quote = getRandomCatQuote(lastCatQuoteIdRef.current);
+      lastCatQuoteIdRef.current = quote.id;
+      if (speechBubbleTimeoutRef.current !== null) {
+        window.clearTimeout(speechBubbleTimeoutRef.current);
+        speechBubbleTimeoutRef.current = null;
+      }
+      setSpeechBubble({ id: `cat-quote-${quote.id}-${Date.now()}`, text: quote.text, status: 'complete' });
+      catClickTimeoutRef.current = null;
+    }, 240);
+  }, [settingsState.catEnabled]);
+
+  const handleCatDoubleClick = React.useCallback(() => {
+    if (catClickTimeoutRef.current !== null) {
+      window.clearTimeout(catClickTimeoutRef.current);
+      catClickTimeoutRef.current = null;
+    }
+    setIsSchedulyChatOpen(true);
   }, []);
 
   const getNotificationPermission = React.useCallback(async (): Promise<NotificationPermission> => {
@@ -2905,14 +2939,8 @@ export default function App() {
                   mood={catMoodOverride ?? catMood}
                   color={settingsState.catColor ?? 'orange'}
                   size="sm"
-                  onClick={() => {
-                    setCatMoodOverride('celebrating');
-                    if (settingsState.catEnabled !== false) {
-                      playMeow();
-                    }
-                    setTimeout(() => setCatMoodOverride(null), 3000);
-                  }}
-                  onDoubleClick={() => setIsSchedulyChatOpen(true)}
+                  onClick={handleCatClick}
+                  onDoubleClick={handleCatDoubleClick}
                 />
               </motion.div>
             </div>
