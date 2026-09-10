@@ -339,6 +339,7 @@ export default function App() {
   const [isMobile, setIsMobile] = React.useState(false);
   const [isMobileNote, setIsMobileNote] = React.useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
+  const suppressWeekPopoverClickRef = React.useRef(false);
   React.useEffect(() => {
     if (!openWeekPopoverKey) return;
 
@@ -346,13 +347,24 @@ export default function App() {
       const target = event.target;
       if (!(target instanceof Element)) return;
       if (target.closest('[data-week-popover-content]')) return;
-      event.preventDefault();
+      suppressWeekPopoverClickRef.current = true;
       event.stopPropagation();
       setOpenWeekPopoverKey(null);
     };
 
+    const handleDismissedClick = (event: MouseEvent) => {
+      if (!suppressWeekPopoverClickRef.current) return;
+      suppressWeekPopoverClickRef.current = false;
+      event.preventDefault();
+      event.stopPropagation();
+    };
+
     document.addEventListener('pointerdown', handleOutsidePointerDown, true);
-    return () => document.removeEventListener('pointerdown', handleOutsidePointerDown, true);
+    document.addEventListener('click', handleDismissedClick, true);
+    return () => {
+      document.removeEventListener('pointerdown', handleOutsidePointerDown, true);
+      document.removeEventListener('click', handleDismissedClick, true);
+    };
   }, [openWeekPopoverKey]);
 
   React.useEffect(() => {
