@@ -32,8 +32,6 @@ The Scheduly AI popup uses OpenRouter's `openrouter/free` router through the ser
 Set these Vercel Environment Variables for the deployed API:
 
 - `OPENROUTER_API_KEY`: OpenRouter key, stored only on the server.
-- `FIREBASE_WEB_API_KEY`: the Firebase Web API key used to validate signed-in Firebase ID tokens. This key is not an AI credential.
-
-AI requires a signed-in Scheduly user. The API allows up to 20 routed AI requests per user per UTC day per warm server instance; dictionary lookups and simple task counts do not consume this limit. Vercel serverless memory is best-effort, so a shared persistent rate-limit store would be needed for a strict global quota.
+- AI does not require Scheduly Google sign-in and never receives Google credentials or tokens. The API allows up to 20 routed AI requests per client IP per UTC day per warm server instance; dictionary lookups and simple task counts do not consume this limit. Vercel serverless memory is best-effort, so a shared persistent rate-limit store would be needed for a strict global quota.
 
 When the free model pool or quota is unavailable, Scheduly shows a friendly unavailable message and the rest of the app continues to work. Task context is reduced to a small set of relevant task titles, dates, times, durations, and completion state.

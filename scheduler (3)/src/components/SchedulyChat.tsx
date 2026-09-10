@@ -1,6 +1,5 @@
 import * as React from 'react';
 import { ArrowUp, Loader2, Sparkles, X } from 'lucide-react';
-import { User } from 'firebase/auth';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { DynamicCat } from './DynamicCat';
@@ -17,7 +16,6 @@ interface SchedulyChatProps {
   onClose: () => void;
   theme: Theme;
   catColor: CatColor;
-  user: User | null;
   plans: Plan[];
 }
 
@@ -89,7 +87,7 @@ function getLocalTaskAnswer(question: string, plans: Plan[]) {
   return null;
 }
 
-export function SchedulyChat({ open, onClose, theme, catColor, user, plans }: SchedulyChatProps) {
+export function SchedulyChat({ open, onClose, theme, catColor, plans }: SchedulyChatProps) {
   const [question, setQuestion] = React.useState('');
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -111,11 +109,6 @@ export function SchedulyChat({ open, onClose, theme, catColor, user, plans }: Sc
     const trimmedQuestion = question.trim();
     if (!trimmedQuestion || isLoading) return;
 
-    if (!user) {
-      setError('Please sign in to use Scheduly AI.');
-      return;
-    }
-
     const priorHistory = normalizeHistory(messages.map(({ role, text }) => ({ role, text })));
     const userMessage: ChatMessage = { id: `${Date.now()}-user`, role: 'user', text: trimmedQuestion };
     const assistantMessage: ChatMessage = { id: `${Date.now()}-assistant`, role: 'assistant', text: '' };
@@ -136,11 +129,9 @@ export function SchedulyChat({ open, onClose, theme, catColor, user, plans }: Sc
         return;
       }
 
-      const idToken = await user.getIdToken();
       const response = await fetch('/api/scheduly-ai', {
         method: 'POST',
         headers: {
-          Authorization: `Bearer ${idToken}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -198,7 +189,6 @@ export function SchedulyChat({ open, onClose, theme, catColor, user, plans }: Sc
               <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#107C41]/10 text-[#107C41] dark:bg-[#6ee7a5]/10 dark:text-[#6ee7a5]"><Sparkles className="h-7 w-7" /></div>
               <p className="text-2xl font-black tracking-tight sm:text-3xl">How can I help you today?</p>
               <p className="mt-3 max-w-md text-sm leading-6 opacity-60">Ask Scheduly AI about your tasks, study, English, planning, or your day.</p>
-              {!user && <p className="mt-3 text-xs text-[#107C41] dark:text-[#6ee7a5]">Sign in with Google to use AI chat.</p>}
               <div className="mt-7 flex flex-wrap justify-center gap-2">
                 {suggestions.map((suggestion) => <button key={suggestion.label} type="button" onClick={() => setQuestion(suggestion.label)} className="rounded-full border border-current/10 bg-background/70 px-3.5 py-2 text-xs font-medium shadow-sm transition hover:-translate-y-0.5 hover:border-[#107C41]/35 hover:text-[#107C41]"><span aria-hidden="true" className="mr-1.5">{suggestion.icon}</span>{suggestion.label}</button>)}
               </div>

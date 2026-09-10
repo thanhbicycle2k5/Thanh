@@ -9,8 +9,13 @@ function getDayKey() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function getRateLimit(uid) {
-  const key = `${uid}:${getDayKey()}`;
+function getRateLimitKey(request) {
+  const forwardedFor = String(request.headers['x-forwarded-for'] ?? '').split(',')[0].trim();
+  return forwardedFor || String(request.headers['x-real-ip'] ?? '').trim() || 'unknown-client';
+}
+
+function getRateLimit(request) {
+  const key = `${getRateLimitKey(request)}:${getDayKey()}`;
   const current = requestCounts.get(key) ?? 0;
   if (current >= MAX_REQUESTS_PER_DAY) return false;
   requestCounts.set(key, current + 1);
@@ -44,28 +49,6 @@ function normalizeTaskContext(context) {
   })).filter((task) => task.title && task.date);
 }
 
-async function verifyFirebaseUser(request) {
-  const authorization = String(request.headers.authorization ?? '');
-  const idToken = authorization.startsWith('Bearer ') ? authorization.slice(7).trim() : '';
-  const firebaseApiKey = String(process.env.FIREBASE_WEB_API_KEY ?? '').trim();
-  if (!idToken || !firebaseApiKey) return null;
-
-  try {
-    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:lookup?key=${encodeURIComponent(firebaseApiKey)}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ idToken }),
-      signal: AbortSignal.timeout(5_000),
-    });
-    if (!response.ok) return null;
-    const payload = await response.json();
-    const user = Array.isArray(payload?.users) ? payload.users[0] : null;
-    return typeof user?.localId === 'string' ? user.localId : null;
-  } catch {
-    return null;
-  }
-}
-
 function getFriendlyError(status) {
   if (status === 401 || status === 403) return 'AI is temporarily unavailable. Please try again later.';
   if (status === 429) return 'AI is temporarily unavailable because the free AI limit has been reached. Please try again later.';
@@ -78,11 +61,6 @@ export default async function handler(request, response) {
     return response.status(405).json({ error: 'Method not allowed.' });
   }
 
-  const uid = await verifyFirebaseUser(request);
-  if (!uid) {
-    return response.status(401).json({ error: 'Please sign in to use Scheduly AI.' });
-  }
-
   const apiKey = String(process.env.OPENROUTER_API_KEY ?? '').trim();
   if (!apiKey) {
     return response.status(503).json({ error: 'AI is temporarily unavailable. Please try again later.' });
@@ -91,7 +69,7 @@ export default async function handler(request, response) {
   const body = request.body ?? {};
   const question = cleanText(body.question);
   if (!question) return response.status(400).json({ error: 'Please enter a message.' });
-  if (!getRateLimit(uid)) {
+  if (!getRateLimit(request)) {
     return response.status(429).json({ error: 'Today\'s free AI limit has been reached. Please try again tomorrow.' });
   }
 

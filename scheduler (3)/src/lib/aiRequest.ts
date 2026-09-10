@@ -38,7 +38,6 @@ export function formatAIUserError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error ?? '');
   const lower = message.toLowerCase();
   if (lower.includes('today') && lower.includes('limit')) return "Today's free AI limit has been reached. Please try again tomorrow.";
-  if (lower.includes('sign in')) return 'Please sign in to use Scheduly AI.';
   if (lower.includes('free ai limit') || lower.includes('no free model')) return 'AI is temporarily unavailable because the free AI limit has been reached. Please try again later.';
   if (lower.includes('network') || lower.includes('fetch')) return 'AI is temporarily unavailable. Please check your connection and try again.';
   return 'AI is temporarily unavailable. Please try again later.';
