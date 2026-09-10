@@ -341,7 +341,7 @@ export const translations = {
     loginFailed: "Đăng nhập thất bại. Vui lòng kiểm tra chặn popup và thử lại.",
     weekColor: "Màu sắc tuần",
     important: "Quan trọng",
-    inspiredBy: "Ý tưởng bởi ThanhBicycle",
+    inspiredBy: "Ý tưởng từ ThànhBicycle",
     login: "Đăng nhập",
     background: "Nền",
     backgroundType: "Loại nền",

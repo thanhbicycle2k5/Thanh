@@ -2390,8 +2390,7 @@ export default function App() {
 
              {/* Copyright Footer - inside the card */}
              <div className="border-t bg-muted/20 p-3 text-center">
-               <p className="text-xs text-gray-600 dark:text-gray-300">Được tạo ra bởi ThànhBicycle</p>
-               <p className="text-xs text-gray-600 dark:text-gray-300">Created by ThànhBicycle</p>
+               <p className="text-xs text-muted-foreground">{t('inspiredBy')}</p>
              </div>
            </motion.div>
          </AnimatePresence>
