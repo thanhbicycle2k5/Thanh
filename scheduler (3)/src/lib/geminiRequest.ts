@@ -83,12 +83,12 @@ export function classifyGeminiError(error: unknown): Error {
     ? Number((error as Record<string, unknown>).status ?? (error as Record<string, unknown>).statusCode ?? 0)
     : 0;
 
-  if (message.includes('gemini_api_key') || message.includes('server configuration')) {
+  if (message.includes('server configuration')) {
     return new Error('Scheduly chưa sẵn sàng trên máy chủ. Vui lòng thử lại sau.');
   }
 
-  if (status === 404 && (message.includes('page could not be found') || message.includes('api/chat'))) {
-    return new Error('Không tìm thấy API /api/chat trên deployment Vercel. Hãy kiểm tra Root Directory và redeploy.');
+  if (status === 404 && message.includes('page could not be found')) {
+    return new Error('Scheduly đang được cập nhật. Vui lòng thử lại sau.');
   }
 
   if (status === 404 && message.includes('từ điển')) {
