@@ -2877,6 +2877,8 @@ export default function App() {
         onClose={() => setIsSchedulyChatOpen(false)}
         theme={settingsState.theme}
         catColor={settingsState.catColor ?? 'orange'}
+        user={user}
+        plans={plans}
       />
 
       {!isMobile && <CelebrationEffect trigger={showCelebration} count={25} />}
