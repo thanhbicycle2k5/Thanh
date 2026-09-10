@@ -1,3 +1,5 @@
+import { folkSayings } from './folkSayings';
+
 export type CatQuoteCategory =
   | 'teen'
   | 'joke'
@@ -8,7 +10,8 @@ export type CatQuoteCategory =
   | 'poem'
   | 'wordplay'
   | 'philosophy'
-  | 'meow';
+  | 'meow'
+  | 'folk';
 
 export interface CatQuote {
   id: number;
@@ -194,6 +197,7 @@ const CATEGORY_COUNTS: Record<CatQuoteCategory, number> = {
   wordplay: 30,
   philosophy: 30,
   meow: 30,
+  folk: 0,
 };
 
 function buildQuotes(): CatQuote[] {
@@ -212,13 +216,22 @@ function buildQuotes(): CatQuote[] {
 
 export const catQuotes: CatQuote[] = buildQuotes();
 
+export const allCatQuotes: CatQuote[] = [
+  ...catQuotes,
+  ...folkSayings.map((saying) => ({
+    id: 500 + saying.id,
+    category: 'folk' as const,
+    text: saying.text,
+  })),
+];
+
 export const catQuoteCategoryCounts = CATEGORY_COUNTS;
 
 export function getRandomCatQuote(lastQuoteId?: number): CatQuote {
-  if (catQuotes.length < 2) return catQuotes[0];
-  let quote = catQuotes[Math.floor(Math.random() * catQuotes.length)];
+  if (allCatQuotes.length < 2) return allCatQuotes[0];
+  let quote = allCatQuotes[Math.floor(Math.random() * allCatQuotes.length)];
   while (quote.id === lastQuoteId) {
-    quote = catQuotes[Math.floor(Math.random() * catQuotes.length)];
+    quote = allCatQuotes[Math.floor(Math.random() * allCatQuotes.length)];
   }
   return quote;
 }
