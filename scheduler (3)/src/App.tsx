@@ -3072,10 +3072,23 @@ export default function App() {
                   <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">{t('appDescription')}</p>
 
                   <div className="mt-3 grid gap-1.5">
-                    {settingsTabs.map((tab) => (
+                    {settingsTabs.map((tab, tabIndex) => (
                       <button
                         key={tab.value}
                         type="button"
+                        onKeyDown={(event) => {
+                          if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+                          event.preventDefault();
+                          const direction = event.key === 'ArrowDown' ? 1 : -1;
+                          const nextIndex = (tabIndex + direction + settingsTabs.length) % settingsTabs.length;
+                          const nextTab = settingsTabs[nextIndex];
+                          setActiveSettingsTab(nextTab.value);
+                          setMobileExpanded(null);
+                          window.requestAnimationFrame(() => {
+                            const tabButtons = event.currentTarget.parentElement?.querySelectorAll('button');
+                            (tabButtons?.[nextIndex] as HTMLButtonElement | undefined)?.focus();
+                          });
+                        }}
                         onClick={() => { setActiveSettingsTab(tab.value); setMobileExpanded(null); }}
                         className={cn(
                           "group flex items-center justify-between rounded-xl border border-transparent bg-background dark:bg-muted/30 px-2.5 py-2 text-xs font-medium text-foreground transition hover:border-border hover:bg-muted dark:hover:bg-muted/50 gap-1.5",
