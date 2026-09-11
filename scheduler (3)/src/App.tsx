@@ -63,6 +63,8 @@ import {
   BookOpen,
   Move,
   Search,
+  Facebook,
+  Mail,
 } from 'lucide-react';
 import { Calendar as CalendarUI } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -1699,6 +1701,7 @@ export default function App() {
     { value: 'schedule', label: t('schedule'), icon: <CalendarIcon className="w-4 h-4" /> },
     { value: 'sound', label: t('sound'), icon: <Volume2 className="w-4 h-4" /> },
     { value: 'appearance', label: t('appearance'), icon: <Sun className="w-4 h-4" /> },
+    { value: 'contact', label: t('contact'), icon: <Mail className="w-4 h-4" /> },
     { value: 'account', label: t('account'), icon: <CloudIcon className="w-4 h-4" /> },
   ], [t]);
 
@@ -3361,6 +3364,29 @@ export default function App() {
                           t={t}
                           theme={settingsState.theme}
                         />
+                      </div>
+                    </div>
+                  )}
+
+                  {activeSettingsTab === 'contact' && (
+                    <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6 dark:bg-muted/30">
+                      <div className="space-y-3">
+                        <a
+                          href="https://www.facebook.com/ThanhBicycle2406"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-3 rounded-xl border border-border bg-background p-3 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <Facebook className="h-5 w-5 text-[#1877F2]" aria-hidden="true" />
+                          <span className="text-sm font-medium text-foreground">Facebook</span>
+                        </a>
+                        <a
+                          href="mailto:thanhbicycle2k5@gmail.com"
+                          className="flex items-center gap-3 rounded-xl border border-border bg-background p-3 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <Mail className="h-5 w-5 text-[#EA4335]" aria-hidden="true" />
+                          <span className="truncate text-sm font-medium text-foreground">thanhbicycle2k5@gmail.com</span>
+                        </a>
                       </div>
                     </div>
                   )}
