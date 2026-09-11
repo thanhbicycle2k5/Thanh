@@ -114,6 +114,7 @@ async function fetchJson() {
     'piece of cake': ['something that is very easy to do', 'việc rất dễ dàng'],
     'once in a blue moon': ['very rarely', 'rất hiếm khi'],
     'break the ice': ['to make people feel more comfortable in a new social situation', 'phá tan sự ngượng ngùng ban đầu'],
+    'go off': ['to leave; to explode; to stop being fresh; or to happen', 'đi khỏi; nổ; bị hỏng, ôi thiu; diễn ra'],
   };
   for (const [phrase, [definition, translation]] of Object.entries(reviewedPhrases)) {
     if (importPhrase(phrase, { descriptions: [definition], examples: [] }, translation)) imported += 1;
