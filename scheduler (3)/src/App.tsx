@@ -3084,8 +3084,9 @@ export default function App() {
                           const nextTab = settingsTabs[nextIndex];
                           setActiveSettingsTab(nextTab.value);
                           setMobileExpanded(null);
+                          const currentTabButton = event.currentTarget;
                           window.requestAnimationFrame(() => {
-                            const tabButtons = event.currentTarget.parentElement?.querySelectorAll('button');
+                            const tabButtons = currentTabButton.parentElement?.querySelectorAll('button');
                             (tabButtons?.[nextIndex] as HTMLButtonElement | undefined)?.focus();
                           });
                         }}
