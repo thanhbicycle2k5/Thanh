@@ -3079,7 +3079,7 @@ export default function App() {
                         onClick={() => { setActiveSettingsTab(tab.value); setMobileExpanded(null); }}
                         className={cn(
                           "group flex items-center justify-between rounded-xl border border-transparent bg-background dark:bg-muted/30 px-2.5 py-2 text-xs font-medium text-foreground transition hover:border-border hover:bg-muted dark:hover:bg-muted/50 gap-1.5",
-                          activeSettingsTab === tab.value && "bg-[#F8F9FD] dark:bg-[#107C41] text-foreground dark:text-white shadow-sm"
+                          activeSettingsTab === tab.value && "border-[#107C41] text-foreground shadow-sm"
                         )}
                       >
                         <span className="flex items-center gap-2 min-w-0">
