@@ -2465,9 +2465,10 @@ export default function App() {
                           data-week-popover-trigger
                           className={cn(
                             "px-4 py-1.5 text-[11px] font-bold rounded-xl whitespace-nowrap transition-all border shrink-0",
-                            isActive 
-                              ? "bg-[#107C41] text-white shadow-lg scale-105 border-[#107C41]" 
-                              : cn("text-muted-foreground border-border hover:border-primary/30", colorValue)
+                            colorValue,
+                            isActive
+                              ? "shadow-lg scale-105 border-[#107C41]"
+                              : "text-muted-foreground border-border hover:border-primary/30"
                           )}
                           onClick={() => setSelectedWeekStart(ws)}
                         >
