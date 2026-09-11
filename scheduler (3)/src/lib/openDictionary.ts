@@ -12,6 +12,15 @@ function getShardName(word: string): string {
   return /^[a-z]$/i.test(firstCharacter) ? firstCharacter.toLowerCase() : 'other';
 }
 
+function normalizeDictionaryKey(value: string): string {
+  return value.normalize('NFC').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function dictionaryKeyCandidates(value: string): string[] {
+  const normalized = normalizeDictionaryKey(value);
+  return [...new Set([normalized, normalized.replace(/\s+/g, '-'), normalized.replace(/-/g, ' ')])];
+}
+
 async function loadTranslationShard(shardName: string): Promise<DictionaryShard> {
   const cachedShard = translationCache.get(shardName);
   if (cachedShard) return cachedShard;
@@ -88,14 +97,18 @@ function formatOpenDictionaryEntry(word: string, definition: string, vietnamese?
 
 export async function lookupOpenDictionary(query: string): Promise<string | null> {
   const normalizedQuery = normalizeDictionaryQuery(query);
-  if (!/^[a-z]+(?:[-'][a-z]+)?$/i.test(normalizedQuery)) return null;
+  if (!/^[a-zà-ỹ][a-zà-ỹ0-9'\-]*(?:\s+[a-zà-ỹ0-9'\-]+){0,15}$/i.test(normalizedQuery)) return null;
 
   try {
-    const shard = await loadShard(getShardName(normalizedQuery));
-    const definition = shard[normalizedQuery.toLowerCase()];
-    const translations = await loadTranslationShard(getShardName(normalizedQuery));
+    const shardName = getShardName(normalizedQuery);
+    const shard = await loadShard(shardName);
+    const dictionaryKeys = dictionaryKeyCandidates(normalizedQuery);
+    const dictionaryKey = dictionaryKeys.find((key) => typeof shard[key] === 'string');
+    const definition = dictionaryKey ? shard[dictionaryKey] : undefined;
+    const translations = await loadTranslationShard(shardName);
+    const translation = dictionaryKeys.map((key) => translations[key]).find((value) => typeof value === 'string');
     return typeof definition === 'string' && definition.trim()
-      ? formatOpenDictionaryEntry(normalizedQuery, definition.trim(), translations[normalizedQuery.toLowerCase()])
+      ? formatOpenDictionaryEntry(normalizedQuery, definition.trim(), translation)
       : null;
   } catch {
     return null;

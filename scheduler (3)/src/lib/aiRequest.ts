@@ -29,9 +29,17 @@ export function isShortVocabularyQuery(query: string): boolean {
   const trimmedQuery = String(query ?? '').trim();
   const words = trimmedQuery.split(/\s+/).filter(Boolean);
   return trimmedQuery.length > 0
-    && trimmedQuery.length <= 80
-    && words.length <= 4
+    && trimmedQuery.length <= 120
+    && words.length <= 8
     && !/[?!。？！]/.test(trimmedQuery);
+}
+
+export function isDictionaryLookupQuery(query: string): boolean {
+  const trimmedQuery = String(query ?? '').trim();
+  return isShortVocabularyQuery(trimmedQuery)
+    || /^what\s+does\s+this\s+word\s+mean[,.!?\s]+[^?]{1,100}[?!.,]?$/i.test(trimmedQuery)
+    || /^what\s+(?:does|do)\s+(?:this\s+word\s+mean[,.!?\s]+)?[^?]{1,100}\s+mean[?!.,]?$/i.test(trimmedQuery)
+    || /^(?:meaning of|define|dịch|nghĩa của)\s+.{1,100}[?!.,]?$/i.test(trimmedQuery);
 }
 
 export function formatAIUserError(error: unknown): string {

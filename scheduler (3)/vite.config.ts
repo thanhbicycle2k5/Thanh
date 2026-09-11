@@ -50,6 +50,12 @@ export default defineConfig(({ mode }) => {
       port: 3000,
       host: '0.0.0.0',
       hmr: process.env.DISABLE_HMR !== 'true',
+      proxy: {
+        '/ollama': {
+          target: 'http://127.0.0.1:11434',
+          rewrite: (path) => path.replace(/^\/ollama/, ''),
+        },
+      },
     },
   };
 });

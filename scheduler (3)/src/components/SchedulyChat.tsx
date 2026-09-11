@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { AIProvider, CatColor, CatMood, Plan, Theme } from '../types';
-import { formatAIUserError, isShortVocabularyQuery, normalizeHistory, type ChatTurn } from '../lib/aiRequest';
+import { formatAIUserError, isDictionaryLookupQuery, isShortVocabularyQuery, normalizeHistory, type ChatTurn } from '../lib/aiRequest';
 import { lookupLocalDictionary } from '../lib/localDictionary';
 import { lookupOpenDictionary } from '../lib/openDictionary';
 import { checkLocalAI, LocalAIError, requestLocalAI } from '../services/localAI';
@@ -182,7 +182,7 @@ export function SchedulyChat({ open, onClose, theme, catColor, plans, aiProvider
       }
 
       const localDictionaryAnswer = lookupLocalDictionary(trimmedQuestion);
-      const openDictionaryAnswer = !localDictionaryAnswer && isShortVocabularyQuery(trimmedQuestion)
+      const openDictionaryAnswer = !localDictionaryAnswer && isDictionaryLookupQuery(trimmedQuestion)
         ? await lookupOpenDictionary(trimmedQuestion)
         : null;
       const localTaskAnswer = getLocalTaskAnswer(trimmedQuestion, plans);

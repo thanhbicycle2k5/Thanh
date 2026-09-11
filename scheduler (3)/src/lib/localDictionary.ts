@@ -91,9 +91,11 @@ export function normalizeDictionaryQuery(query: string): string {
     .replace(/[.,!?;:()[\]{}]+$/g, '')
     .replace(/\s+/g, ' ')
     .toLowerCase();
-  const prefixMatch = normalized.match(/^(?:what does|meaning of|define|dịch|nghĩa của|nghĩa là gì về?)\s+([a-zà-ỹ][a-zà-ỹ'-]{1,63})$/i);
-  const suffixMatch = normalized.match(/^([a-zà-ỹ][a-zà-ỹ'-]{1,63})\s+nghĩa là gì$/i);
-  return (prefixMatch?.[1] ?? suffixMatch?.[1] ?? normalized).trim();
+  const addressedWordMatch = normalized.match(/^what\s+does\s+this\s+word\s+mean[,.!?\s]+(.+?)[,.!?]?$/i);
+  const questionMatch = normalized.match(/^what\s+(?:does|do)\s+(.+?)\s+mean(?:[,.!?].*)?$/i);
+  const prefixMatch = normalized.match(/^(?:meaning of|define|dịch|nghĩa của|nghĩa là gì về?)\s+(.+)$/i);
+  const suffixMatch = normalized.match(/^(.+?)\s+(?:nghĩa là gì|mean)$/i);
+  return (addressedWordMatch?.[1] ?? questionMatch?.[1] ?? prefixMatch?.[1] ?? suffixMatch?.[1] ?? normalized).trim();
 }
 
 export function findInDictionary(query: string): DictionaryEntry | null {

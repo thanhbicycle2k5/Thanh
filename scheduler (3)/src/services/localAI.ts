@@ -1,4 +1,4 @@
-export const LOCAL_AI_BASE_URL = 'http://localhost:11434';
+export const LOCAL_AI_BASE_URL = import.meta.env.DEV ? '/ollama' : 'http://localhost:11434';
 export const LOCAL_AI_MODEL = 'qwen3:4b';
 export const LOCAL_AI_SYSTEM_PROMPT = `You are Scheduly AI, an expert English-Vietnamese translator, interpreter, language professor and communication assistant.
 
