@@ -3381,7 +3381,9 @@ export default function App() {
                           <span className="text-sm font-medium text-foreground">Facebook</span>
                         </a>
                         <a
-                          href="mailto:thanhbicycle2k5@gmail.com"
+                          href="https://mail.google.com/mail/?view=cm&fs=1&to=thanhbicycle2k5@gmail.com"
+                          target="_blank"
+                          rel="noreferrer"
                           className="flex items-center gap-3 rounded-xl border border-border bg-background p-3 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         >
                           <Mail className="h-5 w-5 text-[#EA4335]" aria-hidden="true" />
