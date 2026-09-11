@@ -67,7 +67,7 @@ export default async function handler(request, response) {
   }
 
   const body = request.body ?? {};
-  const question = cleanText(body.question);
+  const question = String(body.question ?? '').trim();
   if (!question) return response.status(400).json({ error: 'Please enter a message.' });
   if (!getRateLimit(request)) {
     return response.status(429).json({ error: 'Today\'s free AI limit has been reached. Please try again tomorrow.' });

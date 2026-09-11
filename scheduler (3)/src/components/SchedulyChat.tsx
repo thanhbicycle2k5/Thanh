@@ -1,15 +1,16 @@
 import * as React from 'react';
-import { ArrowUp, Loader2, Sparkles, X } from 'lucide-react';
+import { ArrowUp, Check, Clipboard, Loader2, RefreshCw, Sparkles, Square, X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { DynamicCat } from './DynamicCat';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { CatColor, CatMood, Plan, Theme } from '../types';
+import { AIProvider, CatColor, CatMood, Plan, Theme } from '../types';
 import { formatAIUserError, isShortVocabularyQuery, normalizeHistory, type ChatTurn } from '../lib/aiRequest';
 import { lookupLocalDictionary } from '../lib/localDictionary';
 import { lookupOpenDictionary } from '../lib/openDictionary';
+import { checkLocalAI, LocalAIError, requestLocalAI } from '../services/localAI';
 
 interface SchedulyChatProps {
   open: boolean;
@@ -17,10 +18,35 @@ interface SchedulyChatProps {
   theme: Theme;
   catColor: CatColor;
   plans: Plan[];
+  aiProvider: AIProvider;
 }
 
 interface ChatMessage extends ChatTurn {
   id: string;
+  source?: 'Local Dictionary' | 'Local AI' | 'Gemini';
+}
+
+const CHAT_CACHE_KEY = 'scheduly-ai-cache';
+const MAX_CACHE_ITEMS = 30;
+
+function readAnswerCache(): Record<string, { text: string; source: ChatMessage['source'] }> {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(CHAT_CACHE_KEY) || '{}');
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function cacheAnswer(question: string, answer: { text: string; source: ChatMessage['source'] }) {
+  try {
+    const cache = readAnswerCache();
+    cache[question.trim().toLowerCase()] = answer;
+    const entries = Object.entries(cache).slice(-MAX_CACHE_ITEMS);
+    localStorage.setItem(CHAT_CACHE_KEY, JSON.stringify(Object.fromEntries(entries)));
+  } catch {
+    // Cache is optional and must never interrupt chat.
+  }
 }
 
 function SchedulyAnswer({ text }: { text: string }) {
@@ -87,13 +113,15 @@ function getLocalTaskAnswer(question: string, plans: Plan[]) {
   return null;
 }
 
-export function SchedulyChat({ open, onClose, theme, catColor, plans }: SchedulyChatProps) {
+export function SchedulyChat({ open, onClose, theme, catColor, plans, aiProvider }: SchedulyChatProps) {
   const [question, setQuestion] = React.useState('');
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
   const [error, setError] = React.useState('');
+  const [copiedMessageId, setCopiedMessageId] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
   const messagesRef = React.useRef<HTMLDivElement>(null);
+  const abortControllerRef = React.useRef<AbortController | null>(null);
 
   React.useEffect(() => {
     if (open) window.setTimeout(() => inputRef.current?.focus(), 100);
@@ -104,20 +132,55 @@ export function SchedulyChat({ open, onClose, theme, catColor, plans }: Scheduly
     if (container) container.scrollTop = container.scrollHeight;
   }, [messages, isLoading]);
 
+  React.useEffect(() => () => abortControllerRef.current?.abort(), []);
+
+  const updateAssistant = React.useCallback((id: string, patch: Partial<ChatMessage>) => {
+    setMessages((current) => current.map((message) => message.id === id ? { ...message, ...patch } : message));
+  }, []);
+
+  const fallbackToGemini = async (trimmedQuestion: string, priorHistory: ChatTurn[], assistantMessageId: string) => {
+    const response = await fetch('/api/scheduly-ai', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question: trimmedQuestion,
+        history: priorHistory,
+        taskContext: getRelevantTaskContext(trimmedQuestion, plans),
+      }),
+      signal: abortControllerRef.current?.signal,
+    });
+    const payload = await response.json().catch(() => null) as { answer?: string; error?: string } | null;
+    if (!response.ok) throw new Error(payload?.error || 'Gemini fallback is unavailable.');
+    if (!payload?.answer) throw new Error('Gemini fallback is unavailable.');
+    updateAssistant(assistantMessageId, { text: payload.answer, source: 'Gemini' });
+    cacheAnswer(trimmedQuestion, { text: payload.answer, source: 'Gemini' });
+  };
+
   const submitQuestion = async (event: React.FormEvent) => {
     event.preventDefault();
     const trimmedQuestion = question.trim();
     if (!trimmedQuestion || isLoading) return;
 
-    const priorHistory = normalizeHistory(messages.map(({ role, text }) => ({ role, text })));
+    const priorHistory = isShortVocabularyQuery(trimmedQuestion)
+      ? []
+      : normalizeHistory(messages.map(({ role, text }) => ({ role, text })));
     const userMessage: ChatMessage = { id: `${Date.now()}-user`, role: 'user', text: trimmedQuestion };
     const assistantMessage: ChatMessage = { id: `${Date.now()}-assistant`, role: 'assistant', text: '' };
     setQuestion('');
     setError('');
     setMessages((current) => [...current, userMessage, assistantMessage]);
     setIsLoading(true);
+    abortControllerRef.current = new AbortController();
 
     try {
+      const cachedAnswer = isShortVocabularyQuery(trimmedQuestion)
+        ? readAnswerCache()[trimmedQuestion.toLowerCase()]
+        : undefined;
+      if (cachedAnswer) {
+        updateAssistant(assistantMessage.id, { text: cachedAnswer.text, source: cachedAnswer.source });
+        return;
+      }
+
       const localDictionaryAnswer = lookupLocalDictionary(trimmedQuestion);
       const openDictionaryAnswer = !localDictionaryAnswer && isShortVocabularyQuery(trimmedQuestion)
         ? await lookupOpenDictionary(trimmedQuestion)
@@ -125,32 +188,58 @@ export function SchedulyChat({ open, onClose, theme, catColor, plans }: Scheduly
       const localTaskAnswer = getLocalTaskAnswer(trimmedQuestion, plans);
 
       if (localDictionaryAnswer || openDictionaryAnswer || localTaskAnswer) {
-        setMessages((current) => current.map((message) => message.id === assistantMessage.id ? { ...message, text: localDictionaryAnswer || openDictionaryAnswer || localTaskAnswer || '' } : message));
+        const answer = localDictionaryAnswer || openDictionaryAnswer || localTaskAnswer || '';
+        updateAssistant(assistantMessage.id, { text: answer, source: 'Local Dictionary' });
+        cacheAnswer(trimmedQuestion, { text: answer, source: 'Local Dictionary' });
         return;
       }
 
-      const response = await fetch('/api/scheduly-ai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          question: trimmedQuestion,
-          history: priorHistory,
-          taskContext: getRelevantTaskContext(trimmedQuestion, plans),
-        }),
-      });
-      const payload = await response.json().catch(() => null) as { answer?: string; error?: string } | null;
-      if (!response.ok) throw new Error(payload?.error || 'AI is temporarily unavailable. Please try again later.');
-      if (!payload?.answer) throw new Error('AI is temporarily unavailable. Please try again later.');
+      if (aiProvider !== 'gemini') {
+        try {
+          let streamedAnswer = '';
+          const answer = await requestLocalAI({
+            question: trimmedQuestion,
+            history: priorHistory,
+            signal: abortControllerRef.current.signal,
+            onToken: (token) => {
+              streamedAnswer += token;
+              updateAssistant(assistantMessage.id, { text: streamedAnswer, source: 'Local AI' });
+            },
+          });
+          updateAssistant(assistantMessage.id, { text: answer, source: 'Local AI' });
+          cacheAnswer(trimmedQuestion, { text: answer, source: 'Local AI' });
+          return;
+        } catch (localError) {
+          if (localError instanceof LocalAIError && localError.code === 'ABORTED') throw localError;
+          if (aiProvider === 'local') throw localError;
+        }
+      }
 
-      setMessages((current) => current.map((message) => message.id === assistantMessage.id ? { ...message, text: payload.answer! } : message));
+      await fallbackToGemini(trimmedQuestion, priorHistory, assistantMessage.id);
     } catch (requestError) {
-      setMessages((current) => current.filter((message) => message.id !== assistantMessage.id));
+      if (requestError instanceof LocalAIError && requestError.code === 'ABORTED') {
+        updateAssistant(assistantMessage.id, { text: 'Generation stopped.', source: 'Local AI' });
+      } else {
+        setMessages((current) => current.filter((message) => message.id !== assistantMessage.id));
+      }
       setError(formatAIUserError(requestError));
     } finally {
       setIsLoading(false);
+      abortControllerRef.current = null;
     }
+  };
+
+  const stopGeneration = () => abortControllerRef.current?.abort();
+  const clearChat = () => {
+    if (isLoading) stopGeneration();
+    setMessages([]);
+    setError('');
+  };
+
+  const copyMessage = async (message: ChatMessage) => {
+    await navigator.clipboard.writeText(message.text);
+    setCopiedMessageId(message.id);
+    window.setTimeout(() => setCopiedMessageId(null), 1500);
   };
 
   if (!open) return null;
@@ -178,9 +267,10 @@ export function SchedulyChat({ open, onClose, theme, catColor, plans }: Scheduly
               <p className="truncate text-xs text-white/80">Your personal AI assistant</p>
             </div>
           </div>
-          <Button type="button" variant="ghost" size="icon" aria-label="Close Scheduly AI" onClick={onClose} className="shrink-0 text-white hover:bg-white/15 hover:text-white">
-            <X className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button type="button" variant="ghost" size="icon" aria-label="Clear chat" onClick={clearChat} className="text-white hover:bg-white/15 hover:text-white"><RefreshCw className="h-4 w-4" /></Button>
+            <Button type="button" variant="ghost" size="icon" aria-label="Close Scheduly AI" onClick={onClose} className="shrink-0 text-white hover:bg-white/15 hover:text-white"><X className="h-5 w-5" /></Button>
+          </div>
         </header>
 
         <div ref={messagesRef} className="flex-1 space-y-6 overflow-y-auto bg-gradient-to-b from-[#107C41]/[0.035] to-transparent p-4 sm:p-8">
@@ -198,7 +288,7 @@ export function SchedulyChat({ open, onClose, theme, catColor, plans }: Scheduly
             <div key={message.id} className={cn('flex gap-2.5', message.role === 'user' ? 'justify-end' : 'justify-start')}>
               {message.role === 'assistant' && <DynamicCat mood={'happy' as CatMood} color={catColor} size="sm" className="mt-1 h-7 w-7 shrink-0" />}
               <div className={cn('max-w-[88%]', message.role === 'user' && 'rounded-2xl rounded-br-md bg-[#107C41] px-4 py-3 text-white shadow-sm')}>
-                {message.role === 'assistant' ? <SchedulyAnswer text={message.text} /> : <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.text}</p>}
+                {message.role === 'assistant' ? <><SchedulyAnswer text={message.text} />{message.text && <div className="mt-2 flex items-center gap-2 text-[10px] opacity-60"><span className="rounded-full border border-current/15 px-2 py-0.5">{message.source || 'Local AI'}</span><button type="button" onClick={() => void copyMessage(message)} className="inline-flex items-center gap-1 hover:opacity-100" aria-label="Copy response">{copiedMessageId === message.id ? <Check className="h-3 w-3" /> : <Clipboard className="h-3 w-3" />}{copiedMessageId === message.id ? 'Copied' : 'Copy'}</button></div>}</> : <p className="whitespace-pre-wrap text-sm leading-relaxed">{message.text}</p>}
               </div>
             </div>
           ))}
@@ -209,7 +299,7 @@ export function SchedulyChat({ open, onClose, theme, catColor, plans }: Scheduly
         <form onSubmit={submitQuestion} className="border-t border-current/10 bg-background/80 p-3 sm:p-4">
           <div className="flex items-end gap-2 rounded-[22px] border border-current/15 bg-muted/40 p-2 shadow-sm transition focus-within:border-[#107C41]/45 focus-within:ring-2 focus-within:ring-[#107C41]/15">
             <Textarea ref={inputRef} value={question} onChange={(event) => setQuestion(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); event.currentTarget.form?.requestSubmit(); } }} placeholder="Ask Scheduly AI anything..." aria-label="Message Scheduly AI" rows={2} className="min-h-12 resize-none border-0 bg-transparent px-3 py-2 shadow-none focus-visible:ring-0" disabled={isLoading} />
-            <Button type="submit" size="icon" aria-label="Send message" disabled={!question.trim() || isLoading} className="mb-0.5 shrink-0 rounded-full bg-[#107C41] text-white hover:bg-[#0c6334]"><ArrowUp className="h-5 w-5" /></Button>
+            {isLoading ? <Button type="button" size="icon" aria-label="Stop generation" onClick={stopGeneration} className="mb-0.5 shrink-0 rounded-full bg-red-600 text-white hover:bg-red-700"><Square className="h-4 w-4" /></Button> : <Button type="submit" size="icon" aria-label="Send message" disabled={!question.trim()} className="mb-0.5 shrink-0 rounded-full bg-[#107C41] text-white hover:bg-[#0c6334]"><ArrowUp className="h-5 w-5" /></Button>}
           </div>
           <p className="mt-2 text-center text-[10px] opacity-45">Enter to send · Shift + Enter for a new line</p>
         </form>

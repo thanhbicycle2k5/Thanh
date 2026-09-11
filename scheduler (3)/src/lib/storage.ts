@@ -23,6 +23,7 @@ export const defaultSettings: AppSettings = {
   desktopFontSize: 'medium',
   desktopKeyboardShortcutsEnabled: true,
   weekTransitionEffect: 'slide',
+  aiProvider: 'auto',
 };
 
 type PendingSyncScope = 'plans' | 'week_meta' | 'settings';
@@ -81,6 +82,7 @@ export const normalizeSettings = (raw: any): AppSettings => {
     desktopKeyboardShortcutsEnabled: typeof obj.desktopKeyboardShortcutsEnabled === 'boolean' ? obj.desktopKeyboardShortcutsEnabled : defaultSettings.desktopKeyboardShortcutsEnabled,
     catColor: obj.catColor === 'orange' || obj.catColor === 'pink' || obj.catColor === 'blue' || obj.catColor === 'green' || obj.catColor === 'purple' || obj.catColor === 'yellow' || obj.catColor === 'teal' || obj.catColor === 'red' || obj.catColor === 'gray' || obj.catColor === 'black' || obj.catColor === 'white' ? obj.catColor : defaultSettings.catColor,
     weekTransitionEffect: obj.weekTransitionEffect === 'none' || obj.weekTransitionEffect === 'fade' || obj.weekTransitionEffect === 'slide' ? obj.weekTransitionEffect : defaultSettings.weekTransitionEffect,
+    aiProvider: obj.aiProvider === 'local' || obj.aiProvider === 'gemini' || obj.aiProvider === 'auto' ? obj.aiProvider : defaultSettings.aiProvider,
   };
 
   if (typeof obj.updatedAt === 'string' && !Number.isNaN(new Date(obj.updatedAt).getTime())) {

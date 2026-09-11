@@ -14,7 +14,7 @@ import {
   isAfter,
   startOfDay,
 } from 'date-fns';
-import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack } from './types';
+import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack, AIProvider } from './types';
 import { storage, normalizeSettings, defaultSettings, mergeSettingsForSync } from './lib/storage';
 import { mergePlans, markPlanForSync, getDeviceId, enqueueSyncOperation } from './lib/sync';
 import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, settleRedirectAuth } from './lib/firebase';
@@ -81,6 +81,7 @@ import { CelebrationEffect } from './components/CelebrationEffect';
 import { QuickNoteEditor } from './components/QuickNoteEditor';
 import { SchedulyChat } from './components/SchedulyChat';
 import { getRandomCatQuote } from './data/catQuotes';
+import { checkLocalAI, LOCAL_AI_MODEL } from './services/localAI';
 
 import { 
   Dialog,
@@ -420,6 +421,7 @@ export default function App() {
   const lastCatQuoteIdRef = React.useRef<number | undefined>(undefined);
   const [catPosition, setCatPosition] = React.useState<{ left: number; top: number } | null>(null);
   const [isSchedulyChatOpen, setIsSchedulyChatOpen] = React.useState(false);
+  const [localAIStatus, setLocalAIStatus] = React.useState<'LOCAL_AI_AVAILABLE' | 'LOCAL_AI_UNAVAILABLE' | 'CHECKING'>('CHECKING');
 
   React.useEffect(() => {
     if (!pomodoroRunning || pomodoroDeadline === null) return;
@@ -1457,17 +1459,16 @@ export default function App() {
   }, []);
 
   const handleCatClick = React.useCallback(() => {
-    setCatMoodOverride('celebrating');
-    if (settingsState.catEnabled !== false) {
-      playMeow();
-    }
-    window.setTimeout(() => setCatMoodOverride(null), 3000);
-
     if (catClickTimeoutRef.current !== null) {
       window.clearTimeout(catClickTimeoutRef.current);
     }
 
     catClickTimeoutRef.current = window.setTimeout(() => {
+      setCatMoodOverride('celebrating');
+      if (settingsState.catEnabled !== false) {
+        playMeow();
+      }
+      window.setTimeout(() => setCatMoodOverride(null), 3000);
       const quote = getRandomCatQuote(lastCatQuoteIdRef.current);
       lastCatQuoteIdRef.current = quote.id;
       if (speechBubbleTimeoutRef.current !== null) {
@@ -1486,6 +1487,21 @@ export default function App() {
     }
     setIsSchedulyChatOpen(true);
   }, []);
+
+  const handleCheckLocalAI = React.useCallback(async () => {
+    setLocalAIStatus('CHECKING');
+    try {
+      setLocalAIStatus(await checkLocalAI());
+    } catch {
+      setLocalAIStatus('LOCAL_AI_UNAVAILABLE');
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (isSettingsOpen && localAIStatus === 'CHECKING') {
+      void handleCheckLocalAI();
+    }
+  }, [handleCheckLocalAI, isSettingsOpen, localAIStatus]);
 
   const getNotificationPermission = React.useCallback(async (): Promise<NotificationPermission> => {
     return await requestUniversalNotificationPermission();
@@ -2959,6 +2975,7 @@ export default function App() {
         theme={settingsState.theme}
         catColor={settingsState.catColor ?? 'orange'}
         plans={plans}
+        aiProvider={settingsState.aiProvider ?? 'auto'}
       />
 
       {!isMobile && <CelebrationEffect trigger={showCelebration} count={25} />}
@@ -3142,6 +3159,32 @@ export default function App() {
                             <Button variant={settingsState.theme === 'dark' ? 'secondary' : 'ghost'} size="xs" onClick={() => handleUpdateSettings({ theme: 'dark' })}>
                               <Moon className="w-3 h-3" />
                             </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4">
+                        <div className="flex flex-col gap-4">
+                          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div>
+                              <p className="text-sm font-semibold text-foreground">{t('aiProvider')}</p>
+                              <p className="text-xs text-muted-foreground">{t('localAIModel')}: {LOCAL_AI_MODEL}</p>
+                            </div>
+                            <Select value={settingsState.aiProvider ?? 'auto'} onValueChange={(value: AIProvider) => handleUpdateSettings({ aiProvider: value })}>
+                              <SelectTrigger className="w-full sm:w-52"><SelectValue /></SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="auto">{t('aiProviderAuto')}</SelectItem>
+                                <SelectItem value="local">{t('aiProviderLocal')}</SelectItem>
+                                <SelectItem value="gemini">{t('aiProviderGemini')}</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex flex-col gap-3 rounded-xl border border-border bg-background/70 p-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-center gap-2 text-xs">
+                              <span className={cn('h-2.5 w-2.5 rounded-full', localAIStatus === 'LOCAL_AI_AVAILABLE' ? 'bg-emerald-500' : localAIStatus === 'CHECKING' ? 'animate-pulse bg-amber-500' : 'bg-red-500')} />
+                              <span>{localAIStatus === 'LOCAL_AI_AVAILABLE' ? t('localAIAvailable') : localAIStatus === 'CHECKING' ? t('checkingLocalAI') : t('localAIUnavailable')}</span>
+                            </div>
+                            <Button type="button" variant="outline" size="sm" onClick={() => void handleCheckLocalAI()} disabled={localAIStatus === 'CHECKING'}>{t('checkLocalAI')}</Button>
                           </div>
                         </div>
                       </div>

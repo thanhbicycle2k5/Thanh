@@ -37,8 +37,11 @@ export function isShortVocabularyQuery(query: string): boolean {
 export function formatAIUserError(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error ?? '');
   const lower = message.toLowerCase();
+  if (lower.includes('local ai chưa được bật')) return 'Local AI chưa được bật. Hãy mở Ollama trên máy của bạn.';
+  if (lower.includes('model local ai chưa được cài đặt')) return message;
+  if (lower.includes('generation stopped')) return 'Đã dừng tạo câu trả lời.';
   if (lower.includes('today') && lower.includes('limit')) return "Today's free AI limit has been reached. Please try again tomorrow.";
-  if (lower.includes('free ai limit') || lower.includes('no free model')) return 'AI is temporarily unavailable because the free AI limit has been reached. Please try again later.';
-  if (lower.includes('network') || lower.includes('fetch')) return 'AI is temporarily unavailable. Please check your connection and try again.';
+  if (lower.includes('free ai limit') || lower.includes('no free model') || lower.includes('quota')) return 'Gemini đang hết giới hạn sử dụng. Scheduly vẫn có thể sử dụng Local AI.';
+  if (lower.includes('network') || lower.includes('fetch') || lower.includes('failed to fetch')) return 'Không có kết nối Internet.';
   return 'AI is temporarily unavailable. Please try again later.';
 }
