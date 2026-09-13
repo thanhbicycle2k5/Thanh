@@ -2057,7 +2057,7 @@ function PlannerApp() {
       endHour: settingsState.endHour,
       language: settingsState.language,
       createdAt: new Date().toISOString(),
-      expiresAt: Timestamp.fromMillis(Date.now() + (3 * 24 * 60 * 60 * 1000)),
+      expiresAt: Timestamp.fromMillis(Date.now() + (24 * 60 * 60 * 1000)),
     });
     return { id: shareId, url: `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(shareId)}` };
   }, [activeUid, settingsState.endHour, settingsState.language, settingsState.startHour]);
