@@ -29,15 +29,27 @@ service cloud.firestore {
 
     // Validation helpers
     function isValidPlan(data) {
-      return data.keys().hasAll(['id', 'title', 'date']) 
+      let allowedFields = [
+        'id', 'title', 'date', 'startHour', 'startMinute', 'duration', 'color', 'notes', 'tags',
+        'reminderMinutes', 'applyMode', 'applyDays', 'applyWeekInterval', 'applyWeekDays', 'applyUntil',
+        'createdAt', 'updatedAt', 'deviceId', 'syncStatus', 'version', 'isSynced', 'deletedAt'
+      ];
+
+      return data.keys().hasAll(['id', 'title', 'date', 'startHour', 'duration', 'color'])
+        && data.keys().hasOnly(allowedFields)
         && data.id is string && data.id.size() <= 128
         && data.title is string && data.title.size() <= 500
         && data.date is string && data.date.size() <= 100
+        && data.startHour is number
+        && data.duration is number
         && (!('color' in data) || (data.color is string && data.color.size() <= 100))
         && (!('notes' in data) || (data.notes is string && data.notes.size() <= 5000))
-        && (!('completed' in data) || (data.completed is bool))
-        && (!('startTime' in data) || (data.startTime is string && data.startTime.size() <= 10))
-        && (!('endTime' in data) || (data.endTime is string && data.endTime.size() <= 10));
+        && (!('startMinute' in data) || (data.startMinute is number))
+        && (!('duration' in data) || (data.duration is number))
+        && (!('reminderMinutes' in data) || (data.reminderMinutes is number))
+        && (!('applyWeekInterval' in data) || (data.applyWeekInterval is number))
+        && (!('version' in data) || (data.version is number))
+        && (!('isSynced' in data) || (data.isSynced is bool));
     }
 
     // --- Rules ---

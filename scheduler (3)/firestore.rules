@@ -35,10 +35,14 @@ service cloud.firestore {
     // Validation Blueprint for Plan
     function isValidPlan(data, isCreate) {
       let requiredFields = ['id', 'title', 'date', 'startHour', 'duration', 'color'];
-      let allAllowedFields = ['id', 'title', 'date', 'startHour', 'duration', 'color', 'notes'];
+      let allAllowedFields = [
+        'id', 'title', 'date', 'startHour', 'startMinute', 'duration', 'color', 'notes', 'tags',
+        'reminderMinutes', 'applyMode', 'applyDays', 'applyWeekInterval', 'applyWeekDays', 'applyUntil',
+        'createdAt', 'updatedAt', 'deviceId', 'syncStatus', 'version', 'isSynced', 'deletedAt'
+      ];
       
       return data.keys().hasAll(requiredFields)
-        && (isCreate ? data.keys().size() <= allAllowedFields.size() : true)
+        && data.keys().hasOnly(allAllowedFields)
         && data.id is string && data.id.size() <= 128
         && data.title is string && data.title.size() <= 500
         && data.date is string && data.date.size() <= 100
