@@ -69,6 +69,17 @@ service cloud.firestore {
       match /meta/settings {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
+
+      match /sharedSchedules/{shareId} {
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create: if isSignedIn()
+          && request.auth.uid == userId
+          && request.resource.data.ownerUid == userId
+          && request.resource.data.id == shareId
+          && request.resource.data.expiresAt > request.time;
+        allow delete: if isSignedIn() && request.auth.uid == userId;
+        allow update: if false;
+      }
     }
 
     match /sharedSchedules/{shareId} {

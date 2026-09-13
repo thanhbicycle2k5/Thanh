@@ -329,6 +329,15 @@ export interface SharedScheduleSnapshot {
   expiresAt: Timestamp;
 }
 
+export interface SharedScheduleLink {
+  id: string;
+  ownerUid: string;
+  startWeek: string;
+  endWeek: string;
+  createdAt: string;
+  expiresAt: Timestamp;
+}
+
 export const createSharedSchedule = async (snapshot: SharedScheduleSnapshot): Promise<string> => {
   const shareId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
@@ -336,17 +345,54 @@ export const createSharedSchedule = async (snapshot: SharedScheduleSnapshot): Pr
   const cleanPlans = snapshot.plans.map((plan) => Object.fromEntries(
     Object.entries(plan).filter(([, value]) => value !== undefined)
   ) as Plan);
-  await setDoc(doc(db, 'sharedSchedules', shareId), { ...snapshot, plans: cleanPlans });
+  const shareRef = doc(db, 'sharedSchedules', shareId);
+  const ownerLinkRef = doc(db, 'users', snapshot.ownerUid, 'sharedSchedules', shareId);
+  const batch = writeBatch(db);
+  batch.set(shareRef, { ...snapshot, plans: cleanPlans });
+  batch.set(ownerLinkRef, {
+    id: shareId,
+    ownerUid: snapshot.ownerUid,
+    startWeek: snapshot.startWeek,
+    endWeek: snapshot.endWeek,
+    createdAt: snapshot.createdAt,
+    expiresAt: snapshot.expiresAt,
+  });
+  await batch.commit();
   return shareId;
+};
+
+export const subscribeSharedScheduleLinks = (
+  uid: string,
+  callback: (links: SharedScheduleLink[]) => void,
+  onError?: (e: Error) => void
+): (() => void) => {
+  const linksCol = collection(db, 'users', uid, 'sharedSchedules');
+  return onSnapshot(
+    linksCol,
+    (snapshot) => {
+      const links = snapshot.docs
+        .map((item) => item.data() as SharedScheduleLink)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      callback(links);
+    },
+    (error) => {
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      onError?.(normalizedError);
+    }
+  );
 };
 
 export const getSharedSchedule = async (shareId: string): Promise<SharedScheduleSnapshot | null> => {
   const snapshot = await getDoc(doc(db, 'sharedSchedules', shareId));
   if (!snapshot.exists()) return null;
-  const data = snapshot.data() as SharedScheduleSnapshot;
-  return data.expiresAt?.toMillis() > Date.now() ? data : null;
+  return snapshot.data() as SharedScheduleSnapshot;
 };
 
 export const deleteSharedSchedule = async (shareId: string): Promise<void> => {
-  await deleteDoc(doc(db, 'sharedSchedules', shareId));
+  const ownerUid = auth.currentUser?.uid;
+  if (!ownerUid) throw new Error('Bạn cần đăng nhập để hủy chia sẻ.');
+  const batch = writeBatch(db);
+  batch.delete(doc(db, 'sharedSchedules', shareId));
+  batch.delete(doc(db, 'users', ownerUid, 'sharedSchedules', shareId));
+  await batch.commit();
 };

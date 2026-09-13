@@ -17,7 +17,7 @@ import {
 import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack, AIProvider } from './types';
 import { storage, normalizeSettings, defaultSettings, mergeSettingsForSync } from './lib/storage';
 import { mergePlans, markPlanForSync, getDeviceId, enqueueSyncOperation } from './lib/sync';
-import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule } from './lib/firebase';
+import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, subscribeSharedScheduleLinks, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule, SharedScheduleLink } from './lib/firebase';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
@@ -339,6 +339,7 @@ function PlannerApp() {
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(defaultSettings));
   const [settingsError, setSettingsError] = React.useState<string | null>(null);
+  const [sharedLinks, setSharedLinks] = React.useState<SharedScheduleLink[]>([]);
 
   React.useEffect(() => {
     settingsRef.current = settingsState;
@@ -1200,6 +1201,7 @@ function PlannerApp() {
 
      let unsubPlans: (() => void) | null = null;
      let unsubSettings: (() => void) | null = null;
+    let unsubSharedLinks: (() => void) | null = null;
      const unsubscribeAuth = onAuthChanged(async (firebaseUser) => {
         if (unsubPlans) {
           unsubPlans();
@@ -1209,11 +1211,16 @@ function PlannerApp() {
           unsubSettings();
           unsubSettings = null;
         }
+        if (unsubSharedLinks) {
+          unsubSharedLinks();
+          unsubSharedLinks = null;
+        }
 
         setUser(firebaseUser);
         setAuthLoading(false);
 
         if (!firebaseUser) {
+          setSharedLinks([]);
           const anonymousPlans = storage.getPlans();
           const anonymousWeekMetas = storage.getWeekMetas();
           const anonymousSettings = normalizeSettings(storage.getSettings());
@@ -1368,7 +1375,11 @@ function PlannerApp() {
                }, (error) => {
                  console.warn('Realtime settings subscription failed:', error);
                });
+               unsubSharedLinks = subscribeSharedScheduleLinks(firebaseUser.uid, setSharedLinks, (error) => {
+                 console.warn('Realtime shared links subscription failed:', error);
+               });
              } else {
+               setSharedLinks([]);
                setSyncing(false);
              }
            } catch (e) {
@@ -1380,6 +1391,7 @@ function PlannerApp() {
              setPlans(fallbackPlans);
              setWeekMetas(fallbackMetas);
              setSettings(fallbackSettings);
+             setSharedLinks([]);
            }
         } else {
            const fallbackPlans = anonymousPlans;
@@ -1388,6 +1400,7 @@ function PlannerApp() {
            setPlans(fallbackPlans);
            setWeekMetas(fallbackMetas);
            setSettings(fallbackSettings);
+           setSharedLinks([]);
            setSyncing(false);
         }
      });
@@ -1399,6 +1412,9 @@ function PlannerApp() {
        }
        if (unsubSettings) {
          unsubSettings();
+       }
+       if (unsubSharedLinks) {
+         unsubSharedLinks();
        }
      };
   }, []);
@@ -2450,6 +2466,7 @@ function PlannerApp() {
                     startHour={settingsState.startHour}
                     endHour={settingsState.endHour}
                     showLunarCalendar={settingsState.showLunarCalendar ?? true}
+                      sharedLinks={sharedLinks}
                       onCreateShare={handleCreateShare}
                       onCancelShare={handleCancelShare}
                  />

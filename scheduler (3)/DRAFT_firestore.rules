@@ -81,6 +81,16 @@ service cloud.firestore {
         allow read: if isOwner(userId);
         allow write: if isOwner(userId);
       }
+
+      match /sharedSchedules/{shareId} {
+        allow read: if isOwner(userId);
+        allow create: if isOwner(userId)
+          && request.resource.data.ownerUid == userId
+          && request.resource.data.id == shareId
+          && request.resource.data.expiresAt > request.time;
+        allow delete: if isOwner(userId);
+        allow update: if false;
+      }
     }
 
     match /sharedSchedules/{shareId} {

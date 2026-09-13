@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/select";
 import { START_MINUTE_OPTIONS, formatPlanTime, getPlanEndMinutes } from '../lib/taskTime';
 import { getColorForClickCount, shouldSkipGeneratedDate } from '../lib/taskColor';
+import type { SharedScheduleLink } from '../lib/firebase';
 
 const WEEK_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
 export type WeekDay = (typeof WEEK_DAYS)[number];
@@ -50,7 +51,7 @@ type ExportPreview = {
   filename: string;
   kind: 'image' | 'pdf';
 };
-type SharedScheduleLink = { id: string; url: string };
+type SharedScheduleResult = { id: string; url: string };
 
 const COLOR_MAP: Record<PlanColor, string> = {
   default: 'bg-card grayscale',
@@ -156,7 +157,8 @@ interface ScheduleGridProps {
   endHour: number;
   showLunarCalendar: boolean;
   allPlans?: Plan[];
-  onCreateShare?: (startWeek: Date, endWeek: Date, plans: Plan[]) => Promise<SharedScheduleLink>;
+  sharedLinks?: SharedScheduleLink[];
+  onCreateShare?: (startWeek: Date, endWeek: Date, plans: Plan[]) => Promise<SharedScheduleResult>;
   onCancelShare?: (shareId: string) => Promise<void>;
 }
 
@@ -173,6 +175,7 @@ function ScheduleGridComponent({
   endHour,
   showLunarCalendar,
   allPlans = plans,
+  sharedLinks = [],
   onCreateShare,
   onCancelShare,
 }: ScheduleGridProps) {
@@ -754,7 +757,8 @@ function ScheduleGridComponent({
               </SelectContent>
             </Select>
           </div>
-          {shareLink && <div className="space-y-2"><Label htmlFor="share-link">Link chia sẻ</Label><Input id="share-link" readOnly value={shareLink} onFocus={(event) => event.currentTarget.select()} /><div className="flex gap-2"><Button type="button" className="flex-1" onClick={() => { void navigator.clipboard.writeText(shareLink); toast.success('Đã sao chép link'); }}>Sao chép link</Button>{onCancelShare && <Button type="button" variant="destructive" onClick={async () => { await onCancelShare(shareId); setShareLink(''); setShareId(''); setShareDialogOpen(false); toast.success('Đã hủy chia sẻ'); }}>Hủy chia sẻ</Button>}</div><p className="text-xs text-muted-foreground">Link tự hết hạn sau 3 ngày.</p></div>}
+          {shareLink && <div className="space-y-2"><Label htmlFor="share-link">Link chia sẻ mới tạo</Label><Input id="share-link" readOnly value={shareLink} onFocus={(event) => event.currentTarget.select()} /><div className="flex gap-2"><Button type="button" className="flex-1" onClick={() => { void navigator.clipboard.writeText(shareLink); toast.success('Đã sao chép link'); }}>Sao chép link</Button>{onCancelShare && <Button type="button" variant="destructive" onClick={async () => { await onCancelShare(shareId); setShareLink(''); setShareId(''); toast.success('Đã hủy chia sẻ'); }}>Hủy chia sẻ</Button>}</div></div>}
+          {sharedLinks.length > 0 && <div className="space-y-2 border-t border-border pt-3"><Label>Link đã tạo</Label>{sharedLinks.map((link) => { const url = `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(link.id)}`; return <div key={link.id} className="space-y-2 rounded-md border border-border p-2"><div className="flex items-center justify-between gap-2 text-xs"><span className="truncate text-muted-foreground">Tuần {link.startWeek} đến {link.endWeek}</span><span className="shrink-0 text-muted-foreground">Hết hạn {format(new Date(link.expiresAt.toMillis()), 'd/M/yyyy HH:mm')}</span></div><Input readOnly value={url} onFocus={(event) => event.currentTarget.select()} /><div className="flex gap-2"><Button type="button" className="flex-1" onClick={() => { void navigator.clipboard.writeText(url); toast.success('Đã sao chép link'); }}>Sao chép link</Button>{onCancelShare && <Button type="button" variant="destructive" onClick={async () => { await onCancelShare(link.id); if (link.id === shareId) { setShareLink(''); setShareId(''); } toast.success('Đã hủy chia sẻ'); }}>Hủy chia sẻ</Button>}</div></div>; })}</div>}
           {!shareLink && <Button type="button" className="w-full" disabled={isSharing} onClick={() => void createShareLink()}>{isSharing ? 'Đang tạo link...' : 'Tạo link chia sẻ'}</Button>}
         </DialogContent>
       </Dialog>
