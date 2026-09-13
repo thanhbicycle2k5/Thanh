@@ -398,6 +398,16 @@ export const getSharedSchedule = async (shareId: string): Promise<SharedSchedule
   return snapshot.data() as SharedScheduleSnapshot;
 };
 
+export const subscribeSharedSchedule = (
+  shareId: string,
+  callback: (snapshot: SharedScheduleSnapshot | null) => void,
+  onError?: (error: Error) => void
+): (() => void) => onSnapshot(
+  doc(db, 'sharedSchedules', shareId),
+  (snapshot) => callback(snapshot.exists() ? snapshot.data() as SharedScheduleSnapshot : null),
+  (error) => onError?.(error instanceof Error ? error : new Error(String(error)))
+);
+
 export const deleteSharedSchedule = async (shareId: string): Promise<void> => {
   const ownerUid = auth.currentUser?.uid;
   if (!ownerUid) throw new Error('Bạn cần đăng nhập để hủy chia sẻ.');

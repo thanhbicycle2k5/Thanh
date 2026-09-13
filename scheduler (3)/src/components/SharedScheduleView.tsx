@@ -5,7 +5,7 @@ import { ArrowLeft, Download, Loader2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { Language, Plan, PlanColor } from '../types';
-import { getSharedSchedule, SharedScheduleSnapshot } from '../lib/firebase';
+import { subscribeSharedSchedule, SharedScheduleSnapshot } from '../lib/firebase';
 
 const COLORS: Record<PlanColor, string> = {
   default: '#f8fafc', green: '#92D050', yellow: '#FFFF00', gray: '#7F7F7F',
@@ -68,27 +68,36 @@ export function SharedScheduleView({ shareId }: { shareId: string }) {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
   const pagesRef = React.useRef<HTMLDivElement>(null);
+  const pdfCreatorRef = React.useRef<HTMLSpanElement>(null);
   const fallbackLanguage: Language = typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('vi') ? 'vi' : 'en';
   const fallbackLabels = sharedLabels[fallbackLanguage];
 
   React.useEffect(() => {
-    getSharedSchedule(shareId)
-      .then((value) => {
-        if (!value) setError('missing');
-        setSnapshot(value);
-      })
-      .catch(() => setError('loadError'))
-      .finally(() => setLoading(false));
+    const unsubscribe = subscribeSharedSchedule(shareId, (value) => {
+      if (!value) setError('missing');
+      setSnapshot(value);
+      setLoading(false);
+    }, () => {
+      setError('loadError');
+      setLoading(false);
+    });
+    return unsubscribe;
   }, [shareId]);
 
   const downloadPdf = async () => {
     if (!pagesRef.current || !snapshot) return;
     const pages = Array.from(pagesRef.current.querySelectorAll<HTMLElement>('.shared-week-page'));
+    const creatorDataUrl = pdfCreatorRef.current
+      ? await toPng(pdfCreatorRef.current, { pixelRatio: 2, cacheBust: true, backgroundColor: '#fff' })
+      : null;
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     for (const [index, page] of pages.entries()) {
       const dataUrl = await toPng(page, { pixelRatio: 2, cacheBust: true, backgroundColor: '#fff' });
       if (index > 0) pdf.addPage('a4', 'landscape');
       pdf.addImage(dataUrl, 'PNG', 8, 8, 281, 194);
+      if (creatorDataUrl) {
+        pdf.addImage(creatorDataUrl, 'PNG', 210, 203, 79, 5);
+      }
     }
     pdf.save(`${sharedLabels[snapshot.language].pdfFile}-${snapshot.startWeek}-${snapshot.endWeek}.pdf`);
   };
@@ -114,6 +123,6 @@ export function SharedScheduleView({ shareId }: { shareId: string }) {
         return <React.Fragment key={weekStart.toISOString()}><SharedWeekPage weekStart={weekStart} plans={snapshot.plans} startHour={snapshot.startHour} endHour={snapshot.endHour} language={snapshot.language} /></React.Fragment>;
       })}
     </div>
-    <p className="shared-attribution">{labels.creator} {ownerLabel}, {labels.createdAt} {format(new Date(snapshot.createdAt), dateTimeFormat, { locale })}, {labels.expiresAt} {format(snapshot.expiresAt.toDate(), dateTimeFormat, { locale })}</p>
+    <p className="shared-attribution"><span ref={pdfCreatorRef}>{labels.creator} {ownerLabel}</span>, {labels.createdAt} {format(new Date(snapshot.createdAt), dateTimeFormat, { locale })}, {labels.expiresAt} {format(snapshot.expiresAt.toDate(), dateTimeFormat, { locale })}</p>
   </main>;
 }
