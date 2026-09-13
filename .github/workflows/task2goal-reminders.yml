@@ -1,6 +1,9 @@
 name: Task2Goal reminders
 
 on:
+  push:
+    branches:
+      - main
   schedule:
     - cron: '*/5 * * * *'
   workflow_dispatch:
