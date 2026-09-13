@@ -99,7 +99,7 @@ export function SharedScheduleView({ shareId }: { shareId: string }) {
   const labels = sharedLabels[snapshot.language];
   const locale = snapshot.language === 'vi' ? vi : enUS;
   const dateTimeFormat = snapshot.language === 'vi' ? 'd/M/yyyy HH:mm' : 'MMM d, yyyy HH:mm';
-  const ownerLabel = snapshot.ownerLabel || snapshot.ownerUid;
+  const ownerLabel = snapshot.ownerLabel || 'Google account';
 
   const start = weekStartFromQuery(snapshot.startWeek);
   const end = weekStartFromQuery(snapshot.endWeek);

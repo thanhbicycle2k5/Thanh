@@ -78,7 +78,11 @@ service cloud.firestore {
           && request.resource.data.id == shareId
           && request.resource.data.expiresAt > request.time;
         allow delete: if isSignedIn() && request.auth.uid == userId;
-        allow update: if false;
+        allow update: if isSignedIn()
+          && request.auth.uid == userId
+          && resource.data.ownerUid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerLabel'])
+          && request.resource.data.ownerLabel is string;
       }
     }
 
@@ -89,7 +93,11 @@ service cloud.firestore {
         && request.resource.data.expiresAt > request.time;
       allow get: if request.time < resource.data.expiresAt;
       allow delete: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
-      allow list, update: if false;
+      allow list: if false;
+      allow update: if isSignedIn()
+        && resource.data.ownerUid == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['ownerLabel'])
+        && request.resource.data.ownerLabel is string;
     }
   }
 }

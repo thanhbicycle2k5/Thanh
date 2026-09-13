@@ -333,6 +333,7 @@ export interface SharedScheduleSnapshot {
 export interface SharedScheduleLink {
   id: string;
   ownerUid: string;
+  ownerLabel?: string;
   startWeek: string;
   endWeek: string;
   createdAt: string;
@@ -353,6 +354,7 @@ export const createSharedSchedule = async (snapshot: SharedScheduleSnapshot): Pr
   batch.set(ownerLinkRef, {
     id: shareId,
     ownerUid: snapshot.ownerUid,
+    ownerLabel: snapshot.ownerLabel,
     startWeek: snapshot.startWeek,
     endWeek: snapshot.endWeek,
     createdAt: snapshot.createdAt,
@@ -381,6 +383,13 @@ export const subscribeSharedScheduleLinks = (
       onError?.(normalizedError);
     }
   );
+};
+
+export const updateSharedScheduleOwnerLabel = async (uid: string, shareId: string, ownerLabel: string): Promise<void> => {
+  const batch = writeBatch(db);
+  batch.update(doc(db, 'sharedSchedules', shareId), { ownerLabel });
+  batch.update(doc(db, 'users', uid, 'sharedSchedules', shareId), { ownerLabel });
+  await batch.commit();
 };
 
 export const getSharedSchedule = async (shareId: string): Promise<SharedScheduleSnapshot | null> => {

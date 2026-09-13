@@ -17,7 +17,7 @@ import {
 import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack, AIProvider } from './types';
 import { storage, normalizeSettings, defaultSettings, mergeSettingsForSync } from './lib/storage';
 import { mergePlans, markPlanForSync, getDeviceId, enqueueSyncOperation } from './lib/sync';
-import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, subscribeSharedScheduleLinks, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule, SharedScheduleLink } from './lib/firebase';
+import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, subscribeSharedScheduleLinks, updateSharedScheduleOwnerLabel, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule, SharedScheduleLink } from './lib/firebase';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
@@ -1375,7 +1375,18 @@ function PlannerApp() {
                }, (error) => {
                  console.warn('Realtime settings subscription failed:', error);
                });
-               unsubSharedLinks = subscribeSharedScheduleLinks(firebaseUser.uid, setSharedLinks, (error) => {
+               unsubSharedLinks = subscribeSharedScheduleLinks(firebaseUser.uid, (links) => {
+                 const ownerLabel = firebaseUser.displayName
+                   || firebaseUser.email
+                   || firebaseUser.providerData.find((provider) => provider.email)?.email
+                   || 'Google account';
+                 setSharedLinks(links.map((link) => ({ ...link, ownerLabel: link.ownerLabel || ownerLabel })));
+                 links.filter((link) => !link.ownerLabel).forEach((link) => {
+                   void updateSharedScheduleOwnerLabel(firebaseUser.uid, link.id, ownerLabel).catch((error) => {
+                     console.warn('Unable to backfill shared link owner label:', error);
+                   });
+                 });
+               }, (error) => {
                  console.warn('Realtime shared links subscription failed:', error);
                });
              } else {
@@ -2050,7 +2061,12 @@ function PlannerApp() {
     });
     const shareId = await createSharedSchedule({
       ownerUid: activeUid,
-      ownerLabel: auth.currentUser?.displayName || auth.currentUser?.email || activeUid,
+      ownerLabel: user?.displayName
+        || user?.email
+        || auth.currentUser?.displayName
+        || auth.currentUser?.email
+        || auth.currentUser?.providerData.find((provider) => provider.email)?.email
+        || 'Google account',
       startWeek: startKey,
       endWeek: endKey,
       plans: selectedPlans,
@@ -2061,7 +2077,7 @@ function PlannerApp() {
       expiresAt: Timestamp.fromMillis(Date.now() + (24 * 60 * 60 * 1000)),
     });
     return { id: shareId, url: `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(shareId)}` };
-  }, [activeUid, settingsState.endHour, settingsState.language, settingsState.startHour]);
+  }, [activeUid, settingsState.endHour, settingsState.language, settingsState.startHour, user]);
 
   const handleCancelShare = React.useCallback(async (shareId: string) => {
     await deleteSharedSchedule(shareId);
