@@ -87,9 +87,14 @@ export function SharedScheduleView({ shareId }: { shareId: string }) {
   const downloadPdf = async () => {
     if (!pagesRef.current || !snapshot) return;
     const pages = Array.from(pagesRef.current.querySelectorAll<HTMLElement>('.shared-week-page'));
-    const creatorDataUrl = pdfCreatorRef.current
-      ? await toPng(pdfCreatorRef.current, { pixelRatio: 2, cacheBust: true, backgroundColor: '#fff' })
-      : null;
+    let creatorDataUrl: string | null = null;
+    if (pdfCreatorRef.current) {
+      try {
+        creatorDataUrl = await toPng(pdfCreatorRef.current, { pixelRatio: 2, cacheBust: true, backgroundColor: '#fff' });
+      } catch (error) {
+        console.warn('Unable to render creator line in PDF:', error);
+      }
+    }
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     for (const [index, page] of pages.entries()) {
       const dataUrl = await toPng(page, { pixelRatio: 2, cacheBust: true, backgroundColor: '#fff' });
