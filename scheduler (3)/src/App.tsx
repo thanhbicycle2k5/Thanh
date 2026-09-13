@@ -27,6 +27,7 @@ import { calculatePomodoroRemainingSeconds } from './lib/pomodoro';
 import { getSchedulyMessage, SchedulyStatus } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
+import { buildRemoteReminders, sendWebPushTest, subscribeToWebPush, syncWebPushReminders } from './lib/webPush';
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
 import { SharedScheduleView } from './components/SharedScheduleView';
@@ -1547,6 +1548,11 @@ function PlannerApp() {
 
     if (!enabled) {
       await clearAllScheduledNotifications();
+      try {
+        await syncWebPushReminders([]);
+      } catch (error) {
+        console.warn('Failed to clear server reminders:', error);
+      }
       handleUpdateSettings({ notificationsEnabled: false });
       return;
     }
@@ -1555,6 +1561,21 @@ function PlannerApp() {
     if (permission !== 'granted') {
       toast.error('Notification permission denied.');
       await clearAllScheduledNotifications();
+      handleUpdateSettings({ notificationsEnabled: false });
+      return;
+    }
+
+    const registration = await registerNotificationWorker();
+    if (!registration) {
+      toast.error('Could not register the notification service worker.');
+      handleUpdateSettings({ notificationsEnabled: false });
+      return;
+    }
+    try {
+      await subscribeToWebPush(registration);
+    } catch (error) {
+      console.error('Push subscription failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Could not enable push notifications.');
       handleUpdateSettings({ notificationsEnabled: false });
       return;
     }
@@ -1632,6 +1653,17 @@ function PlannerApp() {
     const permission = await getNotificationPermission();
     if (permission !== 'granted') {
       return;
+    }
+
+    try {
+      await syncWebPushReminders(buildRemoteReminders(
+        plansRef.current,
+        () => buildNotificationTitle(),
+        (plan) => buildNotificationBody(plan.title),
+        (plan) => getPlanReminderDate({ date: plan.date, startHour: plan.startHour, startMinute: plan.startMinute }).getTime(),
+      ));
+    } catch (error) {
+      console.error('Failed to sync server reminders:', error);
     }
 
     const now = Date.now();
@@ -3369,6 +3401,23 @@ function PlannerApp() {
                           {settingsState.notificationsEnabled ? t('notificationsStatusOnDescription') : t('notificationsStatusOffDescription')}
                         </p>
                       </div>
+
+                      <Button
+                        variant="outline"
+                        className="w-full sm:w-auto"
+                        disabled={!settingsState.notificationsEnabled}
+                        onClick={async () => {
+                          try {
+                            await sendWebPushTest();
+                            toast.success('Test notification sent.');
+                          } catch (error) {
+                            toast.error(error instanceof Error ? error.message : 'Could not send the test notification.');
+                          }
+                        }}
+                      >
+                        <Bell className="mr-2 h-4 w-4" />
+                        Send Test Notification
+                      </Button>
 
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div className="space-y-1">

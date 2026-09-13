@@ -1,2 +1,4 @@
 .vercel
 .env*
+node_modules/
+"scheduler (3)"/node_modules/

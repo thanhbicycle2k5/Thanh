@@ -1,0 +1,16 @@
+name: Task2Goal reminders
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process due reminders
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          APP_URL: ${{ secrets.TASK2GOAL_APP_URL }}
+        run: curl --fail-with-body --silent --show-error -H "Authorization: Bearer ${CRON_SECRET}" "${APP_URL}/api/cron/reminders"

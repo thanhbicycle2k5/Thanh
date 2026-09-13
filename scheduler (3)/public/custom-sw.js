@@ -255,12 +255,16 @@ self.addEventListener('sync', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const taskId = event.notification.data?.taskId;
+  const targetUrl = taskId ? `/?taskId=${encodeURIComponent(taskId)}` : '/';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       if (clients.length > 0) {
-        return clients[0].focus();
+        const client = clients[0];
+        if (taskId && 'navigate' in client) return client.navigate(targetUrl).then(() => client.focus());
+        return client.focus();
       }
-      return self.clients.openWindow('/');
+      return self.clients.openWindow(targetUrl);
     })
   );
 });

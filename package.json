@@ -1,0 +1,25 @@
+{
+  "name": "thanh",
+  "version": "1.0.0",
+  "description": "",
+  "main": "cycle_check.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/thanhbicycle2k5/Thanh.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/thanhbicycle2k5/Thanh/issues"
+  },
+  "homepage": "https://github.com/thanhbicycle2k5/Thanh#readme",
+  "dependencies": {
+    "firebase-admin": "^14.4.0",
+    "web-push": "^3.6.7"
+  }
+}
