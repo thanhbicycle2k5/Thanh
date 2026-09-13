@@ -22,4 +22,4 @@ npx web-push generate-vapid-keys
 
 `VAPID_PRIVATE_KEY`, the Firebase service account, and `CRON_SECRET` are server-only. The app exposes only the public VAPID key through `/api/push/config`.
 
-Vercel Cron is configured for every minute. Vercel Hobby may restrict cron frequency; for a $0 deployment, configure the repository's scheduled GitHub Action with the `CRON_SECRET` repository secret. Its normal cadence is every five minutes and GitHub may delay scheduled jobs, so exact-minute delivery requires a scheduler plan that supports per-minute execution.
+The repository uses the scheduled GitHub Action as the $0 reminder scheduler. It normally runs every five minutes and GitHub may delay scheduled jobs. Vercel Cron is not enabled because the current Vercel plan rejected the per-minute schedule; exact-minute delivery requires a scheduler plan that supports per-minute execution.
