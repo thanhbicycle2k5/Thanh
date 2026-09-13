@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { addDays, addWeeks, format, isSameDay } from 'date-fns';
 import { enUS, vi } from 'date-fns/locale';
-import { Download, Loader2 } from 'lucide-react';
+import { ArrowLeft, Download, Loader2 } from 'lucide-react';
 import { toPng } from 'html-to-image';
 import { jsPDF } from 'jspdf';
 import { Language, Plan, PlanColor } from '../types';
@@ -17,9 +17,9 @@ const weekStartFromQuery = (value: string) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const sharedLabels: Record<Language, { week: string; time: string; task: string; hours: string; loading: string; missing: string; loadError: string; invalid: string; readOnly: string; downloadPdf: string; pdfFile: string }> = {
-  en: { week: 'Week', time: 'Time', task: 'Task', hours: 'h', loading: 'Loading shared schedule...', missing: 'This share link does not exist or has been deleted.', loadError: 'Unable to load the shared schedule.', invalid: 'The shared schedule data is invalid.', readOnly: 'Read-only shared schedule', downloadPdf: 'Download PDF', pdfFile: 'task2goal-weeks' },
-  vi: { week: 'Tuần', time: 'Giờ', task: 'Nhiệm vụ', hours: 'giờ', loading: 'Đang tải lịch được chia sẻ...', missing: 'Link chia sẻ không tồn tại hoặc đã bị xóa.', loadError: 'Không thể tải lịch được chia sẻ.', invalid: 'Dữ liệu lịch không hợp lệ.', readOnly: 'Lịch được chia sẻ ở chế độ chỉ xem', downloadPdf: 'Tải PDF', pdfFile: 'task2goal-tuan' },
+const sharedLabels: Record<Language, { week: string; time: string; task: string; hours: string; loading: string; missing: string; loadError: string; invalid: string; readOnly: string; backToApp: string; downloadPdf: string; pdfFile: string }> = {
+  en: { week: 'Week', time: 'Time', task: 'Task', hours: 'h', loading: 'Loading shared schedule...', missing: 'This share link does not exist or has been deleted.', loadError: 'Unable to load the shared schedule.', invalid: 'The shared schedule data is invalid.', readOnly: 'Read-only shared schedule', backToApp: 'Back to app', downloadPdf: 'Download PDF', pdfFile: 'task2goal-weeks' },
+  vi: { week: 'Tuần', time: 'Giờ', task: 'Nhiệm vụ', hours: 'giờ', loading: 'Đang tải lịch được chia sẻ...', missing: 'Link chia sẻ không tồn tại hoặc đã bị xóa.', loadError: 'Không thể tải lịch được chia sẻ.', invalid: 'Dữ liệu lịch không hợp lệ.', readOnly: 'Lịch được chia sẻ ở chế độ chỉ xem', backToApp: 'Quay lại ứng dụng', downloadPdf: 'Tải PDF', pdfFile: 'task2goal-tuan' },
 };
 
 function SharedWeekPage({ weekStart, plans, startHour, endHour, language }: { weekStart: Date; plans: Plan[]; startHour: number; endHour: number; language: Language }) {
@@ -104,7 +104,7 @@ export function SharedScheduleView({ shareId }: { shareId: string }) {
   const weekCount = Math.max(1, Math.floor((end.getTime() - start.getTime()) / (7 * 86400000)) + 1);
 
   return <main className="shared-schedule-shell">
-    <div className="shared-toolbar"><div><h1>Task2Goal</h1><p>{labels.readOnly}</p></div><button type="button" onClick={() => void downloadPdf()}><Download size={16} /> {labels.downloadPdf}</button></div>
+    <div className="shared-toolbar"><button type="button" className="shared-back-button" aria-label={labels.backToApp} title={labels.backToApp} onClick={() => { window.location.href = window.location.href.split('?')[0]; }}><ArrowLeft size={18} /></button><div><h1>Task2Goal</h1><p>{labels.readOnly}</p></div><button type="button" onClick={() => void downloadPdf()}><Download size={16} /> {labels.downloadPdf}</button></div>
     <div ref={pagesRef} className="shared-pages">
       {Array.from({ length: weekCount }, (_, index) => {
         const weekStart = addWeeks(start, index);
