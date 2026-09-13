@@ -16,4 +16,7 @@ jobs:
         env:
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           APP_URL: ${{ secrets.TASK2GOAL_APP_URL }}
-        run: curl --fail-with-body --silent --show-error -H "Authorization: Bearer ${CRON_SECRET}" "${APP_URL}/api/cron/reminders"
+        run: |
+          curl --fail-with-body --silent --show-error \
+            -H "Authorization: Bearer ${CRON_SECRET}" \
+            "${APP_URL}/api/cron/reminders"
