@@ -1741,7 +1741,18 @@ function PlannerApp() {
       return;
     }
 
-    await registerNotificationWorker();
+    const registration = await registerNotificationWorker();
+    if (!registration) {
+      toast.error('Could not register the notification service worker.');
+      return;
+    }
+    try {
+      await subscribeToWebPush(registration);
+    } catch (error) {
+      console.error('Push subscription refresh failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Could not connect push notifications.');
+      return;
+    }
     await clearAllScheduledNotifications();
     void scheduleUpcomingNotifications();
     if (notificationScannerRef.current !== null) {
