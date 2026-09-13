@@ -68,7 +68,6 @@ export function SharedScheduleView({ shareId }: { shareId: string }) {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState('');
   const pagesRef = React.useRef<HTMLDivElement>(null);
-  const pdfCreatorRef = React.useRef<HTMLSpanElement>(null);
   const fallbackLanguage: Language = typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('vi') ? 'vi' : 'en';
   const fallbackLabels = sharedLabels[fallbackLanguage];
 
@@ -88,12 +87,21 @@ export function SharedScheduleView({ shareId }: { shareId: string }) {
     if (!pagesRef.current || !snapshot) return;
     const pages = Array.from(pagesRef.current.querySelectorAll<HTMLElement>('.shared-week-page'));
     let creatorDataUrl: string | null = null;
-    if (pdfCreatorRef.current) {
-      try {
-        creatorDataUrl = await toPng(pdfCreatorRef.current, { pixelRatio: 2, cacheBust: true, backgroundColor: '#fff' });
-      } catch (error) {
-        console.warn('Unable to render creator line in PDF:', error);
+    try {
+      const creatorCanvas = document.createElement('canvas');
+      creatorCanvas.width = 1600;
+      creatorCanvas.height = 48;
+      const context = creatorCanvas.getContext('2d');
+      if (context) {
+        context.fillStyle = '#64748b';
+        context.font = '700 24px Arial, sans-serif';
+        context.textAlign = 'right';
+        context.textBaseline = 'middle';
+        context.fillText(`${labels.creator} ${ownerLabel}`, 1580, 24);
+        creatorDataUrl = creatorCanvas.toDataURL('image/png');
       }
+    } catch (error) {
+      console.warn('Unable to render creator line in PDF:', error);
     }
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
     for (const [index, page] of pages.entries()) {
@@ -101,7 +109,11 @@ export function SharedScheduleView({ shareId }: { shareId: string }) {
       if (index > 0) pdf.addPage('a4', 'landscape');
       pdf.addImage(dataUrl, 'PNG', 8, 8, 281, 194);
       if (creatorDataUrl) {
-        pdf.addImage(creatorDataUrl, 'PNG', 210, 203, 79, 5);
+        try {
+          pdf.addImage(creatorDataUrl, 'PNG', 150, 203, 139, 5);
+        } catch (error) {
+          console.warn('Unable to add creator line to PDF:', error);
+        }
       }
     }
     pdf.save(`${sharedLabels[snapshot.language].pdfFile}-${snapshot.startWeek}-${snapshot.endWeek}.pdf`);
@@ -128,6 +140,6 @@ export function SharedScheduleView({ shareId }: { shareId: string }) {
         return <React.Fragment key={weekStart.toISOString()}><SharedWeekPage weekStart={weekStart} plans={snapshot.plans} startHour={snapshot.startHour} endHour={snapshot.endHour} language={snapshot.language} /></React.Fragment>;
       })}
     </div>
-    <p className="shared-attribution"><span ref={pdfCreatorRef}>{labels.creator} {ownerLabel}</span>, {labels.createdAt} {format(new Date(snapshot.createdAt), dateTimeFormat, { locale })}, {labels.expiresAt} {format(snapshot.expiresAt.toDate(), dateTimeFormat, { locale })}</p>
+    <p className="shared-attribution">{labels.creator} {ownerLabel}, {labels.createdAt} {format(new Date(snapshot.createdAt), dateTimeFormat, { locale })}, {labels.expiresAt} {format(snapshot.expiresAt.toDate(), dateTimeFormat, { locale })}</p>
   </main>;
 }
