@@ -2050,6 +2050,7 @@ function PlannerApp() {
     });
     const shareId = await createSharedSchedule({
       ownerUid: activeUid,
+      ownerLabel: auth.currentUser?.displayName || auth.currentUser?.email || activeUid,
       startWeek: startKey,
       endWeek: endKey,
       plans: selectedPlans,

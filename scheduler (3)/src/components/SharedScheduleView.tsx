@@ -17,9 +17,9 @@ const weekStartFromQuery = (value: string) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const sharedLabels: Record<Language, { week: string; time: string; task: string; hours: string; loading: string; missing: string; loadError: string; invalid: string; readOnly: string; backToApp: string; downloadPdf: string; pdfFile: string }> = {
-  en: { week: 'Week', time: 'Time', task: 'Task', hours: 'h', loading: 'Loading shared schedule...', missing: 'This share link does not exist or has been deleted.', loadError: 'Unable to load the shared schedule.', invalid: 'The shared schedule data is invalid.', readOnly: 'Read-only shared schedule', backToApp: 'Back to app', downloadPdf: 'Download PDF', pdfFile: 'task2goal-weeks' },
-  vi: { week: 'Tuần', time: 'Giờ', task: 'Nhiệm vụ', hours: 'giờ', loading: 'Đang tải lịch được chia sẻ...', missing: 'Link chia sẻ không tồn tại hoặc đã bị xóa.', loadError: 'Không thể tải lịch được chia sẻ.', invalid: 'Dữ liệu lịch không hợp lệ.', readOnly: 'Lịch được chia sẻ ở chế độ chỉ xem', backToApp: 'Quay lại ứng dụng', downloadPdf: 'Tải PDF', pdfFile: 'task2goal-tuan' },
+const sharedLabels: Record<Language, { week: string; time: string; task: string; hours: string; loading: string; missing: string; loadError: string; invalid: string; readOnly: string; backToApp: string; downloadPdf: string; pdfFile: string; creator: string; createdAt: string; expiresAt: string }> = {
+  en: { week: 'Week', time: 'Time', task: 'Task', hours: 'h', loading: 'Loading shared schedule...', missing: 'This share link does not exist or has been deleted.', loadError: 'Unable to load the shared schedule.', invalid: 'The shared schedule data is invalid.', readOnly: 'Read-only shared schedule', backToApp: 'Back to app', downloadPdf: 'Download PDF', pdfFile: 'task2goal-weeks', creator: 'Created by', createdAt: 'created at', expiresAt: 'link expires at' },
+  vi: { week: 'Tuần', time: 'Giờ', task: 'Nhiệm vụ', hours: 'giờ', loading: 'Đang tải lịch được chia sẻ...', missing: 'Link chia sẻ không tồn tại hoặc đã bị xóa.', loadError: 'Không thể tải lịch được chia sẻ.', invalid: 'Dữ liệu lịch không hợp lệ.', readOnly: 'Lịch được chia sẻ ở chế độ chỉ xem', backToApp: 'Quay lại ứng dụng', downloadPdf: 'Tải PDF', pdfFile: 'task2goal-tuan', creator: 'Người tạo', createdAt: 'tạo lúc', expiresAt: 'liên kết sẽ hết hạn vào' },
 };
 
 function SharedWeekPage({ weekStart, plans, startHour, endHour, language }: { weekStart: Date; plans: Plan[]; startHour: number; endHour: number; language: Language }) {
@@ -97,6 +97,9 @@ export function SharedScheduleView({ shareId }: { shareId: string }) {
   if (error || !snapshot) return <div className="shared-state"><p>{error === 'loadError' ? fallbackLabels.loadError : error === 'missing' ? fallbackLabels.missing : error || fallbackLabels.missing}</p></div>;
 
   const labels = sharedLabels[snapshot.language];
+  const locale = snapshot.language === 'vi' ? vi : enUS;
+  const dateTimeFormat = snapshot.language === 'vi' ? 'd/M/yyyy HH:mm' : 'MMM d, yyyy HH:mm';
+  const ownerLabel = snapshot.ownerLabel || snapshot.ownerUid;
 
   const start = weekStartFromQuery(snapshot.startWeek);
   const end = weekStartFromQuery(snapshot.endWeek);
@@ -111,5 +114,6 @@ export function SharedScheduleView({ shareId }: { shareId: string }) {
         return <React.Fragment key={weekStart.toISOString()}><SharedWeekPage weekStart={weekStart} plans={snapshot.plans} startHour={snapshot.startHour} endHour={snapshot.endHour} language={snapshot.language} /></React.Fragment>;
       })}
     </div>
+    <p className="shared-attribution">{labels.creator} {ownerLabel}, {labels.createdAt} {format(new Date(snapshot.createdAt), dateTimeFormat, { locale })}, {labels.expiresAt} {format(snapshot.expiresAt.toDate(), dateTimeFormat, { locale })}</p>
   </main>;
 }

@@ -12,6 +12,7 @@
 .shared-toolbar button { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 8px; padding: 10px 14px; background: #107c41; color: white; font-weight: 700; cursor: pointer; }
 .shared-pages { width: min(1120px, 100%); height: calc(100dvh - 120px); max-height: calc(100dvh - 120px); flex: 1 1 0%; min-height: 0; margin: 0 auto; display: grid; align-content: start; grid-auto-rows: max-content; gap: 24px; overflow-y: auto; overflow-x: auto; overscroll-behavior: contain; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; padding: 0 4px 48px; }
 .shared-week-page { height: max-content; min-height: max-content; background: white; padding: 20px; box-shadow: 0 8px 24px rgb(15 23 42 / 10%); overflow: visible; }
+.shared-attribution { width: min(1120px, 100%); flex: 0 0 auto; margin: 8px auto 0; color: #64748b; font-size: 11px; text-align: right; }
 .shared-week-title { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
 .shared-week-page table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11px; }
 .shared-week-page th, .shared-week-page td { border: 1px solid #cbd5e1; height: 34px; padding: 5px; text-align: center; vertical-align: middle; }

@@ -319,6 +319,7 @@ export const subscribeSettings = (
 
 export interface SharedScheduleSnapshot {
   ownerUid: string;
+  ownerLabel?: string;
   startWeek: string;
   endWeek: string;
   plans: Plan[];
