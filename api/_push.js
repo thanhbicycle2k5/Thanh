@@ -1,15 +1,18 @@
 const crypto = require('node:crypto');
-const admin = require('firebase-admin');
+const { cert, getApp, getApps, initializeApp } = require('firebase-admin/app');
+const { FieldValue, getFirestore } = require('firebase-admin/firestore');
 const webpush = require('web-push');
 
+const admin = { firestore: { FieldValue } };
+
 function getFirebaseApp() {
-  if (admin.apps.length > 0) return admin.app();
+  if (getApps().length > 0) return getApp();
   const serviceAccountJson = String(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '').trim();
   if (serviceAccountJson) {
-    return admin.initializeApp({ credential: admin.credential.cert(JSON.parse(serviceAccountJson)) });
+    return initializeApp({ credential: cert(JSON.parse(serviceAccountJson)) });
   }
-  return admin.initializeApp({
-    credential: admin.credential.cert({
+  return initializeApp({
+    credential: cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
       privateKey: String(process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n'),
@@ -18,8 +21,7 @@ function getFirebaseApp() {
 }
 
 function getDb() {
-  getFirebaseApp();
-  return admin.firestore();
+  return getFirestore(getFirebaseApp());
 }
 
 function configureVapid() {
