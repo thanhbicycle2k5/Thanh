@@ -12,9 +12,14 @@ module.exports = async function handler(request, response) {
     configureVapid();
     const db = getDb();
     const now = Date.now();
-    const snapshot = await db.collectionGroup('reminders').where('fireAt', '<=', now).get();
+    const devicesSnapshot = await db.collection('task2goalDevices').get();
+    const reminderSnapshots = await Promise.all(
+      devicesSnapshot.docs.map((deviceSnapshot) => deviceSnapshot.ref.collection('reminders').get())
+    );
+    const dueReminders = reminderSnapshots.flatMap((remindersSnapshot) => remindersSnapshot.docs)
+      .filter((reminderSnapshot) => Number(reminderSnapshot.data().fireAt) <= now);
     let sent = 0;
-    for (const reminderSnapshot of snapshot.docs) {
+    for (const reminderSnapshot of dueReminders) {
       const reminder = reminderSnapshot.data();
       if (reminder.sentAt && (!reminder.claimedAt || now - reminder.claimedAt < 5 * 60_000)) continue;
       const claim = await db.runTransaction(async (transaction) => {
@@ -37,7 +42,7 @@ module.exports = async function handler(request, response) {
       if (delivered) { await reminderSnapshot.ref.update({ sentAt: admin.firestore.FieldValue.serverTimestamp(), claimedAt: now }); sent += 1; }
       else await reminderSnapshot.ref.update({ claimedAt: null });
     }
-    return response.status(200).json({ ok: true, due: snapshot.size, sent });
+    return response.status(200).json({ ok: true, due: dueReminders.length, sent });
   } catch (error) {
     const details = {
       name: error?.name || 'Error',
