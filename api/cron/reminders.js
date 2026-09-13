@@ -38,5 +38,13 @@ module.exports = async function handler(request, response) {
       else await reminderSnapshot.ref.update({ claimedAt: null });
     }
     return response.status(200).json({ ok: true, due: snapshot.size, sent });
-  } catch (error) { console.error('Reminder cron error:', error); return response.status(500).json({ error: 'Reminder processing failed.' }); }
+  } catch (error) {
+    const details = {
+      name: error?.name || 'Error',
+      code: error?.code || 'unknown',
+      message: String(error?.message || error),
+    };
+    console.error('Reminder cron error:', details);
+    return response.status(500).json({ error: 'Reminder processing failed.', code: details.code });
+  }
 };
