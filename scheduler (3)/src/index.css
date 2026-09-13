@@ -10,8 +10,8 @@
 .shared-toolbar p, .shared-week-title p { color: #64748b; font-size: 12px; }
 .shared-back-button { display: inline-flex; align-items: center; justify-content: center; width: 38px; height: 38px; padding: 0 !important; background: transparent !important; color: #0f172a !important; }
 .shared-toolbar button { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 8px; padding: 10px 14px; background: #107c41; color: white; font-weight: 700; cursor: pointer; }
-.shared-pages { width: min(1120px, 100%); height: calc(100dvh - 120px); max-height: calc(100dvh - 120px); flex: 1 1 0%; min-height: 0; margin: 0 auto; display: grid; align-content: start; gap: 24px; overflow-y: auto; overflow-x: auto; overscroll-behavior: contain; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; padding: 0 4px 24px; }
-.shared-week-page { background: white; padding: 20px; box-shadow: 0 8px 24px rgb(15 23 42 / 10%); overflow: hidden; }
+.shared-pages { width: min(1120px, 100%); height: calc(100dvh - 120px); max-height: calc(100dvh - 120px); flex: 1 1 0%; min-height: 0; margin: 0 auto; display: grid; align-content: start; grid-auto-rows: max-content; gap: 24px; overflow-y: auto; overflow-x: auto; overscroll-behavior: contain; touch-action: pan-x pan-y; -webkit-overflow-scrolling: touch; padding: 0 4px 48px; }
+.shared-week-page { height: max-content; min-height: max-content; background: white; padding: 20px; box-shadow: 0 8px 24px rgb(15 23 42 / 10%); overflow: visible; }
 .shared-week-title { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
 .shared-week-page table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11px; }
 .shared-week-page th, .shared-week-page td { border: 1px solid #cbd5e1; height: 34px; padding: 5px; text-align: center; vertical-align: middle; }
