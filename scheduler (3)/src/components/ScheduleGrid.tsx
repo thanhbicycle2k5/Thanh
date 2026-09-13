@@ -7,7 +7,7 @@ import {
 } from 'date-fns';
 import { Plan, PlanColor, Language, Theme, TaskApplyMode } from '../types';
 import { cn } from '@/lib/utils';
-import { Plus, Edit2, Trash2, Download, Share2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Clock3, Share2 } from 'lucide-react';
 import { Solar } from 'lunar-javascript';
 import { translations } from '../lib/i18n';
 import {
@@ -22,12 +22,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { toJpeg, toPng } from 'html-to-image';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
@@ -633,32 +627,7 @@ function ScheduleGridComponent({
           <tr className="bg-muted/95 backdrop-blur">
             <th className="w-14 md:w-20 border p-2 text-[10px] font-black uppercase tracking-wider sticky left-0 z-30 bg-card border-border text-muted-foreground">
               <div className="flex items-center justify-center gap-1">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    className="mx-auto h-7 w-7 text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                    aria-label="Tải lịch xuống"
-                    title="Tải lịch xuống"
-                    disabled={isExporting}
-                  >
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="min-w-32">
-                  <DropdownMenuItem onClick={() => void downloadScheduleImage('png')}>
-                    Tải PNG
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void downloadScheduleImage('jpg')}>
-                    Tải JPG
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => void downloadSchedulePdf()}>
-                    Tải PDF
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                <Clock3 className="h-4 w-4" aria-label="Thời gian" />
               </div>
             </th>
             {daysOfCurrentWeek.map((day, i) => (
@@ -679,7 +648,7 @@ function ScheduleGridComponent({
         <tbody>
           {HOURS.map(hour => (
             <tr key={hour} className="h-10 md:h-12">
-              <td className="border text-center font-bold text-[10px] md:text-xs sticky left-0 z-20 bg-muted/50 border-border text-muted-foreground">
+              <td className="border text-center font-black text-[10px] md:text-xs sticky left-0 z-20 bg-muted border-border text-foreground">
                 {hour}:00
               </td>
               {daysOfCurrentWeek.map((day, dayIndex) => {
