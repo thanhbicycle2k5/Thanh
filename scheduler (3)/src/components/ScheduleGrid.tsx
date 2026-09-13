@@ -7,7 +7,7 @@ import {
 } from 'date-fns';
 import { Plan, PlanColor, Language, Theme, TaskApplyMode } from '../types';
 import { cn } from '@/lib/utils';
-import { Plus, Edit2, Trash2, Download } from 'lucide-react';
+import { Plus, Edit2, Trash2, Download, Share2 } from 'lucide-react';
 import { Solar } from 'lunar-javascript';
 import { translations } from '../lib/i18n';
 import {
@@ -50,6 +50,7 @@ type ExportPreview = {
   filename: string;
   kind: 'image' | 'pdf';
 };
+type SharedScheduleLink = { id: string; url: string };
 
 const COLOR_MAP: Record<PlanColor, string> = {
   default: 'bg-card grayscale',
@@ -154,6 +155,9 @@ interface ScheduleGridProps {
   startHour: number;
   endHour: number;
   showLunarCalendar: boolean;
+  allPlans?: Plan[];
+  onCreateShare?: (startWeek: Date, endWeek: Date, plans: Plan[]) => Promise<SharedScheduleLink>;
+  onCancelShare?: (shareId: string) => Promise<void>;
 }
 
 function ScheduleGridComponent({ 
@@ -168,6 +172,9 @@ function ScheduleGridComponent({
   startHour,
   endHour,
   showLunarCalendar,
+  allPlans = plans,
+  onCreateShare,
+  onCancelShare,
 }: ScheduleGridProps) {
 
   const t = React.useCallback((key: keyof typeof translations.en) => translations[language][key], [language]);
@@ -206,6 +213,11 @@ function ScheduleGridComponent({
   const scheduleTableRef = React.useRef<HTMLTableElement>(null);
   const [isExporting, setIsExporting] = React.useState(false);
   const [exportPreview, setExportPreview] = React.useState<ExportPreview | null>(null);
+  const [shareDialogOpen, setShareDialogOpen] = React.useState(false);
+  const [shareEndWeek, setShareEndWeek] = React.useState(format(currentWeekStart, 'yyyy-MM-dd'));
+  const [shareLink, setShareLink] = React.useState('');
+  const [shareId, setShareId] = React.useState('');
+  const [isSharing, setIsSharing] = React.useState(false);
 
   const closeExportPreview = React.useCallback(() => {
     setExportPreview((preview) => {
@@ -551,6 +563,27 @@ function ScheduleGridComponent({
     }
   }, [currentWeekStart, isExporting]);
 
+  const shareWeekOptions = React.useMemo(
+    () => Array.from({ length: 12 }, (_, index) => addDays(currentWeekStart, index * 7)),
+    [currentWeekStart]
+  );
+
+  const createShareLink = async () => {
+    if (!onCreateShare) return;
+    const endWeek = new Date(`${shareEndWeek}T00:00:00`);
+    setIsSharing(true);
+    try {
+      const shared = await onCreateShare(currentWeekStart, endWeek, allPlans);
+      setShareId(shared.id);
+      setShareLink(shared.url);
+    } catch (error) {
+      console.error('Unable to create shared schedule:', error);
+      toast.error('Không thể tạo link chia sẻ lịch');
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
   const downloadSchedulePdf = React.useCallback(async () => {
     const table = scheduleTableRef.current;
     if (!table || isExporting) return;
@@ -591,11 +624,12 @@ function ScheduleGridComponent({
   const maxDuration = (hour: number) => Math.min(12, endHour - hour + 1);
 
   return (
-    <div id="schedule-scroll-container" className="w-full overflow-x-auto rounded-xl border transition-colors bg-card border-border">
+    <div id="schedule-scroll-container" className="relative w-full overflow-x-auto rounded-xl border transition-colors bg-card border-border">
       <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px]">
         <thead className="sticky top-0 z-30">
           <tr className="bg-muted/95 backdrop-blur">
             <th className="w-14 md:w-20 border p-2 text-[10px] font-black uppercase tracking-wider sticky left-0 z-30 bg-card border-border text-muted-foreground">
+              <div className="flex items-center justify-center gap-1">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -622,6 +656,7 @@ function ScheduleGridComponent({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              </div>
             </th>
             {daysOfCurrentWeek.map((day, i) => (
               <th key={i} className={cn(
@@ -668,6 +703,11 @@ function ScheduleGridComponent({
           ))}
         </tbody>
       </table>
+      {onCreateShare && <div className="flex justify-end border-t border-border bg-muted/30 p-1.5">
+        <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-primary/10 hover:text-primary" aria-label="Chia sẻ lịch" title="Chia sẻ lịch" onClick={() => { setShareEndWeek(format(currentWeekStart, 'yyyy-MM-dd')); setShareLink(''); setShareId(''); setShareDialogOpen(true); }}>
+          <Share2 className="h-4 w-4" />
+        </Button>
+      </div>}
 
       <Dialog open={exportPreview !== null} onOpenChange={(open) => { if (!open) closeExportPreview(); }}>
         <DialogContent className="max-w-2xl bg-card">
@@ -696,6 +736,26 @@ function ScheduleGridComponent({
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={shareDialogOpen} onOpenChange={setShareDialogOpen}>
+        <DialogContent className="max-w-md bg-card">
+          <DialogHeader>
+            <DialogTitle>Chia sẻ lịch</DialogTitle>
+            <DialogDescription>Chọn tuần cuối. Tất cả tuần từ tuần hiện tại đến tuần này sẽ nằm trong cùng một link chỉ xem.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="share-end-week">Chia sẻ đến</Label>
+            <Select value={shareEndWeek} onValueChange={setShareEndWeek}>
+              <SelectTrigger id="share-end-week"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {shareWeekOptions.map((week) => <SelectItem key={week.toISOString()} value={format(week, 'yyyy-MM-dd')}>Tuần {format(week, 'w')} ({format(week, 'd/M')})</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          {shareLink && <div className="space-y-2"><Label htmlFor="share-link">Link chia sẻ</Label><Input id="share-link" readOnly value={shareLink} onFocus={(event) => event.currentTarget.select()} /><div className="flex gap-2"><Button type="button" className="flex-1" onClick={() => { void navigator.clipboard.writeText(shareLink); toast.success('Đã sao chép link'); }}>Sao chép link</Button>{onCancelShare && <Button type="button" variant="destructive" onClick={async () => { await onCancelShare(shareId); setShareLink(''); setShareId(''); setShareDialogOpen(false); toast.success('Đã hủy chia sẻ'); }}>Hủy chia sẻ</Button>}</div><p className="text-xs text-muted-foreground">Link tự hết hạn sau 3 ngày.</p></div>}
+          {!shareLink && <Button type="button" className="w-full" disabled={isSharing} onClick={() => void createShareLink()}>{isSharing ? 'Đang tạo link...' : 'Tạo link chia sẻ'}</Button>}
         </DialogContent>
       </Dialog>
 

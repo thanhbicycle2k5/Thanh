@@ -4,6 +4,23 @@
 @import "tw-animate-css";
 @import "@fontsource-variable/geist";
 
+.shared-schedule-shell { min-height: 100vh; background: #f1f5f9; color: #0f172a; padding: 24px; }
+.shared-toolbar { max-width: 1120px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.shared-toolbar h1, .shared-toolbar p, .shared-week-title h2, .shared-week-title p { margin: 0; }
+.shared-toolbar p, .shared-week-title p { color: #64748b; font-size: 12px; }
+.shared-toolbar button { display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 8px; padding: 10px 14px; background: #107c41; color: white; font-weight: 700; cursor: pointer; }
+.shared-pages { max-width: 1120px; margin: 0 auto; display: grid; gap: 24px; }
+.shared-week-page { background: white; padding: 20px; box-shadow: 0 8px 24px rgb(15 23 42 / 10%); overflow: hidden; }
+.shared-week-title { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 12px; }
+.shared-week-page table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 11px; }
+.shared-week-page th, .shared-week-page td { border: 1px solid #cbd5e1; height: 34px; padding: 5px; text-align: center; vertical-align: middle; }
+.shared-week-page th { background: #e2e8f0; font-weight: 800; }
+.shared-week-page th small, .shared-week-page td small { display: block; font-size: 9px; opacity: .65; }
+.shared-time-column { width: 58px; background: #f8fafc; font-weight: 700; }
+.shared-state { min-height: 100vh; display: grid; place-items: center; gap: 8px; color: #475569; }
+@media print { .shared-toolbar { display: none; } .shared-schedule-shell { padding: 0; background: white; } .shared-week-page { box-shadow: none; page-break-after: always; } }
+@media (max-width: 700px) { .shared-schedule-shell { padding: 12px; overflow-x: auto; } .shared-toolbar { align-items: flex-start; } .shared-week-page { min-width: 760px; } }
+
 @theme {
     --font-heading: var(--font-sans);
     --font-sans: 'Geist Variable', sans-serif;

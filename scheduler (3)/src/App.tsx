@@ -17,8 +17,8 @@ import {
 import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack, AIProvider } from './types';
 import { storage, normalizeSettings, defaultSettings, mergeSettingsForSync } from './lib/storage';
 import { mergePlans, markPlanForSync, getDeviceId, enqueueSyncOperation } from './lib/sync';
-import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, settleRedirectAuth } from './lib/firebase';
-import { doc, setDoc } from 'firebase/firestore';
+import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule } from './lib/firebase';
+import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
 import { playNotificationSound, playCompletionMelody, playMeow } from './lib/sounds';
@@ -29,6 +29,7 @@ import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
+import { SharedScheduleView } from './components/SharedScheduleView';
 import { Toaster, toast } from 'sonner';
 import { 
   Calendar as CalendarIcon, 
@@ -148,6 +149,11 @@ function WeekNoteEditor({ weekStart, initialNote, theme, placeholder, onSave, bt
       </Button>
     </div>
   );
+}
+
+export default function App() {
+  const shareId = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('share') : null;
+  return shareId ? <SharedScheduleView shareId={shareId} /> : <PlannerApp />;
 }
 
 function HealthTipPanel({ theme, isSettingsOpen, t, lang, onActivate }: { theme: Theme; isSettingsOpen: boolean; t: (k: TranslationKey) => string; lang: Language; onActivate?: (m: CatMood) => void }) {
@@ -297,7 +303,7 @@ const Logo = ({ className }: { className?: string }) => (
   </span>
 );
 
-export default function App() {
+function PlannerApp() {
   const [plans, setPlans] = React.useState<Plan[]>([]);
   const [weekMetas, setWeekMetas] = React.useState<Record<string, any>>({});
   const [isSummaryOpen, setIsSummaryOpen] = React.useState(false);
@@ -2018,6 +2024,32 @@ export default function App() {
     void cancelScheduledNotificationById(id);
   }, [activeUid, isOnline]);
 
+  const handleCreateShare = React.useCallback(async (startWeek: Date, endWeek: Date, sourcePlans: Plan[]) => {
+    if (!activeUid) throw new Error('Bạn cần đăng nhập để chia sẻ lịch.');
+    const startKey = format(startWeek, 'yyyy-MM-dd');
+    const endKey = format(endWeek, 'yyyy-MM-dd');
+    const selectedPlans = sourcePlans.filter((plan) => {
+      const date = new Date(plan.date);
+      return date >= startWeek && date < addWeeks(endWeek, 1);
+    });
+    const shareId = await createSharedSchedule({
+      ownerUid: activeUid,
+      startWeek: startKey,
+      endWeek: endKey,
+      plans: selectedPlans,
+      startHour: settingsState.startHour,
+      endHour: settingsState.endHour,
+      language: settingsState.language,
+      createdAt: new Date().toISOString(),
+      expiresAt: Timestamp.fromMillis(Date.now() + (3 * 24 * 60 * 60 * 1000)),
+    });
+    return { id: shareId, url: `${window.location.origin}${window.location.pathname}?share=${encodeURIComponent(shareId)}` };
+  }, [activeUid, settingsState.endHour, settingsState.language, settingsState.startHour]);
+
+  const handleCancelShare = React.useCallback(async (shareId: string) => {
+    await deleteSharedSchedule(shareId);
+  }, []);
+
   const handlePlanTurnGreen = React.useCallback((p: Plan) => {
     setCatMoodOverride('celebrating');
     playNotificationSound(settingsState.notificationSound);
@@ -2408,6 +2440,7 @@ export default function App() {
                  <ScheduleGrid 
                     currentWeekStart={selectedWeekStart}
                     plans={isSearchOpen && searchQuery.trim() ? searchResults : currentWeekPlans}
+                    allPlans={plans}
                     onAddPlan={handleAddPlan}
                     onUpdatePlan={handleUpdatePlan}
                     onDeletePlan={handleDeletePlan}
@@ -2417,6 +2450,8 @@ export default function App() {
                     startHour={settingsState.startHour}
                     endHour={settingsState.endHour}
                     showLunarCalendar={settingsState.showLunarCalendar ?? true}
+                      onCreateShare={handleCreateShare}
+                      onCancelShare={handleCancelShare}
                  />
                  <div className="p-4 border-t bg-muted/30">
                <Label className="text-[10px] font-bold uppercase mb-2 block opacity-50">{t('weekNote')}</Label>

@@ -19,6 +19,7 @@ import {
   deleteDoc,
   writeBatch,
   onSnapshot,
+  Timestamp,
 } from "firebase/firestore";
 import { Plan, AppSettings } from "../types";
 const firebaseConfig = {
@@ -314,4 +315,38 @@ export const subscribeSettings = (
       onError?.(normalizedError);
     }
   );
+};
+
+export interface SharedScheduleSnapshot {
+  ownerUid: string;
+  startWeek: string;
+  endWeek: string;
+  plans: Plan[];
+  startHour: number;
+  endHour: number;
+  language: AppSettings['language'];
+  createdAt: string;
+  expiresAt: Timestamp;
+}
+
+export const createSharedSchedule = async (snapshot: SharedScheduleSnapshot): Promise<string> => {
+  const shareId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+    ? crypto.randomUUID()
+    : `share-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const cleanPlans = snapshot.plans.map((plan) => Object.fromEntries(
+    Object.entries(plan).filter(([, value]) => value !== undefined)
+  ) as Plan);
+  await setDoc(doc(db, 'sharedSchedules', shareId), { ...snapshot, plans: cleanPlans });
+  return shareId;
+};
+
+export const getSharedSchedule = async (shareId: string): Promise<SharedScheduleSnapshot | null> => {
+  const snapshot = await getDoc(doc(db, 'sharedSchedules', shareId));
+  if (!snapshot.exists()) return null;
+  const data = snapshot.data() as SharedScheduleSnapshot;
+  return data.expiresAt?.toMillis() > Date.now() ? data : null;
+};
+
+export const deleteSharedSchedule = async (shareId: string): Promise<void> => {
+  await deleteDoc(doc(db, 'sharedSchedules', shareId));
 };

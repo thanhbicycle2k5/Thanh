@@ -70,5 +70,15 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
     }
+
+    match /sharedSchedules/{shareId} {
+      allow create: if isSignedIn()
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.keys().hasAll(['ownerUid', 'startWeek', 'endWeek', 'plans', 'startHour', 'endHour', 'language', 'createdAt', 'expiresAt'])
+        && request.resource.data.expiresAt > request.time;
+      allow get: if request.time < resource.data.expiresAt;
+      allow delete: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
+      allow list, update: if false;
+    }
   }
 }
