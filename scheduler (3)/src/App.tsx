@@ -1304,6 +1304,14 @@ function PlannerApp() {
            setSettings(initialSettings);
            setSyncing(true);
 
+           // Start from the device backup immediately when offline. Firebase
+           // synchronization is retried by the online event handler.
+           if (!navigator.onLine) {
+             setSharedLinks([]);
+             setSyncing(false);
+             return;
+           }
+
            if (navigator.onLine && (hasPendingSync || anonymousPlans.length > 0 || Object.keys(anonymousWeekMetas).length > 0 || settingsFromAnonExist)) {
              await syncPendingUserData(firebaseUser.uid);
            }
