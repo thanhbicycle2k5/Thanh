@@ -1021,11 +1021,14 @@ function PlannerApp() {
   }, [prefersReducedMotion, settingsState.weekTransitionEffect]);
 
   const [loginLoading, setLoginLoading] = React.useState(false);
+  const syncInFlightRef = React.useRef(false);
 
   const syncPendingUserData = React.useCallback(async (uid: string) => {
     if (typeof window === 'undefined' || !('navigator' in window) || !navigator.onLine) {
       return;
     }
+    if (syncInFlightRef.current) return;
+    syncInFlightRef.current = true;
 
     const pendingPlans = storage.hasPendingSyncFor(uid, 'plans');
     const pendingWeekMeta = storage.hasPendingSyncFor(uid, 'week_meta');
@@ -1049,6 +1052,7 @@ function PlannerApp() {
       setSettings(mergedSettings);
       storage.savePlans(mergedPlans, uid, false);
       storage.saveSettings(mergedSettings, uid, false);
+      syncInFlightRef.current = false;
       return;
     }
 
@@ -1105,6 +1109,7 @@ function PlannerApp() {
       console.warn('Pending sync failed:', error);
     } finally {
       setSyncing(false);
+      syncInFlightRef.current = false;
     }
   }, [t]);
 

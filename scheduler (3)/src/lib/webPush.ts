@@ -63,7 +63,12 @@ export async function subscribeToWebPush(registration: ServiceWorkerRegistration
     if (message.includes('Registration failed - push service error')) {
       try {
         const registrations = await navigator.serviceWorker.getRegistrations();
-        await Promise.all(registrations.map((existing) => existing.unregister().catch(() => undefined)));
+        const appShellRegistration = registrations.find((registration) =>
+          registration.active?.scriptURL.endsWith('/sw.js')
+        );
+        if (appShellRegistration) {
+          throw error;
+        }
       } catch (unregisterError) {
         console.warn('Failed to unregister stale push registration', unregisterError);
       }
