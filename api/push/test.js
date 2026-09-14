@@ -1,4 +1,4 @@
-const { webpush, configureVapid, requireDevice } = require('../_push');
+const { webpush, configureVapid, requireDevice, parseJsonBody } = require('../_push');
 
 module.exports = async function handler(request, response) {
   if (request.method !== 'POST') return response.status(405).json({ error: 'Method not allowed.' });
@@ -14,5 +14,9 @@ module.exports = async function handler(request, response) {
     }));
     if (!results.some(Boolean)) return response.status(404).json({ error: 'No valid push subscription found.' });
     return response.status(200).json({ ok: true });
-  } catch (error) { console.error('Test push error:', error); return response.status(500).json({ error: 'Could not send the test notification.' }); }
+  } catch (error) {
+    const message = error?.message || String(error);
+    console.error('Test push error:', { name: error?.name, message, stack: error?.stack });
+    return response.status(500).json({ error: 'Could not send the test notification.', details: message });
+  }
 };

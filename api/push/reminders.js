@@ -1,11 +1,12 @@
-const { admin, getDb, requireDevice, normalizeReminder } = require('../_push');
+const { admin, getDb, requireDevice, normalizeReminder, parseJsonBody } = require('../_push');
 
 module.exports = async function handler(request, response) {
   if (request.method !== 'PUT') return response.status(405).json({ error: 'Method not allowed.' });
   try {
     const device = await requireDevice(request, false);
     if (!device) return response.status(401).json({ error: 'Invalid device credentials.' });
-    const input = Array.isArray(request.body?.reminders) ? request.body.reminders : [];
+    const body = parseJsonBody(request);
+    const input = Array.isArray(body?.reminders) ? body.reminders : [];
     if (input.length > 500) return response.status(400).json({ error: 'Too many reminders.' });
     const reminders = input.map(normalizeReminder).filter(Boolean);
     const collection = device.ref.collection('reminders');
@@ -29,5 +30,9 @@ module.exports = async function handler(request, response) {
     });
     await batch.commit();
     return response.status(200).json({ ok: true, count: reminders.length });
-  } catch (error) { console.error('Reminder sync error:', error); return response.status(500).json({ error: 'Could not save reminders.' }); }
+  } catch (error) {
+    const message = error?.message || String(error);
+    console.error('Reminder sync error:', { name: error?.name, message, stack: error?.stack });
+    return response.status(500).json({ error: 'Could not save reminders.', details: message });
+  }
 };

@@ -85,4 +85,13 @@ function normalizeReminder(reminder) {
   return { id, title, body, fireAt, taskId: cleanText(reminder?.taskId, 160) };
 }
 
-module.exports = { admin, getDb, webpush, configureVapid, requireDevice, normalizeSubscription, normalizeReminder };
+function parseJsonBody(request) {
+  if (!request || typeof request !== 'object') return {};
+  if (request.body && typeof request.body === 'string') {
+    try { return JSON.parse(request.body) || {}; }
+    catch (error) { console.warn('Failed to parse raw request body:', error); return {}; }
+  }
+  return request.body && typeof request.body === 'object' ? request.body : {};
+}
+
+module.exports = { admin, getDb, webpush, configureVapid, requireDevice, normalizeSubscription, normalizeReminder, parseJsonBody };
