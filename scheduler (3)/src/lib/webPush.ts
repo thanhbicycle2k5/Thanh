@@ -39,14 +39,39 @@ function decodeVapidKey(value: string) {
   return Uint8Array.from([...rawData].map((character) => character.charCodeAt(0)));
 }
 
+async function subscribeWithRegistration(registration: ServiceWorkerRegistration, publicKey: string): Promise<PushSubscription> {
+  let subscription = await registration.pushManager.getSubscription();
+  if (!subscription) {
+    subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: decodeVapidKey(publicKey),
+    });
+  }
+  await apiRequest('/api/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription: subscription.toJSON() }) });
+  return subscription;
+}
+
 export async function subscribeToWebPush(registration: ServiceWorkerRegistration): Promise<PushSubscription> {
   if (!('PushManager' in window)) throw new Error('This browser does not support Web Push.');
   const { publicKey } = await apiRequest('/api/push/config', { method: 'GET' });
   if (!publicKey) throw new Error('Web Push is not configured on the server.');
-  let subscription = await registration.pushManager.getSubscription();
-  if (!subscription) subscription = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: decodeVapidKey(publicKey) });
-  await apiRequest('/api/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription: subscription.toJSON() }) });
-  return subscription;
+
+  try {
+    return await subscribeWithRegistration(registration, publicKey);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes('Registration failed - push service error')) {
+      try {
+        await registration.unregister();
+      } catch (unregisterError) {
+        console.warn('Failed to unregister stale push registration', unregisterError);
+      }
+      const refreshedRegistration = await navigator.serviceWorker.register('/custom-sw.js', { scope: '/' });
+      await navigator.serviceWorker.ready;
+      return await subscribeWithRegistration(refreshedRegistration, publicKey);
+    }
+    throw error;
+  }
 }
 
 export async function syncWebPushReminders(reminders: PushReminder[]): Promise<void> {

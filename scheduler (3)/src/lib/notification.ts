@@ -75,13 +75,36 @@ export async function requestUniversalNotificationPermission(): Promise<Notifica
   return Notification.permission;
 }
 
+async function clearStaleNotificationRegistrations(): Promise<void> {
+  if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
+    return;
+  }
+
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(registrations.map(async (registration) => {
+      const scriptUrl = registration.active?.scriptURL || registration.installing?.scriptURL || registration.scope;
+      if (scriptUrl.includes('/custom-sw.js') || scriptUrl.includes('/sw.js')) {
+        try {
+          await registration.unregister();
+        } catch (error) {
+          console.warn('Failed to unregister stale notification worker', error);
+        }
+      }
+    }));
+  } catch (error) {
+    console.warn('Failed to inspect stale notification workers', error);
+  }
+}
+
 export async function registerNotificationWorker(): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) {
     return null;
   }
 
   try {
-    const registration = await navigator.serviceWorker.register(NOTIFICATION_SW_PATH);
+    await clearStaleNotificationRegistrations();
+    const registration = await navigator.serviceWorker.register(NOTIFICATION_SW_PATH, { scope: '/' });
     // If a new SW is waiting, ask it to skip waiting so the client can be controlled by the new SW.
     if (registration.waiting) {
       try {
@@ -103,6 +126,9 @@ export async function registerNotificationWorker(): Promise<ServiceWorkerRegistr
     return registration;
   } catch (error) {
     console.warn('Service worker registration failed:', error);
+    try {
+      await clearStaleNotificationRegistrations();
+    } catch {}
     return null;
   }
 }
