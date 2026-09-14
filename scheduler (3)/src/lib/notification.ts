@@ -84,7 +84,7 @@ async function clearStaleNotificationRegistrations(): Promise<void> {
     const registrations = await navigator.serviceWorker.getRegistrations();
     await Promise.all(registrations.map(async (registration) => {
       const scriptUrl = registration.active?.scriptURL || registration.installing?.scriptURL || registration.scope;
-      if (scriptUrl.includes('/custom-sw.js') || scriptUrl.includes('/sw.js')) {
+      if (scriptUrl.includes('/custom-sw.js')) {
         try {
           await registration.unregister();
         } catch (error) {
