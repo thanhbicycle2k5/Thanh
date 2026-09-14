@@ -1304,9 +1304,9 @@ function PlannerApp() {
              }
 
              const [cloudPlans, cloudWeekMetas, cloudSettings] = await Promise.all([
-               cloudStorage.getPlans(firebaseUser.uid).catch(() => [] as Plan[]),
-               cloudStorage.getWeekMetas(firebaseUser.uid).catch(() => ({})),
-               cloudStorage.getSettings(firebaseUser.uid).catch(() => ({}))
+               cloudStorage.getPlans(firebaseUser.uid),
+               cloudStorage.getWeekMetas(firebaseUser.uid),
+               cloudStorage.getSettings(firebaseUser.uid)
              ]);
 
              if (cloudPlans.length === 0) {
@@ -1396,6 +1396,7 @@ function PlannerApp() {
              }
            } catch (e) {
              console.error("Failed to sync/migrate data:", e);
+             toast.error(t('loginFailed'));
              setSyncing(false);
              const fallbackPlans = localPlansForUid.length > 0 ? localPlansForUid : (plansRef.current.length > 0 ? plansRef.current : anonymousPlans);
              const fallbackMetas = Object.keys(localMetasForUid).length > 0 ? localMetasForUid : (Object.keys(weekMetasRef.current).length > 0 ? weekMetasRef.current : anonymousWeekMetas);
