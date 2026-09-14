@@ -82,6 +82,10 @@ export const getSyncQueue = (): SyncQueueItem[] => {
   }
 };
 
+export const hasQueuedOperations = (uid: string): boolean => {
+  return getSyncQueue().some((entry) => entry.uid === uid);
+};
+
 const saveSyncQueue = (queue: SyncQueueItem[]) => {
   window.localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(queue));
 };
@@ -148,7 +152,8 @@ export const flushSyncQueue = async (
   savePlan: (plan: Plan) => Promise<void>,
   deletePlan: (id: string) => Promise<void>,
 ): Promise<void> => {
-  const queue = getSyncQueue().filter((entry) => entry.uid === uid);
+  const allQueueItems = getSyncQueue();
+  const queue = allQueueItems.filter((entry) => entry.uid === uid);
   if (!queue.length) return;
 
   const remaining: SyncQueueItem[] = [];
@@ -167,5 +172,8 @@ export const flushSyncQueue = async (
     }
   }
 
-  saveSyncQueue(remaining.filter((entry) => entry.uid === uid));
+  saveSyncQueue([
+    ...allQueueItems.filter((entry) => entry.uid !== uid),
+    ...remaining,
+  ]);
 };

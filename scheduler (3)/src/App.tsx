@@ -16,8 +16,8 @@ import {
 } from 'date-fns';
 import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack, AIProvider } from './types';
 import { storage, normalizeSettings, defaultSettings, mergeSettingsForSync } from './lib/storage';
-import { mergePlans, markPlanForSync, getDeviceId, enqueueSyncOperation } from './lib/sync';
-import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, subscribeSharedScheduleLinks, updateSharedScheduleOwnerLabel, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule, SharedScheduleLink } from './lib/firebase';
+import { mergePlans, markPlanForSync, getDeviceId, enqueueSyncOperation, clearQueuedOperation, flushSyncQueue, hasQueuedOperations } from './lib/sync';
+import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, subscribeWeekMetas, subscribeSharedScheduleLinks, updateSharedScheduleOwnerLabel, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule, SharedScheduleLink } from './lib/firebase';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
@@ -1055,6 +1055,19 @@ function PlannerApp() {
     setSyncing(true);
     let syncedAny = false;
     try {
+      await flushSyncQueue(
+        uid,
+        (plan) => cloudStorage.savePlan(uid, plan),
+        (planId) => cloudStorage.deletePlan(uid, planId),
+      );
+
+      // Do not merge cloud data while a delete/update is still queued.
+      // A failed delete would otherwise be reintroduced from the cloud.
+      if (hasQueuedOperations(uid)) {
+        setSyncing(false);
+        return;
+      }
+
       const [localPlans, localMetas, localSettings, cloudPlans, cloudMetas, cloudSettings] = await Promise.all([
         Promise.resolve(storage.getPlans(uid)),
         Promise.resolve(storage.getWeekMetas(uid)),
@@ -1069,9 +1082,7 @@ function PlannerApp() {
       const mergedSettings = mergeSettingsForSync(localSettings, cloudSettings);
 
       await cloudStorage.savePlans(uid, mergedPlans);
-      await Promise.all(
-        Object.entries(mergedMetas).map(([weekStart, meta]) => cloudStorage.saveWeekMeta(uid, weekStart, meta))
-      );
+      await setDoc(doc(db, "users", uid, "meta", "weekMetas"), mergedMetas);
       await cloudStorage.saveSettings(uid, mergedSettings);
 
       storage.savePlans(mergedPlans, uid, false);
@@ -1202,6 +1213,7 @@ function PlannerApp() {
 
      let unsubPlans: (() => void) | null = null;
      let unsubSettings: (() => void) | null = null;
+    let unsubWeekMetas: (() => void) | null = null;
     let unsubSharedLinks: (() => void) | null = null;
      const unsubscribeAuth = onAuthChanged(async (firebaseUser) => {
         if (unsubPlans) {
@@ -1211,6 +1223,10 @@ function PlannerApp() {
         if (unsubSettings) {
           unsubSettings();
           unsubSettings = null;
+        }
+        if (unsubWeekMetas) {
+          unsubWeekMetas();
+          unsubWeekMetas = null;
         }
         if (unsubSharedLinks) {
           unsubSharedLinks();
@@ -1376,6 +1392,18 @@ function PlannerApp() {
                }, (error) => {
                  console.warn('Realtime settings subscription failed:', error);
                });
+               unsubWeekMetas = subscribeWeekMetas(firebaseUser.uid, cloudWeekMetasSnapshot => {
+                 const localMetas = storage.getWeekMetas(firebaseUser.uid);
+                 const nextMetas = storage.hasPendingSyncFor(firebaseUser.uid, 'week_meta')
+                   ? { ...cloudWeekMetasSnapshot, ...localMetas }
+                   : cloudWeekMetasSnapshot;
+                 setWeekMetas(nextMetas);
+                 Object.entries(nextMetas).forEach(([weekStart, meta]) => {
+                   storage.saveWeekMeta(weekStart, meta, firebaseUser.uid, false);
+                 });
+               }, (error) => {
+                 console.warn('Realtime week metadata subscription failed:', error);
+               });
                unsubSharedLinks = subscribeSharedScheduleLinks(firebaseUser.uid, (links) => {
                  const ownerLabel = firebaseUser.displayName
                    || firebaseUser.email
@@ -1425,6 +1453,9 @@ function PlannerApp() {
        }
        if (unsubSettings) {
          unsubSettings();
+       }
+       if (unsubWeekMetas) {
+         unsubWeekMetas();
        }
        if (unsubSharedLinks) {
          unsubSharedLinks();
@@ -2051,6 +2082,7 @@ function PlannerApp() {
       if (isOnline) {
         try {
           await cloudStorage.savePlan(activeUid, normalized);
+          clearQueuedOperation(activeUid, normalized.id);
           const finalPlans = mergePlans(storage.getPlans(activeUid), [normalized]);
           setPlans(finalPlans);
           storage.savePlans(finalPlans, activeUid, false);
@@ -2086,6 +2118,7 @@ function PlannerApp() {
       if (isOnline) {
         try {
           await cloudStorage.savePlan(activeUid, normalized);
+          clearQueuedOperation(activeUid, normalized.id);
           const finalPlans = mergePlans(storage.getPlans(activeUid), [normalized]);
           setPlans(finalPlans);
           storage.savePlans(finalPlans, activeUid, false);
@@ -2112,6 +2145,7 @@ function PlannerApp() {
       if (isOnline) {
         try {
           await cloudStorage.deletePlan(activeUid, id);
+          clearQueuedOperation(activeUid, id);
           storage.setPendingSync(activeUid, 'plans', false);
           storage.clearSyncedDeletedPlans(activeUid, true);
         } catch (error) {

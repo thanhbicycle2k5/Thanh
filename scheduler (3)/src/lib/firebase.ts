@@ -10,7 +10,9 @@ import {
   User,
 } from "firebase/auth";
 import {
-  getFirestore,
+  initializeFirestore,
+  persistentLocalCache,
+  persistentMultipleTabManager,
   doc,
   setDoc,
   getDoc,
@@ -25,7 +27,6 @@ import { Plan, AppSettings } from "../types";
 const firebaseConfig = {
   apiKey: "AIzaSyAI2wBxUR9V5OHr1fVNHJbNv0ReUqxjOww",
   authDomain: "wadebicycle.firebaseapp.com",
-  projectId: "wadebicycle",
   storageBucket: "wadebicycle.firebasestorage.app",
   messagingSenderId: "365678601546",
   appId: "1:365678601546:web:40c042ab0961b693ec0db3",
@@ -37,8 +38,12 @@ const app = isNewApp ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
 
-// Initialize Firestore database
-export const db = getFirestore(app);
+// Keep Firestore data available offline and share the cache across browser tabs.
+export const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+  }),
+});
 
 const provider = new GoogleAuthProvider();
 provider.addScope("profile");
@@ -310,6 +315,22 @@ export const subscribeSettings = (
     (snapshot) => {
       callback(snapshot.exists() ? (snapshot.data() as Partial<AppSettings>) : {});
     },
+    (error) => {
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      onError?.(normalizedError);
+    }
+  );
+};
+
+export const subscribeWeekMetas = (
+  uid: string,
+  callback: (metas: Record<string, any>) => void,
+  onError?: (e: Error) => void
+): (() => void) => {
+  const metasRef = doc(db, "users", uid, "meta", "weekMetas");
+  return onSnapshot(
+    metasRef,
+    (snapshot) => callback(snapshot.exists() ? snapshot.data() : {}),
     (error) => {
       const normalizedError = error instanceof Error ? error : new Error(String(error));
       onError?.(normalizedError);
