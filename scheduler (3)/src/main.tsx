@@ -7,7 +7,7 @@ import { registerNotificationWorker } from './lib/notification';
 const ENABLE_BACKGROUND_PUSH_NOTIFICATIONS = false;
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/sw.js', { scope: '/' })
+  navigator.serviceWorker.register('/custom-sw.js', { scope: '/' })
     .then((registration) => registration.update())
     .catch((error) => {
       console.warn('Offline app shell registration failed:', error);

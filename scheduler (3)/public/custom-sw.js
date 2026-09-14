@@ -1,4 +1,4 @@
-const APP_SHELL_CACHE = 'task2goal-app-shell-v5';
+const APP_SHELL_CACHE = 'task2goal-app-shell-v6';
 const SCHEDULE_CACHE_NAME = 'scheduly-notifications-v1';
 const SCHEDULY_NOTIFICATION_MESSAGE = 'SCHEDULY_SCHEDULE_NOTIFICATION';
 const SCHEDULY_CLEAR_ALL_NOTIFICATIONS = 'SCHEDULY_CLEAR_ALL_NOTIFICATIONS';
@@ -107,19 +107,11 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.mode === 'navigate') {
-    // Network-first for navigations so reload/F5 fetches the latest index.html.
+    // Use the cached app shell first so reopening the installed app works offline.
     event.respondWith(
-      fetch(request)
-        .then(async (response) => {
-          try {
-            const cache = await openAppShellCache();
-            cache.put(request, response.clone());
-          } catch (e) {
-            // ignore cache write failures
-          }
-          return response;
-        })
-        .catch(() => caches.match(request).then((cachedResponse) => cachedResponse || caches.match('/')))
+      caches.match(request)
+        .then((cachedResponse) => cachedResponse || caches.match('/'))
+        .then((cachedResponse) => cachedResponse || fetch(request))
     );
     return;
   }
