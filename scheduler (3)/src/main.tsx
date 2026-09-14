@@ -4,7 +4,9 @@ import App from './App.tsx';
 import './index.css';
 import { registerNotificationWorker } from './lib/notification';
 
-if ('serviceWorker' in navigator) {
+const ENABLE_BACKGROUND_PUSH_NOTIFICATIONS = false;
+
+if ('serviceWorker' in navigator && ENABLE_BACKGROUND_PUSH_NOTIFICATIONS) {
   registerNotificationWorker().catch((error) => {
     console.warn('Offline service worker registration failed:', error);
   });
