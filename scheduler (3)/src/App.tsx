@@ -1541,6 +1541,29 @@ function PlannerApp() {
     return await requestUniversalNotificationPermission();
   }, []);
 
+  const openNotificationSettings = React.useCallback(() => {
+    if (typeof window === 'undefined') return false;
+
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (userAgent.includes('edg')) {
+      window.open('edge://settings/content/notifications', '_blank');
+      return true;
+    }
+    if (userAgent.includes('chrome')) {
+      window.open('chrome://settings/content/notifications', '_blank');
+      return true;
+    }
+    if (userAgent.includes('firefox')) {
+      window.open('about:preferences#privacy', '_blank');
+      return true;
+    }
+    if (userAgent.includes('safari')) {
+      window.open('https://support.apple.com/guide/safari/ibrw7f0d9b55/mac', '_blank');
+      return true;
+    }
+    return false;
+  }, []);
+
   const handleToggleNotifications = React.useCallback(async (enabled: boolean) => {
     if (enabled === settingsState.notificationsEnabled) {
       return;
@@ -1559,7 +1582,12 @@ function PlannerApp() {
 
     const permission = await getNotificationPermission();
     if (permission !== 'granted') {
-      toast.error('Notification permission denied.');
+      if (permission === 'denied') {
+        const opened = openNotificationSettings();
+        toast.error(opened ? 'Quyền thông báo đã bị chặn. Hãy bật lại trong cài đặt trình duyệt.' : 'Quyền thông báo đã bị chặn. Hãy bật lại trong cài đặt trình duyệt.');
+      } else {
+        toast.error('Chưa cấp quyền thông báo. Hãy cho phép khi trình duyệt hỏi.');
+      }
       await clearAllScheduledNotifications();
       handleUpdateSettings({ notificationsEnabled: false });
       return;
@@ -1581,7 +1609,7 @@ function PlannerApp() {
     }
 
     handleUpdateSettings({ notificationsEnabled: true });
-  }, [settingsState.notificationsEnabled, getNotificationPermission, handleUpdateSettings]);
+  }, [settingsState.notificationsEnabled, getNotificationPermission, openNotificationSettings, handleUpdateSettings]);
 
   const sendReminderNotification = React.useCallback(async (plan: Plan) => {
     if (!isOnline || !settingsState.notificationsEnabled || plan.color === 'green') {
@@ -2328,7 +2356,19 @@ function PlannerApp() {
                variant="ghost"
                size="icon"
                className="h-9 w-9 shrink-0"
-               onClick={() => {
+               onClick={async () => {
+                 if (!settingsState.notificationsEnabled) {
+                   const permission = await getNotificationPermission();
+                   if (permission === 'denied') {
+                     openNotificationSettings();
+                     toast.info('Vui lòng bật quyền thông báo trong cài đặt trình duyệt.');
+                     return;
+                   }
+                   if (permission === 'default') {
+                     await handleToggleNotifications(true);
+                     return;
+                   }
+                 }
                  void handleToggleNotifications(!settingsState.notificationsEnabled);
                }}
                title={settingsState.notificationsEnabled ? 'Tắt nhắc nhở thông minh' : 'Bật nhắc nhở thông minh'}
