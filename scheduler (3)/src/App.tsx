@@ -1436,20 +1436,17 @@ function PlannerApp() {
   }, [clearAllScheduledNotifications]);
 
   const handleLogout = React.useCallback(async () => {
-    const previousUid = user?.uid;
     try {
       await signOutUser();
     } catch (error) {
       console.warn('Sign out failed', error);
     } finally {
       setUser(null);
-      resetAppStateForGuest();
-      storage.resetUserData(previousUid);
-      storage.resetUserData();
+      resetAppStateForGuest({ preserveAnonymousStorage: true });
       resetMusicPlayerState();
       localStorage.removeItem('chronos_quick_note');
     }
-  }, [resetAppStateForGuest, user?.uid]);
+  }, [resetAppStateForGuest]);
 
   React.useEffect(() => {
     if (settingsState.theme === 'dark') document.documentElement.classList.add('dark');
