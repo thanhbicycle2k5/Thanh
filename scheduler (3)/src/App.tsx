@@ -1442,7 +1442,7 @@ function PlannerApp() {
       console.warn('Sign out failed', error);
     } finally {
       setUser(null);
-      resetAppStateForGuest({ preserveAnonymousStorage: true });
+      resetAppStateForGuest();
       resetMusicPlayerState();
       localStorage.removeItem('chronos_quick_note');
     }
