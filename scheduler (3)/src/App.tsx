@@ -1683,15 +1683,17 @@ function PlannerApp() {
       return;
     }
 
-    try {
-      await syncWebPushReminders(buildRemoteReminders(
-        plansRef.current,
-        () => buildNotificationTitle(),
-        (plan) => buildNotificationBody(plan.title),
-        (plan) => getPlanReminderDate({ date: plan.date, startHour: plan.startHour, startMinute: plan.startMinute }).getTime(),
-      ));
-    } catch (error) {
-      console.error('Failed to sync server reminders:', error);
+    if (ENABLE_BACKGROUND_PUSH_NOTIFICATIONS) {
+      try {
+        await syncWebPushReminders(buildRemoteReminders(
+          plansRef.current,
+          () => buildNotificationTitle(),
+          (plan) => buildNotificationBody(plan.title),
+          (plan) => getPlanReminderDate({ date: plan.date, startHour: plan.startHour, startMinute: plan.startMinute }).getTime(),
+        ));
+      } catch (error) {
+        console.error('Failed to sync server reminders:', error);
+      }
     }
 
     const now = Date.now();
@@ -1769,17 +1771,19 @@ function PlannerApp() {
       return;
     }
 
-    const registration = await registerNotificationWorker();
-    if (!registration) {
-      toast.error('Could not register the notification service worker.');
-      return;
-    }
-    try {
-      await subscribeToWebPush(registration);
-    } catch (error) {
-      console.error('Push subscription refresh failed:', error);
-      toast.error(error instanceof Error ? error.message : 'Could not connect push notifications.');
-      return;
+    if (ENABLE_BACKGROUND_PUSH_NOTIFICATIONS) {
+      const registration = await registerNotificationWorker();
+      if (!registration) {
+        toast.error('Could not register the notification service worker.');
+        return;
+      }
+      try {
+        await subscribeToWebPush(registration);
+      } catch (error) {
+        console.error('Push subscription refresh failed:', error);
+        toast.error(error instanceof Error ? error.message : 'Could not connect push notifications.');
+        return;
+      }
     }
     await clearAllScheduledNotifications();
     void scheduleUpcomingNotifications();
