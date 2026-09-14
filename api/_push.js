@@ -25,7 +25,7 @@ function getDb() {
 }
 
 function configureVapid() {
-  const publicKey = String(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '').trim();
+  const publicKey = String(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || process.env.VAPID_PUBLIC_KEY || '').trim();
   const privateKey = String(process.env.VAPID_PRIVATE_KEY || '').trim();
   const subject = String(process.env.VAPID_SUBJECT || '').trim();
   if (!publicKey || !privateKey || !subject) throw new Error('Web Push VAPID environment variables are not configured.');

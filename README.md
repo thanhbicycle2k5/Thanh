@@ -8,6 +8,8 @@ Set these Vercel environment variables:
 
 ```text
 NEXT_PUBLIC_VAPID_PUBLIC_KEY
+# or, for compatibility with older deployments:
+VAPID_PUBLIC_KEY
 VAPID_PRIVATE_KEY
 VAPID_SUBJECT=mailto:your-email@example.com
 FIREBASE_SERVICE_ACCOUNT_JSON
