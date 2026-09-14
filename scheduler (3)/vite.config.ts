@@ -34,6 +34,8 @@ export default defineConfig(({ mode }) => {
           maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
           cleanupOutdatedCaches: true,
           skipWaiting: true,
+          clientsClaim: true,
+          navigateFallback: '/index.html',
         },
         devOptions: {
           enabled: false,
