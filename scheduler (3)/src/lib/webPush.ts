@@ -62,7 +62,8 @@ export async function subscribeToWebPush(registration: ServiceWorkerRegistration
     const message = error instanceof Error ? error.message : String(error);
     if (message.includes('Registration failed - push service error')) {
       try {
-        await registration.unregister();
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((existing) => existing.unregister().catch(() => undefined)));
       } catch (unregisterError) {
         console.warn('Failed to unregister stale push registration', unregisterError);
       }

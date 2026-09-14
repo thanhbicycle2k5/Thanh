@@ -104,6 +104,8 @@ export async function registerNotificationWorker(): Promise<ServiceWorkerRegistr
 
   try {
     await clearStaleNotificationRegistrations();
+    const existingRegistrations = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(existingRegistrations.map((registration) => registration.unregister().catch(() => undefined)));
     const registration = await navigator.serviceWorker.register(NOTIFICATION_SW_PATH, { scope: '/' });
     // If a new SW is waiting, ask it to skip waiting so the client can be controlled by the new SW.
     if (registration.waiting) {
