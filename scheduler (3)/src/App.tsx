@@ -1541,6 +1541,8 @@ function PlannerApp() {
     return await requestUniversalNotificationPermission();
   }, []);
 
+  const ENABLE_BACKGROUND_PUSH_NOTIFICATIONS = false;
+
   const openNotificationSettings = React.useCallback(() => {
     if (typeof window === 'undefined') return false;
 
@@ -1593,19 +1595,21 @@ function PlannerApp() {
       return;
     }
 
-    const registration = await registerNotificationWorker();
-    if (!registration) {
-      toast.error('Could not register the notification service worker.');
-      handleUpdateSettings({ notificationsEnabled: false });
-      return;
-    }
-    try {
-      await subscribeToWebPush(registration);
-    } catch (error) {
-      console.error('Push subscription failed:', error);
-      toast.error(error instanceof Error ? error.message : 'Could not enable push notifications.');
-      handleUpdateSettings({ notificationsEnabled: false });
-      return;
+    if (ENABLE_BACKGROUND_PUSH_NOTIFICATIONS) {
+      const registration = await registerNotificationWorker();
+      if (!registration) {
+        toast.error('Could not register the notification service worker.');
+        handleUpdateSettings({ notificationsEnabled: false });
+        return;
+      }
+      try {
+        await subscribeToWebPush(registration);
+      } catch (error) {
+        console.error('Push subscription failed:', error);
+        toast.error(error instanceof Error ? error.message : 'Could not enable push notifications.');
+        handleUpdateSettings({ notificationsEnabled: false });
+        return;
+      }
     }
 
     handleUpdateSettings({ notificationsEnabled: true });
