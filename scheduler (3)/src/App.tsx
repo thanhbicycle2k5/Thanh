@@ -313,8 +313,8 @@ const Logo = ({ className }: { className?: string }) => (
 );
 
 function PlannerApp() {
-  const [plans, setPlans] = React.useState<Plan[]>([]);
-  const [weekMetas, setWeekMetas] = React.useState<Record<string, any>>({});
+  const [plans, setPlans] = React.useState<Plan[]>(() => storage.getPlans());
+  const [weekMetas, setWeekMetas] = React.useState<Record<string, any>>(() => storage.getWeekMetas());
   const [isSummaryOpen, setIsSummaryOpen] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -346,7 +346,7 @@ function PlannerApp() {
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   const [openWeekPopoverKey, setOpenWeekPopoverKey] = React.useState<string | null>(null);
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
-  const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(defaultSettings));
+  const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(storage.getSettings()));
   const [settingsError, setSettingsError] = React.useState<string | null>(null);
   const [sharedLinks, setSharedLinks] = React.useState<SharedScheduleLink[]>([]);
 
