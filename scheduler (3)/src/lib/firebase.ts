@@ -425,6 +425,7 @@ export const subscribeSharedSchedule = (
   callback: (snapshot: SharedScheduleSnapshot | null) => void,
   onError?: (error: Error) => void
 ): (() => void) => onSnapshot(
+  // Shared schedules are intentionally readable without an authenticated user.
   doc(db, 'sharedSchedules', shareId),
   (snapshot) => callback(snapshot.exists() ? snapshot.data() as SharedScheduleSnapshot : null),
   (error) => onError?.(error instanceof Error ? error : new Error(String(error)))

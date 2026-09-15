@@ -91,6 +91,7 @@ service cloud.firestore {
         && request.resource.data.ownerUid == request.auth.uid
         && request.resource.data.keys().hasAll(['ownerUid', 'startWeek', 'endWeek', 'plans', 'startHour', 'endHour', 'language', 'createdAt', 'expiresAt'])
         && request.resource.data.expiresAt > request.time;
+      // Public read is intentional: recipients must not need a Google login.
       allow get: if request.time < resource.data.expiresAt;
       allow delete: if isSignedIn() && resource.data.ownerUid == request.auth.uid;
       allow list: if false;
