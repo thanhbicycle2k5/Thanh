@@ -157,12 +157,15 @@ export default function App() {
   return shareId ? <SharedScheduleView shareId={shareId} /> : <PlannerApp />;
 }
 
-export function getShareIdFromLocation(location: Pick<Location, 'pathname' | 'search'>): string | null {
+export function getShareIdFromLocation(location: Pick<Location, 'pathname' | 'search' | 'hash'>): string | null {
   const queryShareId = new URLSearchParams(location.search).get('share');
   if (queryShareId) return queryShareId;
 
   const sharePathMatch = location.pathname.match(/^\/share\/([^/]+)\/?$/i);
-  return sharePathMatch ? decodeURIComponent(sharePathMatch[1]) : null;
+  if (sharePathMatch) return decodeURIComponent(sharePathMatch[1]);
+
+  const hashShareId = new URLSearchParams(location.hash.replace(/^#\/?/, '')).get('share');
+  return hashShareId || null;
 }
 
 function HealthTipPanel({ theme, isSettingsOpen, t, lang, onActivate }: { theme: Theme; isSettingsOpen: boolean; t: (k: TranslationKey) => string; lang: Language; onActivate?: (m: CatMood) => void }) {
@@ -2208,7 +2211,7 @@ function PlannerApp() {
       createdAt: new Date().toISOString(),
       expiresAt: Timestamp.fromMillis(Date.now() + (24 * 60 * 60 * 1000)),
     });
-    return { id: shareId, url: `${window.location.origin}/share/${encodeURIComponent(shareId)}` };
+    return { id: shareId, url: `${window.location.origin}/?share=${encodeURIComponent(shareId)}` };
   }, [activeUid, settingsState.endHour, settingsState.language, settingsState.startHour, user]);
 
   const handleCancelShare = React.useCallback(async (shareId: string) => {
