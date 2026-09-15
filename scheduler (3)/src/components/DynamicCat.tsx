@@ -7,6 +7,7 @@ import React from 'react';
 import { CatMood, CatColor } from '../types';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
+import catImage from './cat_new.png';
 
 interface DynamicCatProps {
   mood: CatMood;
@@ -227,7 +228,8 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
       onDoubleClick={onDoubleClick}
       className={cn(sizeMap[size], className, 'cursor-pointer select-none')}
     >
-      <svg
+      <img src={catImage} alt="Cat mascot" className="h-full w-full object-contain" draggable={false} />
+      {false && <svg
         viewBox={viewBoxMap[size]}
         className="w-full h-full"
         xmlns="http://www.w3.org/2000/svg"
@@ -296,7 +298,7 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
 
           {pose.accessory && <g dangerouslySetInnerHTML={{ __html: pose.accessory }} />}
         </g>
-      </svg>
+      </svg>}
     </motion.div>
   );
 };
