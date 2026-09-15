@@ -1,4 +1,4 @@
-const APP_SHELL_CACHE = 'task2goal-app-shell-v6';
+const APP_SHELL_CACHE = 'task2goal-app-shell-v7';
 const SCHEDULE_CACHE_NAME = 'scheduly-notifications-v1';
 const SCHEDULY_NOTIFICATION_MESSAGE = 'SCHEDULY_SCHEDULE_NOTIFICATION';
 const SCHEDULY_CLEAR_ALL_NOTIFICATIONS = 'SCHEDULY_CLEAR_ALL_NOTIFICATIONS';
@@ -107,11 +107,17 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.mode === 'navigate') {
-    // Use the cached app shell first so reopening the installed app works offline.
+    // Fetch the latest shell first so shared links do not run stale routing code.
     event.respondWith(
-      caches.match(request)
-        .then((cachedResponse) => cachedResponse || caches.match('/'))
-        .then((cachedResponse) => cachedResponse || fetch(request))
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            void openAppShellCache().then((cache) => cache.put('/', copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request).then((cachedResponse) => cachedResponse || caches.match('/')))
     );
     return;
   }

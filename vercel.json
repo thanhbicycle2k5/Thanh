@@ -3,6 +3,9 @@
   "installCommand": "npm install --ignore-scripts && cd \"scheduler (3)\" && npm install --ignore-scripts",
   "buildCommand": "cd \"scheduler (3)\" && npm run build",
   "outputDirectory": "scheduler (3)/dist",
+  "rewrites": [
+    { "source": "/share/(.*)", "destination": "/index.html" }
+  ],
   "headers": [
     {
       "source": "/sw.js",
