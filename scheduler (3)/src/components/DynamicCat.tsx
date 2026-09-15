@@ -7,7 +7,30 @@ import React from 'react';
 import { CatMood, CatColor } from '../types';
 import { motion } from 'motion/react';
 import { cn } from '@/lib/utils';
-import catImage from './cat_new.png';
+import catBlackImage from './cat-black.png';
+import catBlueImage from './cat-blue.png';
+import catGreenImage from './cat-green.png';
+import catOrangeImage from './cat-orange.png';
+import catPinkImage from './cat-pink.png';
+import catRedImage from './cat-red.png';
+import catWhiteImage from './cat-white.png';
+import catGreyImage from './cat-grey.png';
+import catYellowImage from './cat-yellow.png';
+
+export const CAT_IMAGE_BY_COLOR: Partial<Record<CatColor, string>> = {
+  black: catBlackImage,
+  blue: catBlueImage,
+  green: catGreenImage,
+  gray: catGreyImage,
+  orange: catOrangeImage,
+  pink: catPinkImage,
+  red: catRedImage,
+  white: catWhiteImage,
+  yellow: catYellowImage,
+};
+
+export const getCatImage = (color: CatColor | undefined) =>
+  CAT_IMAGE_BY_COLOR[color ?? 'yellow'] ?? catYellowImage;
 
 interface DynamicCatProps {
   mood: CatMood;
@@ -228,7 +251,7 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
       onDoubleClick={onDoubleClick}
       className={cn(sizeMap[size], className, 'cursor-pointer select-none')}
     >
-      <img src={catImage} alt="Cat mascot" className="h-full w-full object-contain" draggable={false} />
+      <img src={getCatImage(color)} alt="Cat mascot" className="h-full w-full object-contain" draggable={false} />
       {false && <svg
         viewBox={viewBoxMap[size]}
         className="w-full h-full"

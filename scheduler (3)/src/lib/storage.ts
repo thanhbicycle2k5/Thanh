@@ -13,7 +13,7 @@ export const defaultSettings: AppSettings = {
   notificationSound: 'bird',
   startHour: 7,
   endHour: 22,
-  catColor: 'orange',
+  catColor: 'yellow',
   gymRestEnabled: false,
   gymRestDurationSeconds: 60,
   gymRestSoundEnabled: true,

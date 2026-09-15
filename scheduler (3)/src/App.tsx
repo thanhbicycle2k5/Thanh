@@ -76,7 +76,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { translations, TranslationKey } from './lib/i18n';
 import { AppSettings, Language, Theme, CatMood, CatColor, BackgroundConfig } from './types';
 import { motion, AnimatePresence } from 'motion/react';
-import { DynamicCat } from './components/DynamicCat';
+import { DynamicCat, getCatImage } from './components/DynamicCat';
 import { SpeechBubbleOverlay } from './components/SpeechBubbleOverlay';
 import { BackgroundCustomizer } from './components/BackgroundCustomizer';
 import { CelebrationEffect } from './components/CelebrationEffect';
@@ -3170,7 +3170,7 @@ function PlannerApp() {
               >
                 <DynamicCat 
                   mood={catMoodOverride ?? catMood}
-                  color={settingsState.catColor ?? 'orange'}
+                  color={settingsState.catColor ?? 'yellow'}
                   size="sm"
                   onClick={handleCatClick}
                   onDoubleClick={handleCatDoubleClick}
@@ -3186,7 +3186,7 @@ function PlannerApp() {
         open={isSchedulyChatOpen}
         onClose={() => setIsSchedulyChatOpen(false)}
         theme={settingsState.theme}
-        catColor={settingsState.catColor ?? 'orange'}
+        catColor={settingsState.catColor ?? 'yellow'}
         plans={plans}
         aiProvider={settingsState.aiProvider ?? 'auto'}
       />
@@ -3418,31 +3418,20 @@ function PlannerApp() {
                             <p className="text-sm font-semibold text-foreground">{t('catColor')}</p>
                             <p className="text-xs text-muted-foreground">{t('catColorDescription')}</p>
                             <div className="flex flex-wrap gap-2">
-                              {(['orange', 'pink', 'blue', 'green', 'purple', 'yellow', 'teal', 'red', 'gray', 'black', 'white'] as CatColor[]).map((color) => (
+                              {(['yellow', 'orange', 'pink', 'blue', 'green', 'red', 'gray', 'black', 'white'] as CatColor[]).map((color) => (
                                 <button
                                   key={color}
                                   type="button"
                                   onClick={() => handleUpdateSettings({ catColor: color })}
                                   className={cn(
-                                    'h-9 w-9 rounded-full border-2 transition-transform duration-200 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary',
+                                    'relative h-12 w-12 overflow-hidden rounded-full border-2 bg-muted transition-transform duration-200 outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary',
                                     settingsState.catColor === color ? 'scale-110 border-white shadow-lg' : 'border-transparent hover:scale-105'
                                   )}
-                                  style={{
-                                    backgroundColor:
-                                      color === 'orange' ? '#f59e0b' :
-                                      color === 'pink' ? '#ec4899' :
-                                      color === 'blue' ? '#3b82f6' :
-                                      color === 'green' ? '#22c55e' :
-                                      color === 'purple' ? '#8b5cf6' :
-                                      color === 'yellow' ? '#fde047' :
-                                      color === 'teal' ? '#14b8a6' :
-                                      color === 'red' ? '#ef4444' :
-                                      color === 'gray' ? '#6b7280' :
-                                      color === 'black' ? '#111827' :
-                                      '#f8fafc'
-                                  }}
+                                  title={`${color} cat`}
                                   aria-label={`Select ${color} cat`}
-                                />
+                                >
+                                  <img src={getCatImage(color)} alt="" className="h-full w-full object-contain" draggable={false} />
+                                </button>
                               ))}
                             </div>
                           </div>
