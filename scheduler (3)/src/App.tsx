@@ -2311,8 +2311,7 @@ function PlannerApp() {
     let touchStartX = 0;
     let scrollContainerStartX = 0;
     let touchStartedInPopup = false;
-    const hasOpenPopup = isSettingsOpen || isSearchOpen || isSummaryOpen || isDialogOpen
-      || deleteConfirmOpen || shareDialogOpen || isPomodoroOpen || gymRestOpen
+    const hasOpenPopup = isSettingsOpen || isSearchOpen || isSummaryOpen || isPomodoroOpen || gymRestOpen
       || isNoteOpen || isCalendarOpen;
     
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -2383,7 +2382,7 @@ function PlannerApp() {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [deleteConfirmOpen, gymRestOpen, isCalendarOpen, isDialogOpen, isNoteOpen, isPomodoroOpen, isSearchOpen, isSettingsOpen, isSummaryOpen, selectedWeekStart, shareDialogOpen]);
+  }, [gymRestOpen, isCalendarOpen, isNoteOpen, isPomodoroOpen, isSearchOpen, isSettingsOpen, isSummaryOpen, selectedWeekStart]);
 
   return (
     <div 
