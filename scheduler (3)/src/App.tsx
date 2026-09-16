@@ -3204,7 +3204,7 @@ function PlannerApp() {
       <Toaster />
 
       <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
-        <DialogContent className="max-w-xl">
+        {isSearchOpen && <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Search className="w-4 h-4 text-[#107C41]" />
@@ -3274,11 +3274,11 @@ function PlannerApp() {
               <p className="p-6 text-center text-sm text-muted-foreground">{t('noMatchingTasks')}</p>
             )}
           </div>
-        </DialogContent>
+        </DialogContent>}
       </Dialog>
 
       <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
-         <DialogContent className={cn(
+        {isSettingsOpen && <DialogContent className={cn(
            "w-full max-w-[calc(100vw-64px)] md:max-w-6xl h-[90vh] rounded-[32px] bg-card dark:bg-card p-0 flex flex-col",
            desktopFontClass
          )}>
@@ -3718,11 +3718,11 @@ function PlannerApp() {
                 </main>
               </div>
             </SettingsErrorBoundary>
-         </DialogContent>
+        </DialogContent>}
       </Dialog>
 
       <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        {isSummaryOpen && <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{t('summaryYear').replace('{year}', format(new Date(), 'yyyy'))}</DialogTitle>
           </DialogHeader>
@@ -3758,7 +3758,7 @@ function PlannerApp() {
               );
             })}
           </div>
-        </DialogContent>
+        </DialogContent>}
       </Dialog>
     </div>
   );
