@@ -113,6 +113,10 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
     : 1;
   const previewEmptyBackground = 'transparent';
 
+  React.useEffect(() => {
+    setNextBoardOpacity(Number.isFinite(boardOpacity) ? Math.min(1, Math.max(0, boardOpacity)) : 1);
+  }, [boardOpacity]);
+
   const handleTypeChange = (newType: BackgroundType) => {
     setType(newType);
     if (newType === 'color') {
@@ -297,6 +301,7 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
             const nextValue = Array.isArray(v) ? v[0] : v;
             if (typeof nextValue === 'number' && Number.isFinite(nextValue)) {
               setNextBoardOpacity(nextValue);
+              onBoardOpacityChange(nextValue);
             }
           }}
           min={0}
@@ -321,7 +326,7 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
         <div
           className="absolute inset-3 rounded border border-border p-2 shadow-sm"
           style={{
-            backgroundColor: 'transparent',
+            backgroundColor: `color-mix(in srgb, var(--card) ${Math.max(12, safeBoardOpacity * 100)}%, transparent)`,
           }}
         >
           <div className="mb-2 h-2 w-1/3 rounded" style={{ backgroundColor: previewEmptyBackground }} />
