@@ -48,13 +48,36 @@ type ExportPreview = {
 type SharedScheduleResult = { id: string; url: string };
 
 const COLOR_MAP: Record<PlanColor, string> = {
-  default: 'bg-card grayscale',
-  green: 'bg-[#92D050] text-[#000]',
-  yellow: 'bg-[#FFFF00] text-[#000]',
-  gray: 'bg-[#7F7F7F] text-[#fff]',
-  red: 'bg-[#FF0000] text-[#fff]',
-  blue: 'bg-[#0070C0] text-[#fff]',
-  pink: 'bg-[#FF69B4] text-[#000]',
+  default: 'grayscale',
+  green: 'text-[#000]',
+  yellow: 'text-[#000]',
+  gray: 'text-[#fff]',
+  red: 'text-[#fff]',
+  blue: 'text-[#fff]',
+  pink: 'text-[#000]',
+};
+
+const PLAN_BACKGROUND_COLORS: Record<PlanColor, string> = {
+  default: '#FFFFFF',
+  green: '#92D050',
+  yellow: '#FFFF00',
+  gray: '#7F7F7F',
+  red: '#FF0000',
+  blue: '#0070C0',
+  pink: '#FF69B4',
+};
+
+const hexToRgba = (hex: string, alpha: number) => {
+  const safeHex = hex.replace('#', '');
+  const normalized = safeHex.length === 3
+    ? safeHex.split('').map((char) => char + char).join('')
+    : safeHex;
+
+  const bigint = Number.parseInt(normalized, 16);
+  const r = (bigint >> 16) & 255;
+  const g = (bigint >> 8) & 255;
+  const b = bigint & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
 async function shareOrOpenFile(blob: Blob, filename: string, objectUrl: string) {
@@ -106,6 +129,7 @@ interface ScheduleCellProps {
   handleUnifiedClick: (date: Date, hour: number, existingPlan?: Plan) => void;
   handleOpenEdit: (plan: Plan, e: React.MouseEvent) => void;
   t: (key: keyof typeof translations.en) => string;
+  boardOpacity: number;
 }
 
 const ScheduleCell = React.memo(function ScheduleCell({
@@ -118,16 +142,25 @@ const ScheduleCell = React.memo(function ScheduleCell({
   handleUnifiedClick,
   handleOpenEdit,
   t,
+  boardOpacity,
 }: ScheduleCellProps) {
   if (isPartOfPreviousPlan) return null;
+
+  const alpha = Math.min(1, Math.max(0, Number.isFinite(boardOpacity) ? boardOpacity : 1));
+  const cellBackground = plan
+    ? hexToRgba(PLAN_BACKGROUND_COLORS[plan.color], alpha)
+    : `rgba(255, 255, 255, ${Math.min(0.52, alpha)})`;
 
   return (
     <td
       rowSpan={plan?.duration || 1}
       className={cn(
         "border p-0 relative group cursor-pointer transition-colors duration-150 border-border",
-        plan ? COLOR_MAP[plan.color] : "bg-background/50 hover:bg-muted"
+        plan ? COLOR_MAP[plan.color] : "hover:bg-muted/30"
       )}
+      style={{
+        backgroundColor: cellBackground,
+      }}
       onClick={() => handleUnifiedClick(day, hour)}
     >
       {plan ? (
@@ -650,22 +683,27 @@ function ScheduleGridComponent({
   const visibleBoardOpacity = Number.isFinite(boardOpacity)
     ? Math.min(1, Math.max(0, boardOpacity))
     : 1;
+  const translucentCard = `color-mix(in srgb, var(--card) ${Math.max(18, visibleBoardOpacity * 100)}%, transparent)`;
 
   return (
-    <div id="schedule-scroll-container" className="relative w-full overflow-x-auto rounded-xl border transition-colors bg-card border-border" style={{ opacity: visibleBoardOpacity }}>
-      <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px]">
+    <div
+      id="schedule-scroll-container"
+      className="relative w-full overflow-x-auto rounded-xl border transition-colors border-border"
+      style={{ backgroundColor: 'transparent' }}
+    >
+      <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px] bg-transparent">
         <thead className="sticky top-0 z-30">
-          <tr className="bg-muted/95 backdrop-blur">
-            <th className="w-14 md:w-20 border p-2 text-[10px] font-black uppercase tracking-wider sticky left-0 z-30 bg-card border-border text-muted-foreground">
+          <tr className="backdrop-blur" style={{ backgroundColor: translucentCard }}>
+            <th className="w-14 md:w-20 border p-2 text-[10px] font-black uppercase tracking-wider sticky left-0 z-30 border-border text-muted-foreground" style={{ backgroundColor: translucentCard }}>
               <div className="flex items-center justify-center gap-1">
                 <Clock3 className="h-4 w-4" aria-label="Thời gian" />
               </div>
             </th>
             {daysOfCurrentWeek.map((day, i) => (
               <th key={i} className={cn(
-                "border p-2 text-[10px] md:text-xs font-black uppercase tracking-tight border-border text-foreground bg-muted/95",
-                isSameDay(day, new Date()) && "bg-primary/10 text-primary"
-              )}>
+                "border p-2 text-[10px] md:text-xs font-black uppercase tracking-tight border-border text-foreground",
+                isSameDay(day, new Date()) && "text-primary"
+              )} style={{ backgroundColor: translucentCard }}>
                 <span className="hidden md:inline">{dayLabels[i]}</span>
                 <span className="md:hidden">{dayShortLabels[i]}</span>
                 <div className="text-[10px] opacity-50">{format(day, 'd/M')}</div>
@@ -679,7 +717,7 @@ function ScheduleGridComponent({
         <tbody>
           {HOURS.map(hour => (
             <tr key={hour} className="h-10 md:h-12">
-              <td className="border text-center font-black text-[10px] md:text-xs sticky left-0 z-20 bg-muted border-border text-foreground">
+              <td className="border text-center font-black text-[10px] md:text-xs sticky left-0 z-20 border-border text-foreground" style={{ backgroundColor: translucentCard }}>
                 {hour}:00
               </td>
               {daysOfCurrentWeek.map((day, dayIndex) => {
@@ -699,6 +737,7 @@ function ScheduleGridComponent({
                     handleUnifiedClick={handleUnifiedClick}
                     handleOpenEdit={handleOpenEdit}
                     t={t}
+                    boardOpacity={visibleBoardOpacity}
                   />
                 );
               })}
