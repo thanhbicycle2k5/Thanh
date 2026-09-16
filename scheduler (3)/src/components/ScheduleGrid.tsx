@@ -898,12 +898,14 @@ function ScheduleGridComponent({
                 {(Object.keys(COLOR_MAP) as PlanColor[]).map(color => (
                   <button
                     key={color}
+                    type="button"
                     className={cn(
                       "w-7 h-7 rounded-full border-2 transition-all hover:scale-110",
                       COLOR_MAP[color],
                       "border-border",
                       newColor === color && "ring-2 ring-primary ring-offset-2 scale-110"
                     )}
+                    style={{ backgroundColor: PLAN_BACKGROUND_COLORS[color] }}
                     onClick={() => {
                       setNewColor(color);
                     }}
