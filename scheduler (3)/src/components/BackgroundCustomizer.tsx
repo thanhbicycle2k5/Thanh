@@ -249,17 +249,28 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
       </div>
 
       {/* Preview */}
-      <div
-        className="w-full h-20 rounded border border-border overflow-hidden"
-        style={
-          type === 'gradient'
-            ? { background: value, opacity }
-            : { backgroundColor: value, opacity }
-        }
-      >
-        {type === 'image' && value && (
-          <img src={value} alt="preview" className="w-full h-full object-cover" />
-        )}
+      <div className="relative w-full h-28 rounded border border-border overflow-hidden bg-background">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          style={
+            type === 'image'
+              ? { backgroundImage: value ? `url(${value})` : undefined, opacity }
+              : type === 'gradient'
+                ? { background: value, opacity }
+                : { backgroundColor: value, opacity }
+          }
+        />
+        <div
+          className="absolute inset-3 rounded border border-border bg-card/90 p-2 shadow-sm"
+          style={{ opacity: nextBoardOpacity }}
+        >
+          <div className="mb-2 h-2 w-1/3 rounded bg-muted-foreground/40" />
+          <div className="grid grid-cols-4 gap-1">
+            {Array.from({ length: 8 }, (_, index) => (
+              <div key={index} className="h-5 rounded-sm border border-border bg-background/80" />
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Save Button */}
