@@ -51,6 +51,46 @@ const PRESET_GRADIENTS = [
   'linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%)',
 ];
 
+const MAX_BACKGROUND_IMAGE_BYTES = 600_000;
+const MAX_BACKGROUND_IMAGE_DIMENSION = 1600;
+
+const compressBackgroundImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error ?? new Error('Unable to read background image'));
+    reader.onload = () => {
+      const image = new Image();
+      image.onerror = () => reject(new Error('Unable to decode background image'));
+      image.onload = () => {
+        const scale = Math.min(
+          1,
+          MAX_BACKGROUND_IMAGE_DIMENSION / Math.max(image.naturalWidth, image.naturalHeight)
+        );
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round(image.naturalWidth * scale));
+        canvas.height = Math.max(1, Math.round(image.naturalHeight * scale));
+        const context = canvas.getContext('2d');
+        if (!context) {
+          reject(new Error('Unable to process background image'));
+          return;
+        }
+
+        context.drawImage(image, 0, 0, canvas.width, canvas.height);
+        const qualities = [0.82, 0.68, 0.55];
+        let result = canvas.toDataURL('image/jpeg', qualities[qualities.length - 1]);
+        for (const quality of qualities) {
+          const candidate = canvas.toDataURL('image/jpeg', quality);
+          result = candidate;
+          if (candidate.length <= MAX_BACKGROUND_IMAGE_BYTES) break;
+        }
+        resolve(result);
+      };
+      image.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
 export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
   config,
   onChange,
@@ -107,12 +147,11 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const dataUrl = event.target?.result as string;
-        setValue(dataUrl);
-      };
-      reader.readAsDataURL(file);
+      void compressBackgroundImage(file)
+        .then(setValue)
+        .catch((error) => {
+          console.error('Unable to prepare background image:', error);
+        });
     }
   };
 
