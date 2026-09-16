@@ -2385,7 +2385,9 @@ function PlannerApp() {
           className="absolute inset-0 z-0 bg-background/40 dark:bg-background/60 pointer-events-none"
           style={{
             ...getBackgroundStyle(),
-            opacity: settingsState.backgroundConfig.opacity ?? 1,
+            opacity: Number.isFinite(settingsState.backgroundConfig.opacity)
+              ? settingsState.backgroundConfig.opacity
+              : 1,
           }}
         />
       )}

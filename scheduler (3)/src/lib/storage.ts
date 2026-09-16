@@ -51,7 +51,7 @@ const isBackgroundConfig = (value: any): value is AppSettings['backgroundConfig'
     typeof value === 'object' &&
     (value.type === 'color' || value.type === 'gradient' || value.type === 'image') &&
     typeof value.value === 'string' &&
-    (value.opacity === undefined || typeof value.opacity === 'number')
+    (value.opacity === undefined || (typeof value.opacity === 'number' && Number.isFinite(value.opacity)))
   );
 };
 
@@ -71,7 +71,14 @@ export const normalizeSettings = (raw: any): AppSettings => {
     notificationSound: obj.notificationSound === 'bird' || obj.notificationSound === 'wind' || obj.notificationSound === 'bell' || obj.notificationSound === 'chime' ? obj.notificationSound : defaultSettings.notificationSound,
     startHour: typeof obj.startHour === 'number' && Number.isInteger(obj.startHour) ? obj.startHour : defaultSettings.startHour,
     endHour: typeof obj.endHour === 'number' && Number.isInteger(obj.endHour) ? obj.endHour : defaultSettings.endHour,
-    backgroundConfig: isBackgroundConfig(obj.backgroundConfig) ? obj.backgroundConfig : undefined,
+    backgroundConfig: isBackgroundConfig(obj.backgroundConfig)
+      ? {
+          ...obj.backgroundConfig,
+          opacity: obj.backgroundConfig.opacity === undefined
+            ? 1
+            : Math.min(1, Math.max(0, obj.backgroundConfig.opacity)),
+        }
+      : undefined,
     boardOpacity: typeof obj.boardOpacity === 'number' && !Number.isNaN(obj.boardOpacity)
       ? Math.min(1, Math.max(0, obj.boardOpacity))
       : 1,

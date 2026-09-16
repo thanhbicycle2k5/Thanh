@@ -61,8 +61,12 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
 }) => {
   const [type, setType] = React.useState<BackgroundType>(config?.type || 'color');
   const [value, setValue] = React.useState<string>(config?.value || '#FFFFFF');
-  const [opacity, setOpacity] = React.useState<number>(config?.opacity ?? 1);
-  const [nextBoardOpacity, setNextBoardOpacity] = React.useState<number>(boardOpacity);
+  const [opacity, setOpacity] = React.useState<number>(
+    Number.isFinite(config?.opacity) ? Math.min(1, Math.max(0, config?.opacity ?? 1)) : 1
+  );
+  const [nextBoardOpacity, setNextBoardOpacity] = React.useState<number>(
+    Number.isFinite(boardOpacity) ? Math.min(1, Math.max(0, boardOpacity)) : 1
+  );
 
   const handleTypeChange = (newType: BackgroundType) => {
     setType(newType);
