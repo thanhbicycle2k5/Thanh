@@ -146,9 +146,10 @@ const ScheduleCell = React.memo(function ScheduleCell({
 }: ScheduleCellProps) {
   if (isPartOfPreviousPlan) return null;
 
+  const effectiveBoardOpacity = boardOpacity === 0 ? 0.12 : Math.min(1, Math.max(0, boardOpacity));
   const cellBackground = plan
     ? PLAN_BACKGROUND_COLORS[plan.color]
-    : 'transparent';
+    : `color-mix(in srgb, var(--card) ${effectiveBoardOpacity * 100}%, transparent)`;
 
   return (
     <td
