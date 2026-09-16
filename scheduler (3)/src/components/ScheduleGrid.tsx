@@ -647,9 +647,12 @@ function ScheduleGridComponent({
   }, [currentWeekStart, isExporting]);
 
   const maxDuration = (hour: number) => Math.min(12, endHour - hour + 1);
+  const visibleBoardOpacity = Number.isFinite(boardOpacity)
+    ? Math.min(1, Math.max(0, boardOpacity))
+    : 1;
 
   return (
-    <div id="schedule-scroll-container" className="relative w-full overflow-x-auto rounded-xl border transition-colors bg-card border-border" style={{ opacity: boardOpacity }}>
+    <div id="schedule-scroll-container" className="relative w-full overflow-x-auto rounded-xl border transition-colors bg-card border-border" style={{ opacity: visibleBoardOpacity }}>
       <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px]">
         <thead className="sticky top-0 z-30">
           <tr className="bg-muted/95 backdrop-blur">

@@ -2634,7 +2634,7 @@ function PlannerApp() {
                     theme={settingsState.theme}
                     startHour={settingsState.startHour}
                     endHour={settingsState.endHour}
-                    boardOpacity={settingsState.boardOpacity ?? 1}
+                    boardOpacity={Number.isFinite(settingsState.boardOpacity) ? settingsState.boardOpacity : 1}
                     showLunarCalendar={settingsState.showLunarCalendar ?? true}
                       sharedLinks={sharedLinks}
                       onCreateShare={handleCreateShare}
