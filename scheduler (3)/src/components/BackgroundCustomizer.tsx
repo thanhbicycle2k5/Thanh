@@ -71,8 +71,7 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
   const safeBoardOpacity = Number.isFinite(nextBoardOpacity)
     ? Math.min(1, Math.max(0, nextBoardOpacity))
     : 1;
-  const effectiveBoardOpacity = safeBoardOpacity === 0 ? 0.12 : safeBoardOpacity;
-  const previewEmptyBackground = `color-mix(in srgb, var(--card) ${Math.max(12, effectiveBoardOpacity * 100)}%, transparent)`;
+  const previewEmptyBackground = 'transparent';
 
   const handleTypeChange = (newType: BackgroundType) => {
     setType(newType);
@@ -286,7 +285,7 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
             backgroundColor: 'transparent',
           }}
         >
-          <div className="mb-2 h-2 w-1/3 rounded" style={{ backgroundColor: previewEmptyBackground, opacity: effectiveBoardOpacity }} />
+          <div className="mb-2 h-2 w-1/3 rounded" style={{ backgroundColor: previewEmptyBackground }} />
           <div className="grid grid-cols-4 gap-1">
             {[
               '#92D050',
@@ -303,7 +302,6 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
                 className="h-5 rounded-sm border border-border"
                 style={{
                   backgroundColor: color || previewEmptyBackground,
-                  opacity: color ? 1 : effectiveBoardOpacity,
                 }}
               />
             ))}

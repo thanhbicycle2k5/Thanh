@@ -146,22 +146,21 @@ const ScheduleCell = React.memo(function ScheduleCell({
 }: ScheduleCellProps) {
   if (isPartOfPreviousPlan) return null;
 
-  const alpha = Math.min(1, Math.max(0, Number.isFinite(boardOpacity) ? boardOpacity : 1));
-  const effectiveAlpha = alpha === 0 ? 0.12 : alpha;
   const cellBackground = plan
     ? PLAN_BACKGROUND_COLORS[plan.color]
-    : `color-mix(in srgb, var(--card) ${Math.max(12, effectiveAlpha * 100)}%, transparent)`;
+    : 'transparent';
 
   return (
     <td
       rowSpan={plan?.duration || 1}
       className={cn(
         "border p-0 relative group cursor-pointer transition-colors duration-150 border-border",
-        plan ? COLOR_MAP[plan.color] : "hover:bg-muted/30"
+        plan ? COLOR_MAP[plan.color] : "hover:bg-transparent"
       )}
       style={{
         backgroundColor: cellBackground,
-        opacity: plan ? 1 : effectiveAlpha,
+        background: cellBackground,
+        backgroundImage: 'none',
       }}
       onClick={() => handleUnifiedClick(day, hour)}
     >
@@ -686,7 +685,7 @@ function ScheduleGridComponent({
     ? Math.min(1, Math.max(0, boardOpacity))
     : 1;
   const effectiveBoardOpacity = visibleBoardOpacity === 0 ? 0.12 : visibleBoardOpacity;
-  const translucentCard = `color-mix(in srgb, var(--card) ${Math.max(12, effectiveBoardOpacity * 100)}%, transparent)`;
+  const translucentCard = `color-mix(in srgb, var(--card) ${Math.max(2, effectiveBoardOpacity * 20)}%, transparent)`;
 
   return (
     <div
@@ -694,7 +693,7 @@ function ScheduleGridComponent({
       className="relative w-full overflow-x-auto rounded-xl border transition-colors border-border"
       style={{ backgroundColor: 'transparent' }}
     >
-      <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px] bg-transparent">
+      <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px] !bg-transparent" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
         <thead className="sticky top-0 z-30">
           <tr className="backdrop-blur" style={{ backgroundColor: translucentCard }}>
             <th className="w-14 md:w-20 border p-2 text-[10px] font-black uppercase tracking-wider sticky left-0 z-30 border-border text-muted-foreground" style={{ backgroundColor: translucentCard }}>
@@ -717,9 +716,9 @@ function ScheduleGridComponent({
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody style={{ background: 'transparent', backgroundColor: 'transparent' }}>
           {HOURS.map(hour => (
-            <tr key={hour} className="h-10 md:h-12">
+            <tr key={hour} className="h-10 md:h-12" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
               <td className="border text-center font-black text-[10px] md:text-xs sticky left-0 z-20 border-border text-foreground" style={{ backgroundColor: translucentCard }}>
                 {hour}:00
               </td>

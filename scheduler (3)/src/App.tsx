@@ -2602,7 +2602,7 @@ function PlannerApp() {
               </div>
            </div>
 
-           <div className="bg-card dark:border-white/10 rounded-xl border shadow-xl overflow-hidden">
+           <div className="bg-transparent dark:border-white/10 rounded-xl border shadow-xl overflow-hidden">
              <AnimatePresence mode="wait">
                <motion.div
                  key={format(selectedWeekStart, 'yyyy-MM-dd')}
