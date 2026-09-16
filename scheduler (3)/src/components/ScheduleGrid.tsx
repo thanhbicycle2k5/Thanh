@@ -149,7 +149,7 @@ const ScheduleCell = React.memo(function ScheduleCell({
   const alpha = Math.min(1, Math.max(0, Number.isFinite(boardOpacity) ? boardOpacity : 1));
   const effectiveAlpha = alpha === 0 ? 0.12 : alpha;
   const cellBackground = plan
-    ? hexToRgba(PLAN_BACKGROUND_COLORS[plan.color], effectiveAlpha)
+    ? PLAN_BACKGROUND_COLORS[plan.color]
     : `color-mix(in srgb, var(--card) ${Math.max(12, effectiveAlpha * 100)}%, transparent)`;
 
   return (
@@ -161,6 +161,7 @@ const ScheduleCell = React.memo(function ScheduleCell({
       )}
       style={{
         backgroundColor: cellBackground,
+        opacity: plan ? 1 : effectiveAlpha,
       }}
       onClick={() => handleUnifiedClick(day, hour)}
     >
