@@ -685,7 +685,7 @@ function ScheduleGridComponent({
     ? Math.min(1, Math.max(0, boardOpacity))
     : 1;
   const effectiveBoardOpacity = visibleBoardOpacity === 0 ? 0.12 : visibleBoardOpacity;
-  const translucentCard = `color-mix(in srgb, var(--card) ${Math.max(2, effectiveBoardOpacity * 20)}%, transparent)`;
+  const translucentCard = `color-mix(in srgb, var(--card) ${Math.max(2, effectiveBoardOpacity * 100)}%, transparent)`;
 
   return (
     <div
