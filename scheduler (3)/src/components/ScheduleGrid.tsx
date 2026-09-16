@@ -147,9 +147,10 @@ const ScheduleCell = React.memo(function ScheduleCell({
   if (isPartOfPreviousPlan) return null;
 
   const alpha = Math.min(1, Math.max(0, Number.isFinite(boardOpacity) ? boardOpacity : 1));
+  const effectiveAlpha = alpha === 0 ? 0.12 : alpha;
   const cellBackground = plan
-    ? hexToRgba(PLAN_BACKGROUND_COLORS[plan.color], alpha)
-    : `rgba(255, 255, 255, ${Math.min(0.52, alpha)})`;
+    ? hexToRgba(PLAN_BACKGROUND_COLORS[plan.color], effectiveAlpha)
+    : `color-mix(in srgb, var(--card) ${Math.max(12, effectiveAlpha * 100)}%, transparent)`;
 
   return (
     <td
@@ -683,7 +684,8 @@ function ScheduleGridComponent({
   const visibleBoardOpacity = Number.isFinite(boardOpacity)
     ? Math.min(1, Math.max(0, boardOpacity))
     : 1;
-  const translucentCard = `color-mix(in srgb, var(--card) ${Math.max(18, visibleBoardOpacity * 100)}%, transparent)`;
+  const effectiveBoardOpacity = visibleBoardOpacity === 0 ? 0.12 : visibleBoardOpacity;
+  const translucentCard = `color-mix(in srgb, var(--card) ${Math.max(12, effectiveBoardOpacity * 100)}%, transparent)`;
 
   return (
     <div
