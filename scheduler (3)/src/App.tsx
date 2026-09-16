@@ -2310,6 +2310,10 @@ function PlannerApp() {
   React.useEffect(() => {
     let touchStartX = 0;
     let scrollContainerStartX = 0;
+    let touchStartedInPopup = false;
+    const hasOpenPopup = isSettingsOpen || isSearchOpen || isSummaryOpen || isDialogOpen
+      || deleteConfirmOpen || shareDialogOpen || isPomodoroOpen || gymRestOpen
+      || isNoteOpen || isCalendarOpen;
     
     const handleKeyDown = (e: KeyboardEvent) => {
       // Left arrow = previous week, Right arrow = next week
@@ -2323,12 +2327,23 @@ function PlannerApp() {
     };
 
     const handleTouchStart = (e: TouchEvent) => {
+      const target = e.target as Element | null;
+      const hasMountedPopup = Boolean(document.querySelector(
+        '[data-slot="dialog-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"], [data-slot="select-content"]'
+      ));
+      touchStartedInPopup = hasOpenPopup || hasMountedPopup || Boolean(target?.closest(
+        '[role="dialog"], [data-slot="dialog-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"], button, input, textarea, select, [contenteditable="true"]'
+      ));
       touchStartX = e.touches[0].clientX;
       const scrollContainer = document.getElementById('schedule-scroll-container');
       scrollContainerStartX = scrollContainer?.scrollLeft ?? 0;
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
+      if (touchStartedInPopup) {
+        touchStartedInPopup = false;
+        return;
+      }
       const touchEndX = e.changedTouches[0].clientX;
       const diff = touchStartX - touchEndX;
       const threshold = 50;
@@ -2368,7 +2383,7 @@ function PlannerApp() {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [selectedWeekStart]);
+  }, [deleteConfirmOpen, gymRestOpen, isCalendarOpen, isDialogOpen, isNoteOpen, isPomodoroOpen, isSearchOpen, isSettingsOpen, isSummaryOpen, selectedWeekStart, shareDialogOpen]);
 
   return (
     <div 
