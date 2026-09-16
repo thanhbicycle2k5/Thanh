@@ -2282,25 +2282,24 @@ function PlannerApp() {
     };
   }, []);
 
-  // Build background style
+  // Keep background opacity on its own layer so it does not fade app content.
   const getBackgroundStyle = React.useCallback((): React.CSSProperties => {
     if (!settingsState.backgroundConfig) {
       return {};
     }
 
-    const { type, value, opacity = 1 } = settingsState.backgroundConfig;
+    const { type, value } = settingsState.backgroundConfig;
 
     if (type === 'color') {
-      return { backgroundColor: value, opacity };
+      return { backgroundColor: value };
     } else if (type === 'gradient') {
-      return { background: value, opacity };
+      return { background: value };
     } else if (type === 'image') {
       return {
         backgroundImage: `url(${value})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
-        opacity,
       };
     }
 
@@ -2379,12 +2378,16 @@ function PlannerApp() {
         "bg-background text-foreground",
         "font-vietnamese"
       )}
-      style={getBackgroundStyle()}
     >
       <div ref={youtubeContainerRef} className="hidden" />
-      {/* Background overlay for better text readability */}
       {settingsState.backgroundConfig && (
-        <div className="absolute inset-0 bg-background/40 dark:bg-background/60 pointer-events-none" />
+        <div
+          className="absolute inset-0 z-0 bg-background/40 dark:bg-background/60 pointer-events-none"
+          style={{
+            ...getBackgroundStyle(),
+            opacity: settingsState.backgroundConfig.opacity ?? 1,
+          }}
+        />
       )}
 
       <header className="border-b sticky top-0 z-50 bg-background/95 dark:bg-background/95 backdrop-blur border-border relative">
@@ -2629,6 +2632,7 @@ function PlannerApp() {
                     theme={settingsState.theme}
                     startHour={settingsState.startHour}
                     endHour={settingsState.endHour}
+                    boardOpacity={settingsState.boardOpacity ?? 1}
                     showLunarCalendar={settingsState.showLunarCalendar ?? true}
                       sharedLinks={sharedLinks}
                       onCreateShare={handleCreateShare}
@@ -3641,6 +3645,8 @@ function PlannerApp() {
                         <BackgroundCustomizer
                           config={settingsState.backgroundConfig}
                           onChange={(config) => handleUpdateSettings({ backgroundConfig: config })}
+                          boardOpacity={settingsState.boardOpacity ?? 1}
+                          onBoardOpacityChange={(boardOpacity) => handleUpdateSettings({ boardOpacity })}
                           t={t}
                           theme={settingsState.theme}
                         />

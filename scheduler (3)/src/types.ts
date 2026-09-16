@@ -73,6 +73,7 @@ export interface AppSettings {
   startHour: number;
   endHour: number;
   backgroundConfig?: BackgroundConfig;
+  boardOpacity?: number;
   catEnabled?: boolean;
   gymRestEnabled?: boolean;
   gymRestDurationSeconds?: number;

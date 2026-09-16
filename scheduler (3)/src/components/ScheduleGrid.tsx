@@ -175,6 +175,7 @@ interface ScheduleGridProps {
   theme: Theme;
   startHour: number;
   endHour: number;
+  boardOpacity?: number;
   showLunarCalendar: boolean;
   allPlans?: Plan[];
   sharedLinks?: SharedScheduleLink[];
@@ -193,6 +194,7 @@ function ScheduleGridComponent({
   theme,
   startHour,
   endHour,
+  boardOpacity = 1,
   showLunarCalendar,
   allPlans = plans,
   sharedLinks = [],
@@ -647,7 +649,7 @@ function ScheduleGridComponent({
   const maxDuration = (hour: number) => Math.min(12, endHour - hour + 1);
 
   return (
-    <div id="schedule-scroll-container" className="relative w-full overflow-x-auto rounded-xl border transition-colors bg-card border-border">
+    <div id="schedule-scroll-container" className="relative w-full overflow-x-auto rounded-xl border transition-colors bg-card border-border" style={{ opacity: boardOpacity }}>
       <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px]">
         <thead className="sticky top-0 z-30">
           <tr className="bg-muted/95 backdrop-blur">

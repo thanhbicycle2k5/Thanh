@@ -16,6 +16,8 @@ import { cn } from '@/lib/utils';
 interface BackgroundCustomizerProps {
   config: BackgroundConfig | undefined;
   onChange: (config: BackgroundConfig | undefined) => void;
+  boardOpacity: number;
+  onBoardOpacityChange: (opacity: number) => void;
   t: (key: string) => string;
   theme: Theme;
 }
@@ -52,12 +54,15 @@ const PRESET_GRADIENTS = [
 export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
   config,
   onChange,
+  boardOpacity,
+  onBoardOpacityChange,
   t,
   theme,
 }) => {
   const [type, setType] = React.useState<BackgroundType>(config?.type || 'color');
   const [value, setValue] = React.useState<string>(config?.value || '#FFFFFF');
   const [opacity, setOpacity] = React.useState<number>(config?.opacity ?? 1);
+  const [nextBoardOpacity, setNextBoardOpacity] = React.useState<number>(boardOpacity);
 
   const handleTypeChange = (newType: BackgroundType) => {
     setType(newType);
@@ -78,6 +83,7 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
         opacity,
       });
     }
+    onBoardOpacityChange(nextBoardOpacity);
   };
 
   const handleClear = () => {
@@ -85,6 +91,8 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
     setType('color');
     setValue('#FFFFFF');
     setOpacity(1);
+    setNextBoardOpacity(1);
+    onBoardOpacityChange(1);
   };
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -218,6 +226,21 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
         <Slider
           value={[opacity]}
           onValueChange={(v) => setOpacity(v[0])}
+          min={0}
+          max={1}
+          step={0.1}
+          className="w-full"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex justify-between items-center">
+          <Label className="text-xs">{t('boardOpacity')}</Label>
+          <span className="text-xs font-bold">{Math.round(nextBoardOpacity * 100)}%</span>
+        </div>
+        <Slider
+          value={[nextBoardOpacity]}
+          onValueChange={(v) => setNextBoardOpacity(v[0])}
           min={0}
           max={1}
           step={0.1}

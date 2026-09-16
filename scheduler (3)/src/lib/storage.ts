@@ -13,6 +13,7 @@ export const defaultSettings: AppSettings = {
   notificationSound: 'bird',
   startHour: 7,
   endHour: 22,
+  boardOpacity: 1,
   catColor: 'yellow',
   gymRestEnabled: false,
   gymRestDurationSeconds: 60,
@@ -71,6 +72,9 @@ export const normalizeSettings = (raw: any): AppSettings => {
     startHour: typeof obj.startHour === 'number' && Number.isInteger(obj.startHour) ? obj.startHour : defaultSettings.startHour,
     endHour: typeof obj.endHour === 'number' && Number.isInteger(obj.endHour) ? obj.endHour : defaultSettings.endHour,
     backgroundConfig: isBackgroundConfig(obj.backgroundConfig) ? obj.backgroundConfig : undefined,
+    boardOpacity: typeof obj.boardOpacity === 'number' && !Number.isNaN(obj.boardOpacity)
+      ? Math.min(1, Math.max(0, obj.boardOpacity))
+      : 1,
     catEnabled: typeof obj.catEnabled === 'boolean' ? obj.catEnabled : true,
     gymRestEnabled: typeof obj.gymRestEnabled === 'boolean' ? obj.gymRestEnabled : defaultSettings.gymRestEnabled,
     gymRestDurationSeconds: typeof obj.gymRestDurationSeconds === 'number' && Number.isInteger(obj.gymRestDurationSeconds) ? obj.gymRestDurationSeconds : defaultSettings.gymRestDurationSeconds,
