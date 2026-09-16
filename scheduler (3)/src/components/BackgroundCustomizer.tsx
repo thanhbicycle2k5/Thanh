@@ -67,6 +67,10 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
   const [nextBoardOpacity, setNextBoardOpacity] = React.useState<number>(
     Number.isFinite(boardOpacity) ? Math.min(1, Math.max(0, boardOpacity)) : 1
   );
+  const safeOpacity = Number.isFinite(opacity) ? Math.min(1, Math.max(0, opacity)) : 1;
+  const safeBoardOpacity = Number.isFinite(nextBoardOpacity)
+    ? Math.min(1, Math.max(0, nextBoardOpacity))
+    : 1;
 
   const handleTypeChange = (newType: BackgroundType) => {
     setType(newType);
@@ -84,10 +88,10 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
       onChange({
         type,
         value,
-        opacity,
+        opacity: safeOpacity,
       });
     }
-    onBoardOpacityChange(nextBoardOpacity);
+    onBoardOpacityChange(safeBoardOpacity);
   };
 
   const handleClear = () => {
@@ -225,11 +229,16 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
       <div className="space-y-2">
         <div className="flex justify-between items-center">
           <Label className="text-xs">{t('backgroundOpacity')}</Label>
-          <span className="text-xs font-bold">{Math.round(opacity * 100)}%</span>
+          <span className="text-xs font-bold">{Math.round(safeOpacity * 100)}%</span>
         </div>
         <Slider
-          value={[opacity]}
-          onValueChange={(v) => setOpacity(v[0])}
+          value={[safeOpacity]}
+          onValueChange={(v) => {
+            const nextValue = Array.isArray(v) ? v[0] : v;
+            if (typeof nextValue === 'number' && Number.isFinite(nextValue)) {
+              setOpacity(nextValue);
+            }
+          }}
           min={0}
           max={1}
           step={0.1}
@@ -240,11 +249,16 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
       <div className="space-y-2">
         <div className="flex justify-between items-center">
           <Label className="text-xs">{t('boardOpacity')}</Label>
-          <span className="text-xs font-bold">{Math.round(nextBoardOpacity * 100)}%</span>
+          <span className="text-xs font-bold">{Math.round(safeBoardOpacity * 100)}%</span>
         </div>
         <Slider
-          value={[nextBoardOpacity]}
-          onValueChange={(v) => setNextBoardOpacity(v[0])}
+          value={[safeBoardOpacity]}
+          onValueChange={(v) => {
+            const nextValue = Array.isArray(v) ? v[0] : v;
+            if (typeof nextValue === 'number' && Number.isFinite(nextValue)) {
+              setNextBoardOpacity(nextValue);
+            }
+          }}
           min={0}
           max={1}
           step={0.1}
@@ -258,15 +272,15 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={
             type === 'image'
-              ? { backgroundImage: value ? `url(${value})` : undefined, opacity }
+              ? { backgroundImage: value ? `url(${value})` : undefined, opacity: safeOpacity }
               : type === 'gradient'
-                ? { background: value, opacity }
-                : { backgroundColor: value, opacity }
+                ? { background: value, opacity: safeOpacity }
+                : { backgroundColor: value, opacity: safeOpacity }
           }
         />
         <div
           className="absolute inset-3 rounded border border-border bg-card/90 p-2 shadow-sm"
-          style={{ opacity: nextBoardOpacity }}
+          style={{ opacity: safeBoardOpacity }}
         >
           <div className="mb-2 h-2 w-1/3 rounded bg-muted-foreground/40" />
           <div className="grid grid-cols-4 gap-1">
