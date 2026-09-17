@@ -1328,8 +1328,8 @@ function PlannerApp() {
              return;
            }
 
-           if (navigator.onLine && (hasPendingSync || anonymousPlans.length > 0 || Object.keys(anonymousWeekMetas).length > 0 || settingsFromAnonExist)) {
-             await syncPendingUserData(firebaseUser.uid);
+           if (navigator.onLine && hasPendingSync) {
+             void syncPendingUserData(firebaseUser.uid);
            }
 
            try {
