@@ -352,6 +352,19 @@ function PlannerApp() {
   const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(storage.getSettings()));
   const [settingsError, setSettingsError] = React.useState<string | null>(null);
   const [sharedLinks, setSharedLinks] = React.useState<SharedScheduleLink[]>([]);
+  const weekMetaSaveTimersRef = React.useRef<Record<string, number>>({});
+  const settingsSaveTimerRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    return () => {
+      (Object.values(weekMetaSaveTimersRef.current) as number[]).forEach((timer) => window.clearTimeout(timer));
+      weekMetaSaveTimersRef.current = {};
+      if (settingsSaveTimerRef.current !== null) {
+        window.clearTimeout(settingsSaveTimerRef.current);
+        settingsSaveTimerRef.current = null;
+      }
+    };
+  }, [activeUid]);
 
   React.useEffect(() => {
     settingsRef.current = settingsState;
@@ -531,6 +544,40 @@ function PlannerApp() {
     await clearAllWorkerNotifications();
   }, []);
 
+  const queueWeekMetaCloudSave = React.useCallback((key: string, meta: Record<string, any>, immediate = false) => {
+    if (!activeUid) return;
+
+    const save = () => {
+      delete weekMetaSaveTimersRef.current[key];
+      void cloudStorage.saveWeekMeta(activeUid, key, meta)
+        .then(() => storage.setPendingSync(activeUid, 'week_meta', false))
+        .catch(() => storage.setPendingSync(activeUid, 'week_meta', true));
+    };
+
+    const pendingTimer = weekMetaSaveTimersRef.current[key];
+    if (pendingTimer !== undefined) window.clearTimeout(pendingTimer);
+
+    if (immediate) {
+      save();
+      return;
+    }
+
+    weekMetaSaveTimersRef.current[key] = window.setTimeout(save, 700);
+  }, [activeUid]);
+
+  const queueSettingsCloudSave = React.useCallback((uid: string, settings: AppSettings) => {
+    if (settingsSaveTimerRef.current !== null) window.clearTimeout(settingsSaveTimerRef.current);
+    settingsSaveTimerRef.current = window.setTimeout(() => {
+      settingsSaveTimerRef.current = null;
+      void cloudStorage.saveSettings(uid, settings)
+        .then(() => storage.setPendingSync(uid, 'settings', false))
+        .catch((error) => {
+          storage.setPendingSync(uid, 'settings', true);
+          console.warn('Cloud settings save failed:', error);
+        });
+    }, 700);
+  }, []);
+
   const handleUpdateSettings = React.useCallback((newSettings: Partial<AppSettings>) => {
     const currentSettings = settingsRef.current;
     const updated = normalizeSettings({
@@ -548,14 +595,9 @@ function PlannerApp() {
     }
 
     if (activeUid) {
-      cloudStorage.saveSettings(activeUid, updated)
-        .then(() => storage.setPendingSync(activeUid, 'settings', false))
-        .catch((error) => {
-          storage.setPendingSync(activeUid, 'settings', true);
-          console.warn('Cloud settings save failed:', error);
-        });
+      queueSettingsCloudSave(activeUid, updated);
     }
-  }, [activeUid, clearAllScheduledNotifications]);
+  }, [activeUid, clearAllScheduledNotifications, queueSettingsCloudSave]);
 
   const [playlistTracks, setPlaylistTracks] = React.useState<MusicTrack[]>(PRESET_TRACKS);
   const [selectedMusicId, setSelectedMusicId] = React.useState<string | null>(null);
@@ -2668,11 +2710,7 @@ function PlannerApp() {
                     const updated = { ...weekMetas, [key]: { ...weekMetas[key], note } };
                     setWeekMetas(updated);
                     storage.saveWeekMeta(key, { note }, user?.uid);
-                    if (user) {
-                      cloudStorage.saveWeekMeta(user.uid, key, { note })
-                        .then(() => storage.setPendingSync(user.uid, 'week_meta', false))
-                        .catch(() => storage.setPendingSync(user.uid, 'week_meta', true));
-                    }
+                    queueWeekMetaCloudSave(key, { note }, true);
                   }}
                />
              </div>
@@ -2737,11 +2775,7 @@ function PlannerApp() {
                                      const updated = { ...weekMetas, [key]: { ...weekMetas[key], color: undefined } };
                                      setWeekMetas(updated);
                                      storage.saveWeekMeta(key, { color: null }, user?.uid);
-                                     if (user) {
-                                       cloudStorage.saveWeekMeta(user.uid, key, { color: null })
-                                         .then(() => storage.setPendingSync(user.uid, 'week_meta', false))
-                                         .catch(() => storage.setPendingSync(user.uid, 'week_meta', true));
-                                     }
+                                     queueWeekMetaCloudSave(key, { color: null }, true);
                                   }}>Reset</Button>
                                )}
                             </div>
@@ -2753,11 +2787,7 @@ function PlannerApp() {
                                         const updated = { ...weekMetas, [key]: { ...weekMetas[key], color: c.value } };
                                         setWeekMetas(updated);
                                         storage.saveWeekMeta(key, { color: c.value }, user?.uid);
-                                        if (user) {
-                                          cloudStorage.saveWeekMeta(user.uid, key, { color: c.value })
-                                            .then(() => storage.setPendingSync(user.uid, 'week_meta', false))
-                                            .catch(() => storage.setPendingSync(user.uid, 'week_meta', true));
-                                        }
+                                        queueWeekMetaCloudSave(key, { color: c.value }, true);
                                      }}
                                      className={cn(
                                         "w-7 h-7 rounded-lg border-2 transition-all hover:scale-110",
@@ -2778,11 +2808,7 @@ function PlannerApp() {
                                   const updated = { ...weekMetas, [key]: { ...weekMetas[key], note: e.target.value } };
                                   setWeekMetas(updated);
                                   storage.saveWeekMeta(key, { note: e.target.value }, user?.uid);
-                                  if (user) {
-                                    cloudStorage.saveWeekMeta(user.uid, key, { note: e.target.value })
-                                      .then(() => storage.setPendingSync(user.uid, 'week_meta', false))
-                                      .catch(() => storage.setPendingSync(user.uid, 'week_meta', true));
-                                  }
+                                  queueWeekMetaCloudSave(key, { note: e.target.value });
                                }}
                                placeholder={t('weekNotePlaceholder')}
                                className="text-xs min-h-[100px] resize-none rounded-xl bg-muted/50 border-border"
@@ -2794,11 +2820,7 @@ function PlannerApp() {
                                const updated = { ...weekMetas, [key]: { ...weekMetas[key] } };
                                setWeekMetas(updated);
                                storage.saveWeekMeta(key, updated[key], user?.uid);
-                               if (user) {
-                                 cloudStorage.saveWeekMeta(user.uid, key, updated[key])
-                                   .then(() => storage.setPendingSync(user.uid, 'week_meta', false))
-                                   .catch(() => storage.setPendingSync(user.uid, 'week_meta', true));
-                               }
+                               queueWeekMetaCloudSave(key, updated[key], true);
                             }}>
                                {t('save')}
                             </Button>

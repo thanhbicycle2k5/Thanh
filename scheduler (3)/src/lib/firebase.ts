@@ -22,6 +22,7 @@ import {
   writeBatch,
   onSnapshot,
   Timestamp,
+  FieldPath,
 } from "firebase/firestore";
 import { Plan, AppSettings } from "../types";
 const firebaseConfig = {
@@ -255,8 +256,11 @@ export const cloudStorage = {
     const path = `users/${uid}/meta/weekMetas`;
     try {
       const ref = doc(db, "users", uid, "meta", "weekMetas");
-      const existing = await cloudStorage.getWeekMetas(uid);
-      await setDoc(ref, { ...existing, [weekStart]: { ...existing[weekStart], ...meta } });
+      const entries = Object.entries(meta).filter(([, value]) => value !== undefined);
+      const fields = entries.map(([field]) => new FieldPath(weekStart, field));
+      if (fields.length > 0) {
+        await setDoc(ref, { [weekStart]: Object.fromEntries(entries) }, { mergeFields: fields });
+      }
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, path);
     }
@@ -277,8 +281,7 @@ export const cloudStorage = {
     const path = `users/${uid}/meta/settings`;
     try {
       const ref = doc(db, "users", uid, "meta", "settings");
-      const existing = await cloudStorage.getSettings(uid);
-      await setDoc(ref, { ...existing, ...settings });
+      await setDoc(ref, settings, { merge: true });
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, path);
     }
