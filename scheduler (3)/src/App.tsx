@@ -733,7 +733,7 @@ function PlannerApp() {
     const currentIndex = playlistTracks.findIndex((track) => track.id === selectedMusicId);
     const nextId = getNextTrackId({ tracks: playlistTracks, currentTrackId: selectedMusicId, playbackMode: musicPlaybackMode, currentIndex });
     if (nextId) {
-      void playTrack(nextId, true);
+      void playTrack(nextId, true, true);
     }
   }, [musicPlaybackMode, persistMusicState, playlistTracks, selectedMusicId]);
 
@@ -824,10 +824,15 @@ function PlannerApp() {
     stopYoutubePlayer();
     if (!audioRef.current) {
       audioRef.current = new Audio(track.url);
+      audioRef.current.preload = 'auto';
     } else {
       audioRef.current.src = track.url;
     }
     audioRef.current.volume = settingsState.musicVolume ?? 0.3;
+    audioRef.current.onerror = () => {
+      setIsMusicPlaying(false);
+      setMusicError(`Không thể tải bài nhạc: ${track.name}`);
+    };
     audioRef.current.load();
 
     if (shouldActuallyPlay) {
@@ -944,25 +949,25 @@ function PlannerApp() {
   const playNextTrack = () => {
     if (!playlistTracks.length) return;
     if (!selectedMusicId) {
-      void playTrack(playlistTracks[0].id, true);
+      void playTrack(playlistTracks[0].id, true, true);
       return;
     }
     const currentIndex = playlistTracks.findIndex((track) => track.id === selectedMusicId);
     const nextId = getNextTrackId({ tracks: playlistTracks, currentTrackId: selectedMusicId, playbackMode: musicPlaybackMode, currentIndex });
     if (nextId) {
-      void playTrack(nextId, true);
+      void playTrack(nextId, true, true);
     }
   };
 
   const playPreviousTrack = () => {
     if (!playlistTracks.length) return;
     if (!selectedMusicId) {
-      void playTrack(playlistTracks[playlistTracks.length - 1].id, true);
+      void playTrack(playlistTracks[playlistTracks.length - 1].id, true, true);
       return;
     }
     const currentIndex = playlistTracks.findIndex((track) => track.id === selectedMusicId);
     const previousIndex = currentIndex <= 0 ? playlistTracks.length - 1 : currentIndex - 1;
-    void playTrack(playlistTracks[previousIndex].id, true);
+    void playTrack(playlistTracks[previousIndex].id, true, true);
   };
 
   React.useEffect(() => {
@@ -980,7 +985,7 @@ function PlannerApp() {
       const currentIndex = playlistTracks.findIndex((track) => track.id === selectedMusicId);
       const nextId = getNextTrackId({ tracks: playlistTracks, currentTrackId: selectedMusicId, playbackMode: musicPlaybackMode, currentIndex });
       if (nextId) {
-        void playTrack(nextId, true);
+        void playTrack(nextId, true, true);
       }
     };
 
@@ -1022,7 +1027,7 @@ function PlannerApp() {
       });
       const nextTracks = [...playlistTracks.filter((track) => track.id !== customTrack.id), customTrack];
       setPlaylistTracks(nextTracks);
-      playTrack(customTrack.id, true);
+      playTrack(customTrack.id, true, true);
     } catch (error) {
       setMusicError(error instanceof Error ? error.message : 'Could not add music URL');
     } finally {
@@ -2582,7 +2587,8 @@ function PlannerApp() {
                            selectedMusicId === track.id ? 'bg-secondary text-secondary-foreground' : 'hover:bg-muted'
                          )}
                          onClick={() => {
-                           playTrack(track.id, true);
+                           handleUpdateSettings({ musicEnabled: true, musicTrackId: track.id });
+                           void playTrack(track.id, true, true);
                          }}
                        >
                          <span className="truncate pr-2">{track.name}</span>
