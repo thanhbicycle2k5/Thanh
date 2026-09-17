@@ -705,8 +705,8 @@ function ScheduleGridComponent({
             {daysOfCurrentWeek.map((day, i) => (
               <th key={i} className={cn(
                 "border p-2 text-[10px] md:text-xs font-black uppercase tracking-tight border-border text-foreground",
-                isSameDay(day, new Date()) && "text-primary"
-              )} style={{ backgroundColor: translucentCard }}>
+                isSameDay(day, new Date()) && "bg-primary/10 text-primary border-primary/50 shadow-[inset_0_-2px_0_var(--primary)]"
+              )} style={{ backgroundColor: isSameDay(day, new Date()) ? 'color-mix(in srgb, var(--primary) 10%, transparent)' : translucentCard }}>
                 <span className="hidden md:inline">{dayLabels[i]}</span>
                 <span className="md:hidden">{dayShortLabels[i]}</span>
                 <div className="text-[10px] opacity-50">{format(day, 'd/M')}</div>
