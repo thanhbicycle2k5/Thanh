@@ -3313,9 +3313,9 @@ function PlannerApp() {
         </DialogContent>}
       </Dialog>
 
-      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} disablePointerDismissal={false}>
         {isSettingsOpen && <DialogContent className={cn(
-           "w-full max-w-[calc(100vw-64px)] md:max-w-6xl h-[90vh] rounded-[32px] bg-card dark:bg-card p-0 flex flex-col",
+            "w-full max-w-[calc(100vw-64px)] md:max-w-6xl h-[90vh] sm:rounded-2xl bg-card dark:bg-card p-0 flex flex-col",
            desktopFontClass
          )}>
             <SettingsErrorBoundary
@@ -3339,7 +3339,7 @@ function PlannerApp() {
                 </div>
               }
             >
-              <div className="flex h-[90vh] min-h-0 flex-col rounded-[32px] bg-card shadow-xl sm:flex-row">
+              <div className="flex h-[90vh] min-h-0 flex-col rounded-2xl bg-card shadow-xl sm:flex-row">
                 <aside className="w-full sm:w-[180px] md:w-[220px] max-h-[25vh] sm:max-h-none p-3 sm:p-4 md:p-5 sm:border-r bg-muted/50 dark:bg-muted/20 overflow-y-auto flex-shrink-0">
                   <DialogHeader className="p-0">
                     <DialogTitle className="text-sm md:text-base text-foreground">{t('settings')}</DialogTitle>
