@@ -928,6 +928,18 @@ function PlannerApp() {
     }
   };
 
+  const handleMusicVolumeChange = React.useCallback((value: number | number[]) => {
+    const nextVolume = Array.isArray(value) ? value[0] : value;
+    if (typeof nextVolume !== 'number' || !Number.isFinite(nextVolume)) return;
+    const clampedVolume = Math.min(1, Math.max(0, nextVolume));
+    handleUpdateSettings({ musicVolume: clampedVolume });
+    if (audioRef.current) {
+      audioRef.current.volume = clampedVolume;
+    }
+    youtubePlayerRef.current?.setVolume?.(Math.round(clampedVolume * 100));
+    persistMusicState(selectedMusicId, musicPlaybackMode, isMusicPlaying);
+  }, [handleUpdateSettings, isMusicPlaying, musicPlaybackMode, persistMusicState, selectedMusicId]);
+
   const togglePomodoroSound = () => {
     const nextEnabled = !pomodoroSoundEnabled;
     setPomodoroSoundEnabled(nextEnabled);
@@ -2567,14 +2579,13 @@ function PlannerApp() {
                          <span>{t('sound')}</span>
                          <span>{Math.round((settingsState.musicVolume ?? 0.3) * 100)}%</span>
                        </div>
-                       <Slider value={[settingsState.musicVolume ?? 0.3]} onValueChange={(value: number[]) => {
-                         const nextVolume = value[0];
-                         handleUpdateSettings({ musicVolume: nextVolume });
-                         if (audioRef.current) {
-                           audioRef.current.volume = nextVolume;
-                         }
-                         persistMusicState(selectedMusicId, musicPlaybackMode, isMusicPlaying);
-                       }} min={0} max={1} step={0.01} />
+                       <Slider
+                         value={[settingsState.musicVolume ?? 0.3]}
+                         onValueChange={handleMusicVolumeChange}
+                         min={0}
+                         max={1}
+                         step={0.01}
+                       />
                      </div>
                    </div>
 
@@ -3617,7 +3628,13 @@ function PlannerApp() {
                             </Select>
                           </div>
                           <div className="w-full sm:w-48">
-                            <Slider value={[settingsState.musicVolume ?? 0.3]} onValueChange={(v: number[]) => handleUpdateSettings({ musicVolume: v[0] })} min={0} max={1} step={0.01} />
+                            <Slider
+                              value={[settingsState.musicVolume ?? 0.3]}
+                              onValueChange={handleMusicVolumeChange}
+                              min={0}
+                              max={1}
+                              step={0.01}
+                            />
                           </div>
                         </div>
 
