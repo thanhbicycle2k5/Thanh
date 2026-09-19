@@ -284,6 +284,7 @@ const ScheduleCell = React.memo(function ScheduleCell({
         backgroundColor: cellBackground,
         background: cellBackground,
         backgroundImage: 'none',
+        borderColor: 'var(--border)',
       }}
       onClick={() => handleUnifiedClick(day, hour)}
       onContextMenu={(e) => {
@@ -1267,7 +1268,7 @@ function ScheduleGridComponent({
       <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px] !bg-transparent" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
         <thead className="sticky top-0 z-30">
           <tr className="backdrop-blur" style={{ backgroundColor: translucentCard }}>
-            <th className="relative w-14 md:w-20 border p-2 text-[10px] font-black uppercase tracking-wider sticky left-0 z-30 border-border text-muted-foreground after:absolute after:inset-y-0 after:right-[-1px] after:w-px after:bg-foreground/45 after:content-['']" style={{ backgroundColor: translucentCard }}>
+            <th className="relative w-14 md:w-20 border p-2 text-[10px] font-black uppercase tracking-wider sticky left-0 z-30 border-border text-muted-foreground after:absolute after:inset-y-0 after:right-[-1px] after:w-px after:bg-foreground/45 after:content-['']" style={{ backgroundColor: translucentCard, borderColor: 'var(--border)' }}>
               <div className="flex items-center justify-center gap-1">
                 <Clock3 className="h-4 w-4" aria-label="Thời gian" />
               </div>
@@ -1276,7 +1277,7 @@ function ScheduleGridComponent({
               <th key={i} className={cn(
                 "border p-2 text-[10px] md:text-xs font-black uppercase tracking-tight border-border text-foreground",
                 isSameDay(day, new Date()) && "bg-primary/10 text-primary border-primary/50 shadow-[inset_0_-2px_0_var(--primary)]"
-              )} style={{ backgroundColor: isSameDay(day, new Date()) ? 'color-mix(in srgb, var(--primary) 10%, transparent)' : translucentCard }}>
+              )} style={{ backgroundColor: isSameDay(day, new Date()) ? 'color-mix(in srgb, var(--primary) 10%, transparent)' : translucentCard, borderColor: 'var(--border)' }}>
                 <span className="hidden md:inline">{dayLabels[i]}</span>
                 <span className="md:hidden">{dayShortLabels[i]}</span>
                 <div className="text-[10px] opacity-50">{format(day, 'd/M')}</div>
@@ -1290,7 +1291,7 @@ function ScheduleGridComponent({
         <tbody style={{ background: 'transparent', backgroundColor: 'transparent' }}>
           {HOURS.map(hour => (
             <tr key={hour} data-schedule-hour={hour} className="h-10 md:h-12" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
-              <td className="relative border text-center font-black text-[10px] md:text-xs sticky left-0 z-20 border-border text-foreground after:absolute after:inset-y-0 after:right-[-1px] after:w-px after:bg-foreground/45 after:content-['']" style={{ backgroundColor: translucentCard }}>
+              <td className="relative border text-center font-black text-[10px] md:text-xs sticky left-0 z-20 border-border text-foreground after:absolute after:inset-y-0 after:right-[-1px] after:w-px after:bg-foreground/45 after:content-['']" style={{ backgroundColor: translucentCard, borderColor: 'var(--border)' }}>
                 {hour}:00
               </td>
               {daysOfCurrentWeek.map((day, dayIndex) => {
