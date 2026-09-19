@@ -2579,7 +2579,7 @@ function PlannerApp() {
         disabled={!canUndo}
         onClick={handleUndo}
         className={cn(
-          "fixed bottom-16 left-4 z-[60] h-11 rounded-full border-border bg-card/95 px-3 shadow-lg backdrop-blur disabled:opacity-40 md:bottom-4",
+          "fixed bottom-16 left-4 z-[60] h-11 rounded-full border-border bg-card/95 px-3 shadow-lg backdrop-blur disabled:opacity-40",
           isUndoSaving
             ? "hidden"
             : !canUndo && "hidden md:inline-flex"
@@ -2589,7 +2589,7 @@ function PlannerApp() {
         <span>{t('undo')}</span>
       </Button>
       {isUndoSaving && (
-        <div className="fixed bottom-16 left-4 z-[59] flex min-h-11 items-center gap-2 rounded-full border border-border bg-card/95 px-3 pl-4 text-xs text-muted-foreground shadow-lg backdrop-blur md:bottom-4">
+        <div className="fixed bottom-16 left-4 z-[59] flex min-h-11 items-center gap-2 rounded-full border border-border bg-card/95 px-3 pl-4 text-xs text-muted-foreground shadow-lg backdrop-blur">
           <Loader2 className="h-4 w-4 animate-spin text-primary" />
           <span>
             {undoSavingSeconds >= 5 ? t('undoSavingLong') : t('undoSaving')}
