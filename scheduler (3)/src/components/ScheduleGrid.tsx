@@ -191,11 +191,12 @@ const ScheduleCell = React.memo(function ScheduleCell({
     >
       {plan ? (
         <div
-          className={cn("w-full h-full p-1.5 text-[10px] md:text-xs font-bold flex flex-col items-center justify-center text-center relative leading-tight gap-0.5 cursor-grab touch-none", (plan.startMinute ?? 0) > 0 && "pt-4", isDragging && "cursor-grabbing opacity-60")}
+          className={cn("w-full h-full p-1.5 text-[10px] md:text-xs font-bold flex flex-col items-center justify-center text-center relative leading-tight gap-0.5 cursor-grab touch-none select-none", (plan.startMinute ?? 0) > 0 && "pt-4", isDragging && "cursor-grabbing opacity-60")}
           onPointerDown={(e) => handlePlanPointerDown(plan, e)}
           onPointerMove={handlePlanPointerMove}
           onPointerUp={handlePlanPointerUp}
           onPointerCancel={handlePlanPointerUp}
+          onContextMenu={(e) => e.preventDefault()}
           onClick={handlePlanClick}
         >
           {(plan.startMinute ?? 0) > 0 && (
