@@ -326,6 +326,7 @@ function PlannerApp() {
   const plansRef = React.useRef<Plan[]>(plans);
   const undoSnapshotRef = React.useRef<Plan[] | null>(null);
   const undoCaptureScheduledRef = React.useRef(false);
+  const undoHideTimerRef = React.useRef<number | null>(null);
   const isUndoingRef = React.useRef(false);
   const [canUndo, setCanUndo] = React.useState(false);
   const weekMetasRef = React.useRef<Record<string, any>>(weekMetas);
@@ -337,12 +338,26 @@ function PlannerApp() {
   const captureUndoSnapshot = React.useCallback(() => {
     if (isUndoingRef.current || undoCaptureScheduledRef.current) return;
 
+    if (undoHideTimerRef.current !== null) {
+      window.clearTimeout(undoHideTimerRef.current);
+    }
     undoSnapshotRef.current = plansRef.current.map((plan) => ({ ...plan }));
     undoCaptureScheduledRef.current = true;
     setCanUndo(true);
     window.setTimeout(() => {
       undoCaptureScheduledRef.current = false;
     }, 0);
+    undoHideTimerRef.current = window.setTimeout(() => {
+      undoSnapshotRef.current = null;
+      setCanUndo(false);
+      undoHideTimerRef.current = null;
+    }, 5000);
+  }, []);
+
+  React.useEffect(() => () => {
+    if (undoHideTimerRef.current !== null) {
+      window.clearTimeout(undoHideTimerRef.current);
+    }
   }, []);
   React.useEffect(() => {
     weekMetasRef.current = weekMetas;
@@ -2144,18 +2159,21 @@ function PlannerApp() {
     plansRef.current = previousPlans;
     setPlans(previousPlans);
     setCanUndo(false);
+    if (undoHideTimerRef.current !== null) {
+      window.clearTimeout(undoHideTimerRef.current);
+      undoHideTimerRef.current = null;
+    }
+    isUndoingRef.current = false;
     toast.success(t('undoDone'));
 
-    window.setTimeout(() => {
+    const persistUndo = () => {
       storage.savePlans(previousPlans, activeUid, false);
       if (!activeUid) {
-        isUndoingRef.current = false;
         return;
       }
 
       if (!isOnline) {
         storage.setPendingSync(activeUid, 'plans', true);
-        isUndoingRef.current = false;
         return;
       }
 
@@ -2164,11 +2182,14 @@ function PlannerApp() {
         .catch((error) => {
           storage.setPendingSync(activeUid, 'plans', true);
           console.warn('Undo cloud save failed, local change persisted:', error);
-        })
-        .finally(() => {
-          isUndoingRef.current = false;
         });
-    }, 0);
+    };
+
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(persistUndo, { timeout: 1000 });
+    } else {
+      globalThis.setTimeout(persistUndo, 0);
+    }
   }, [activeUid, isOnline, t]);
 
   const handleUpdatePlan = React.useCallback(async (p: Plan) => {
