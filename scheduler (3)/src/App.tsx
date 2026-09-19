@@ -2135,7 +2135,7 @@ function PlannerApp() {
     return () => clearTimeout(timer);
   }, [selectedWeekStart]);
 
-  const handleUndo = React.useCallback(async () => {
+  const handleUndo = React.useCallback(() => {
     const previousPlans = undoSnapshotRef.current;
     if (!previousPlans) return;
     undoSnapshotRef.current = null;
@@ -2143,23 +2143,32 @@ function PlannerApp() {
     isUndoingRef.current = true;
     plansRef.current = previousPlans;
     setPlans(previousPlans);
-    storage.savePlans(previousPlans, activeUid, false);
     setCanUndo(false);
+    toast.success(t('undoDone'));
 
-    try {
-      if (activeUid && isOnline) {
-        await cloudStorage.savePlans(activeUid, previousPlans);
-        storage.setPendingSync(activeUid, 'plans', false);
-      } else if (activeUid) {
-        storage.setPendingSync(activeUid, 'plans', true);
+    window.setTimeout(() => {
+      storage.savePlans(previousPlans, activeUid, false);
+      if (!activeUid) {
+        isUndoingRef.current = false;
+        return;
       }
-      toast.success(t('undoDone'));
-    } catch (error) {
-      if (activeUid) storage.setPendingSync(activeUid, 'plans', true);
-      console.warn('Undo cloud save failed, local change persisted:', error);
-    } finally {
-      isUndoingRef.current = false;
-    }
+
+      if (!isOnline) {
+        storage.setPendingSync(activeUid, 'plans', true);
+        isUndoingRef.current = false;
+        return;
+      }
+
+      void cloudStorage.savePlans(activeUid, previousPlans)
+        .then(() => storage.setPendingSync(activeUid, 'plans', false))
+        .catch((error) => {
+          storage.setPendingSync(activeUid, 'plans', true);
+          console.warn('Undo cloud save failed, local change persisted:', error);
+        })
+        .finally(() => {
+          isUndoingRef.current = false;
+        });
+    }, 0);
   }, [activeUid, isOnline, t]);
 
   const handleUpdatePlan = React.useCallback(async (p: Plan) => {
@@ -2427,7 +2436,7 @@ function PlannerApp() {
         const isEditingText = target?.matches('input, textarea, [contenteditable="true"]');
         if (!isEditingText) {
           e.preventDefault();
-          void handleUndo();
+          handleUndo();
         }
         return;
       }
@@ -2518,7 +2527,7 @@ function PlannerApp() {
         aria-label={t('undo')}
         title={`${t('undo')} (Ctrl+Z)`}
         disabled={!canUndo}
-        onClick={() => void handleUndo()}
+        onClick={handleUndo}
         className={cn(
           "fixed bottom-4 left-4 z-[60] h-11 rounded-full border-border bg-card/95 px-3 shadow-lg backdrop-blur disabled:opacity-40",
           !canUndo && "hidden md:inline-flex"
