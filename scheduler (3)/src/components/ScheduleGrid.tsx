@@ -46,6 +46,12 @@ type ExportPreview = {
   kind: 'image' | 'pdf';
 };
 type SharedScheduleResult = { id: string; url: string };
+type PendingMove = {
+  plan: Plan;
+  conflictingPlan: Plan;
+  targetDay: string;
+  targetHour: number;
+};
 
 const COLOR_MAP: Record<PlanColor, string> = {
   default: 'grayscale',
@@ -128,6 +134,13 @@ interface ScheduleCellProps {
   day: Date;
   handleUnifiedClick: (date: Date, hour: number, existingPlan?: Plan) => void;
   handleOpenEdit: (plan: Plan, e: React.MouseEvent) => void;
+  handlePlanClick: (e: React.MouseEvent<HTMLDivElement>) => void;
+  handlePlanPointerDown: (plan: Plan, e: React.PointerEvent<HTMLDivElement>) => void;
+  handlePlanPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
+  handlePlanPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void;
+  isDragging: boolean;
+  isDropTarget: boolean;
+  dropTargetHour: number | null;
   t: (key: keyof typeof translations.en) => string;
   boardOpacity: number;
 }
@@ -141,6 +154,13 @@ const ScheduleCell = React.memo(function ScheduleCell({
   day,
   handleUnifiedClick,
   handleOpenEdit,
+  handlePlanClick,
+  handlePlanPointerDown,
+  handlePlanPointerMove,
+  handlePlanPointerUp,
+  isDragging,
+  isDropTarget,
+  dropTargetHour,
   t,
   boardOpacity,
 }: ScheduleCellProps) {
@@ -153,10 +173,14 @@ const ScheduleCell = React.memo(function ScheduleCell({
 
   return (
     <td
+      data-schedule-cell="true"
+      data-day={dayKey}
+      data-hour={hour}
       rowSpan={plan?.duration || 1}
       className={cn(
         "border p-0 relative group cursor-pointer transition-colors duration-150 border-border",
-        plan ? COLOR_MAP[plan.color] : "hover:bg-transparent"
+        plan ? COLOR_MAP[plan.color] : "hover:bg-transparent",
+        isDropTarget && "ring-2 ring-inset ring-primary"
       )}
       style={{
         backgroundColor: cellBackground,
@@ -166,7 +190,14 @@ const ScheduleCell = React.memo(function ScheduleCell({
       onClick={() => handleUnifiedClick(day, hour)}
     >
       {plan ? (
-        <div className={cn("w-full h-full p-1.5 text-[10px] md:text-xs font-bold flex flex-col items-center justify-center text-center relative leading-tight gap-0.5", (plan.startMinute ?? 0) > 0 && "pt-4")}>
+        <div
+          className={cn("w-full h-full p-1.5 text-[10px] md:text-xs font-bold flex flex-col items-center justify-center text-center relative leading-tight gap-0.5 cursor-grab touch-none", (plan.startMinute ?? 0) > 0 && "pt-4", isDragging && "cursor-grabbing opacity-60")}
+          onPointerDown={(e) => handlePlanPointerDown(plan, e)}
+          onPointerMove={handlePlanPointerMove}
+          onPointerUp={handlePlanPointerUp}
+          onPointerCancel={handlePlanPointerUp}
+          onClick={handlePlanClick}
+        >
           {(plan.startMinute ?? 0) > 0 && (
             <span className="absolute left-1 top-0.5 text-[8px] md:text-[9px] font-black tracking-wide opacity-80">
               {formatPlanTime(plan.startHour, plan.startMinute ?? 0)}
@@ -182,6 +213,7 @@ const ScheduleCell = React.memo(function ScheduleCell({
             <span className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-current opacity-40" title={plan.notes} />
           )}
           <button
+            onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
               handleOpenEdit(plan, e);
             }}
@@ -194,6 +226,16 @@ const ScheduleCell = React.memo(function ScheduleCell({
         <div className="w-full h-full flex items-center justify-center opacity-10 group-hover:opacity-20 transition-opacity">
           <Plus className="w-4 md:w-5 h-4 md:h-5 text-muted-foreground" />
         </div>
+      )}
+      {isDropTarget && dropTargetHour !== null && (
+        <div
+          className="pointer-events-none absolute left-0 right-0 z-10 h-1 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_0_2px_color-mix(in_srgb,var(--primary)_25%,transparent)]"
+          style={{
+            top: plan
+              ? `${Math.min(100, Math.max(0, ((dropTargetHour - hour) / plan.duration) * 100))}%`
+              : '0%',
+          }}
+        />
       )}
     </td>
   );
@@ -278,6 +320,18 @@ function ScheduleGridComponent({
   const [shareLink, setShareLink] = React.useState('');
   const [shareId, setShareId] = React.useState('');
   const [isSharing, setIsSharing] = React.useState(false);
+  const [draggingPlanId, setDraggingPlanId] = React.useState<string | null>(null);
+  const [dragTarget, setDragTarget] = React.useState<{ day: string; hour: number } | null>(null);
+  const [pendingMove, setPendingMove] = React.useState<PendingMove | null>(null);
+  const dragStateSuppressClick = React.useRef(false);
+  const dragStateRef = React.useRef<{
+    plan: Plan;
+    pointerId: number;
+    startX: number;
+    startY: number;
+    timer: number;
+    isDragging: boolean;
+  } | null>(null);
 
   const closeExportPreview = React.useCallback(() => {
     setExportPreview((preview) => {
@@ -391,6 +445,168 @@ function ScheduleGridComponent({
       setAllowTextInput(true);
     }
   }, []);
+
+  const getScheduleTarget = React.useCallback((clientX: number, clientY: number) => {
+    const element = document.elementFromPoint(clientX, clientY);
+    const cell = element?.closest('td[data-schedule-cell="true"]') as HTMLTableCellElement | null;
+    if (!cell?.dataset.day) return null;
+
+    const row = Array.from(document.querySelectorAll('tbody tr[data-schedule-hour]'))
+      .find((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return clientY >= rect.top && clientY < rect.bottom;
+      }) as HTMLTableRowElement | undefined;
+    if (!row?.dataset.scheduleHour) return null;
+
+    return {
+      day: cell.dataset.day,
+      hour: Number(row.dataset.scheduleHour),
+    };
+  }, []);
+
+  const handlePlanClick = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!dragStateSuppressClick.current) return;
+    e.stopPropagation();
+    dragStateSuppressClick.current = false;
+  }, []);
+
+  const handlePlanPointerDown = React.useCallback((plan: Plan, e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return;
+
+    dragStateSuppressClick.current = false;
+    const previous = dragStateRef.current;
+    if (previous) window.clearTimeout(previous.timer);
+
+    e.currentTarget.setPointerCapture(e.pointerId);
+    dragStateRef.current = {
+      plan,
+      pointerId: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      timer: window.setTimeout(() => {
+        const state = dragStateRef.current;
+        if (!state || state.pointerId !== e.pointerId) return;
+        state.isDragging = true;
+        setDraggingPlanId(plan.id);
+        setDragTarget(getScheduleTarget(e.clientX, e.clientY));
+      }, 350),
+      isDragging: false,
+    };
+  }, [getScheduleTarget]);
+
+  const handlePlanPointerMove = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const state = dragStateRef.current;
+    if (!state || state.pointerId !== e.pointerId) return;
+
+    if (!state.isDragging) {
+      const movedDistance = Math.hypot(e.clientX - state.startX, e.clientY - state.startY);
+      if (movedDistance > 8) {
+        window.clearTimeout(state.timer);
+        dragStateRef.current = null;
+      }
+      return;
+    }
+
+    e.preventDefault();
+    setDragTarget(getScheduleTarget(e.clientX, e.clientY));
+  }, [getScheduleTarget]);
+
+  const handlePlanPointerUp = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    const state = dragStateRef.current;
+    if (!state || state.pointerId !== e.pointerId) return;
+
+    window.clearTimeout(state.timer);
+    dragStateRef.current = null;
+
+    if (!state.isDragging) return;
+
+    e.preventDefault();
+    dragStateSuppressClick.current = true;
+    setDraggingPlanId(null);
+
+    const target = getScheduleTarget(e.clientX, e.clientY);
+    setDragTarget(null);
+    if (!target) return;
+
+    const targetDate = new Date(`${target.day}T00:00:00`);
+    const targetEndHour = target.hour + state.plan.duration;
+    if (targetEndHour > endHour) {
+      toast.error('Task không thể vượt quá giờ kết thúc của lịch');
+      return;
+    }
+
+    const overlappingPlans = plans.filter((plan) => {
+      if (plan.id === state.plan.id || !isSameDay(new Date(plan.date), targetDate)) return false;
+      const planStart = plan.startHour * 60 + (plan.startMinute ?? 0);
+      const planEnd = getPlanEndMinutes(plan);
+      const targetStart = target.hour * 60 + (state.plan.startMinute ?? 0);
+      const targetEnd = getPlanEndMinutes({
+        startHour: target.hour,
+        startMinute: state.plan.startMinute ?? 0,
+        duration: state.plan.duration,
+      });
+      return planStart < targetEnd && targetStart < planEnd;
+    });
+
+    const conflictingPlan = overlappingPlans[0];
+    if (conflictingPlan) {
+      const targetEndHour = target.hour + state.plan.duration;
+      const conflictingEndHour = getPlanEndMinutes(conflictingPlan) / 60;
+
+      if (target.hour === conflictingPlan.startHour) {
+        if (targetEndHour >= conflictingEndHour) {
+          toast.error('Task mới chiếm toàn bộ khung giờ của task hiện tại');
+          return;
+        }
+        setPendingMove({
+          plan: state.plan,
+          conflictingPlan,
+          targetDay: target.day,
+          targetHour: target.hour,
+        });
+        return;
+      }
+
+      onUpdatePlan({
+        ...conflictingPlan,
+        duration: target.hour - conflictingPlan.startHour,
+      });
+    }
+
+    if (state.plan.startHour === target.hour && isSameDay(new Date(state.plan.date), targetDate)) return;
+
+    onUpdatePlan({
+      ...state.plan,
+      date: targetDate.toISOString(),
+      startHour: target.hour,
+    });
+  }, [endHour, getScheduleTarget, onUpdatePlan, plans]);
+
+  const confirmPendingMove = React.useCallback(() => {
+    if (!pendingMove) return;
+
+    const targetEndHour = pendingMove.targetHour + pendingMove.plan.duration;
+    const conflictingEndHour = getPlanEndMinutes(pendingMove.conflictingPlan) / 60;
+    const remainingDuration = conflictingEndHour - targetEndHour;
+    if (remainingDuration <= 0) {
+      toast.error('Task mới chiếm toàn bộ khung giờ của task hiện tại');
+      setPendingMove(null);
+      return;
+    }
+
+    onUpdatePlan({
+      ...pendingMove.conflictingPlan,
+      startHour: targetEndHour,
+      startMinute: 0,
+      duration: remainingDuration,
+    });
+    onUpdatePlan({
+      ...pendingMove.plan,
+      date: new Date(`${pendingMove.targetDay}T00:00:00`).toISOString(),
+      startHour: pendingMove.targetHour,
+    });
+    setPendingMove(null);
+  }, [onUpdatePlan, pendingMove]);
 
   const handleUnifiedClick = React.useCallback((date: Date, hour: number, existingPlan?: Plan) => {
     const existing = existingPlan ?? plans.find(p => isSameDay(new Date(p.date), date) && p.startHour === hour);
@@ -719,7 +935,7 @@ function ScheduleGridComponent({
         </thead>
         <tbody style={{ background: 'transparent', backgroundColor: 'transparent' }}>
           {HOURS.map(hour => (
-            <tr key={hour} className="h-10 md:h-12" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
+            <tr key={hour} data-schedule-hour={hour} className="h-10 md:h-12" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
               <td className="border text-center font-black text-[10px] md:text-xs sticky left-0 z-20 border-border text-foreground" style={{ backgroundColor: translucentCard }}>
                 {hour}:00
               </td>
@@ -739,6 +955,13 @@ function ScheduleGridComponent({
                     day={day}
                     handleUnifiedClick={handleUnifiedClick}
                     handleOpenEdit={handleOpenEdit}
+                    handlePlanClick={handlePlanClick}
+                    handlePlanPointerDown={handlePlanPointerDown}
+                    handlePlanPointerMove={handlePlanPointerMove}
+                    handlePlanPointerUp={handlePlanPointerUp}
+                    isDragging={draggingPlanId === plan?.id}
+                    isDropTarget={dragTarget?.day === dayKey && dragTarget.hour >= hour && dragTarget.hour < hour + (plan?.duration || 1)}
+                    dropTargetHour={dragTarget?.day === dayKey ? dragTarget.hour : null}
                     t={t}
                     boardOpacity={visibleBoardOpacity}
                   />
@@ -818,6 +1041,21 @@ function ScheduleGridComponent({
               Xóa đi!
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pendingMove !== null} onOpenChange={(open) => { if (!open) setPendingMove(null); }}>
+        <DialogContent className="sm:rounded-2xl border-border max-w-sm bg-card">
+          <DialogHeader>
+            <DialogTitle className="text-foreground text-base">Xác nhận thay đổi lịch?</DialogTitle>
+            <DialogDescription className="text-muted-foreground">
+              {pendingMove && `Task "${pendingMove.conflictingPlan.title || t('enterTask')}" đang bắt đầu lúc ${formatPlanTime(pendingMove.conflictingPlan.startHour, pendingMove.conflictingPlan.startMinute ?? 0)}. Task mới sẽ được chèn vào và task hiện tại sẽ lùi đến sau task mới.`}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:justify-end">
+            <Button type="button" variant="ghost" onClick={() => setPendingMove(null)}>Hủy</Button>
+            <Button type="button" onClick={confirmPendingMove}>Xác nhận</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
