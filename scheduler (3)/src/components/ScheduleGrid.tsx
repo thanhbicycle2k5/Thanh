@@ -704,11 +704,8 @@ function ScheduleGridComponent({
     if (!target) return;
 
     const targetDate = new Date(`${target.day}T00:00:00`);
-    const targetEndHour = target.hour + state.plan.duration;
-    if (targetEndHour > endHour) {
-      toast.error('Task không thể vượt quá giờ kết thúc của lịch');
-      return;
-    }
+    const adjustedDuration = Math.max(1, Math.min(state.plan.duration, endHour - target.hour));
+    const targetEndHour = target.hour + adjustedDuration;
 
     const overlappingPlans = plans.filter((plan) => {
       if (plan.id === state.plan.id || !isSameDay(new Date(plan.date), targetDate)) return false;
@@ -718,7 +715,7 @@ function ScheduleGridComponent({
       const targetEnd = getPlanEndMinutes({
         startHour: target.hour,
         startMinute: state.plan.startMinute ?? 0,
-        duration: state.plan.duration,
+        duration: adjustedDuration,
       });
       return planStart < targetEnd && targetStart < planEnd;
     });
@@ -733,7 +730,7 @@ function ScheduleGridComponent({
           return;
         }
         setPendingMove({
-          plan: state.plan,
+          plan: { ...state.plan, duration: adjustedDuration },
           conflictingPlan,
           targetDay: target.day,
           targetHour: target.hour,
@@ -753,6 +750,7 @@ function ScheduleGridComponent({
       ...state.plan,
       date: targetDate.toISOString(),
       startHour: target.hour,
+      duration: adjustedDuration,
     });
   }, [endHour, getScheduleTarget, onUpdatePlan, plans]);
 
