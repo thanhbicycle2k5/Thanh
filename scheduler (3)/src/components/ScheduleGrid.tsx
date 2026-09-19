@@ -157,7 +157,7 @@ async function copyPlan(plan: Plan) {
 }
 
 const parsePlainTask = (text: string): CopiedTask | null => {
-  const match = text.match(/^\[(.*)\], \[(\d{1,2}):(\d{2}) - (\d{1,2}):(\d{2})\](?:, \[(.*)\])?$/);
+  const match = text.match(/^\[([\s\S]*?)\], \[(\d{1,2}):(\d{2}) - (\d{1,2}):(\d{2})\](?:, \[([\s\S]*)\])?$/);
   if (!match) return null;
 
   const startHour = Number(match[2]);
@@ -179,17 +179,23 @@ const parsePlainTask = (text: string): CopiedTask | null => {
 
 async function readCopiedTask() {
   if (navigator.clipboard?.read) {
-    const items = await navigator.clipboard.read();
-    for (const item of items) {
-      if (item.types.includes(TASK_CLIPBOARD_TYPE)) {
-        const blob = await item.getType(TASK_CLIPBOARD_TYPE);
-        return JSON.parse(await blob.text()) as CopiedTask;
+    try {
+      const items = await navigator.clipboard.read();
+      for (const item of items) {
+        if (item.types.includes(TASK_CLIPBOARD_TYPE)) {
+          const blob = await item.getType(TASK_CLIPBOARD_TYPE);
+          return JSON.parse(await blob.text()) as CopiedTask;
+        }
       }
+    } catch {
     }
   }
 
   if (navigator.clipboard?.readText) {
-    return parsePlainTask(await navigator.clipboard.readText());
+    try {
+      return parsePlainTask(await navigator.clipboard.readText());
+    } catch {
+    }
   }
 
   return null;
