@@ -7,7 +7,7 @@ import {
 } from 'date-fns';
 import { Plan, PlanColor, Language, Theme, TaskApplyMode } from '../types';
 import { cn } from '@/lib/utils';
-import { Plus, Edit2, Trash2, Clock3, Share2, ExternalLink, Clipboard } from 'lucide-react';
+import { Plus, Edit2, Trash2, Clock3, Share2, ExternalLink, Clipboard, Copy } from 'lucide-react';
 import { Solar } from 'lunar-javascript';
 import { translations } from '../lib/i18n';
 import {
@@ -101,8 +101,11 @@ async function shareOrOpenFile(blob: Blob, filename: string, objectUrl: string) 
 
 async function copyText(text: string) {
   if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(text);
-    return;
+    try {
+      await navigator.clipboard.writeText(text);
+      return;
+    } catch {
+    }
   }
 
   const input = document.createElement('textarea');
@@ -138,13 +141,16 @@ async function copyPlan(plan: Plan) {
   };
 
   if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
-    await navigator.clipboard.write([
-      new ClipboardItem({
-        'text/plain': new Blob([text], { type: 'text/plain' }),
-        [TASK_CLIPBOARD_TYPE]: new Blob([JSON.stringify(payload)], { type: TASK_CLIPBOARD_TYPE }),
-      }),
-    ]);
-    return;
+    try {
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'text/plain': new Blob([text], { type: 'text/plain' }),
+          [TASK_CLIPBOARD_TYPE]: new Blob([JSON.stringify(payload)], { type: TASK_CLIPBOARD_TYPE }),
+        }),
+      ]);
+      return;
+    } catch {
+    }
   }
 
   await copyText(text);
@@ -1569,9 +1575,8 @@ function ScheduleGridComponent({
           <DialogFooter className="flex justify-between w-full flex-row gap-2">
             {plans.some(p => p.id === editingPlan?.id) && (
               <div className="flex items-center">
-                <Button type="button" variant="outline" size="sm" onClick={() => void handleCopy()} className="mr-2 flex items-center gap-2 px-3 py-2" aria-label="Sao chép task" title="Sao chép task">
-                  <Clipboard className="w-4 h-4" />
-                  <span className="text-sm">Sao chép</span>
+                <Button type="button" variant="outline" size="icon" onClick={() => void handleCopy()} className="mr-2 h-8 w-8" aria-label="Sao chép task" title="Sao chép task">
+                  <Copy className="h-4 w-4" />
                 </Button>
                 <Button variant="destructive" size="sm" onClick={handleDelete} className="bg-destructive hover:bg-destructive/90 flex items-center gap-2 px-4 py-2">
                   <Trash2 className="w-4 h-4" />
