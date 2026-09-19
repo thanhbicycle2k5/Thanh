@@ -1391,15 +1391,15 @@ function ScheduleGridComponent({
       </Dialog>
 
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="sm:rounded-2xl border-border max-w-xs bg-card">
+        <DialogContent className="sm:rounded-2xl border-border max-w-xs bg-card p-5">
           <DialogHeader>
-            <DialogTitle className="text-foreground text-base">Bạn có chắc chắn muốn xóa kế hoạch này?</DialogTitle>
+            <DialogTitle className="pr-10 text-foreground text-base leading-6">Bạn có chắc chắn muốn xóa kế hoạch này?</DialogTitle>
           </DialogHeader>
           <div className="flex justify-end gap-2 pt-2">
-            <Button variant="ghost" size="sm" onClick={() => setDeleteConfirmOpen(false)} className="text-muted-foreground">
+            <Button variant="outline" size="sm" onClick={() => setDeleteConfirmOpen(false)} className="border-border bg-card text-foreground hover:bg-muted">
               Không.
             </Button>
-            <Button variant="destructive" size="sm" onClick={confirmDeletePlan} className="bg-red-600 hover:bg-red-700 text-white">
+            <Button variant="destructive" size="sm" onClick={confirmDeletePlan} className="!bg-red-600 !text-white !opacity-100 hover:!bg-red-700">
               Xóa đi!
             </Button>
           </div>
