@@ -138,6 +138,9 @@ interface ScheduleCellProps {
   handlePlanPointerDown: (plan: Plan, e: React.PointerEvent<HTMLDivElement>) => void;
   handlePlanPointerMove: (e: React.PointerEvent<HTMLDivElement>) => void;
   handlePlanPointerUp: (e: React.PointerEvent<HTMLDivElement>) => void;
+  handlePlanTouchStart: (plan: Plan, e: React.TouchEvent<HTMLDivElement>) => void;
+  handlePlanTouchMove: (e: React.TouchEvent<HTMLDivElement>) => void;
+  handlePlanTouchEnd: (e: React.TouchEvent<HTMLDivElement>) => void;
   isDragging: boolean;
   isDropTarget: boolean;
   dropTargetHour: number | null;
@@ -158,6 +161,9 @@ const ScheduleCell = React.memo(function ScheduleCell({
   handlePlanPointerDown,
   handlePlanPointerMove,
   handlePlanPointerUp,
+  handlePlanTouchStart,
+  handlePlanTouchMove,
+  handlePlanTouchEnd,
   isDragging,
   isDropTarget,
   dropTargetHour,
@@ -196,6 +202,10 @@ const ScheduleCell = React.memo(function ScheduleCell({
           onPointerMove={handlePlanPointerMove}
           onPointerUp={handlePlanPointerUp}
           onPointerCancel={handlePlanPointerUp}
+          onTouchStart={(e) => handlePlanTouchStart(plan, e)}
+          onTouchMove={handlePlanTouchMove}
+          onTouchEnd={handlePlanTouchEnd}
+          onTouchCancel={handlePlanTouchEnd}
           onContextMenu={(e) => e.preventDefault()}
           onClick={handlePlanClick}
         >
@@ -475,6 +485,7 @@ function ScheduleGridComponent({
   }, []);
 
   const handlePlanPointerDown = React.useCallback((plan: Plan, e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch') return;
     if (e.button !== 0) return;
 
     dragStateSuppressClick.current = false;
@@ -501,34 +512,8 @@ function ScheduleGridComponent({
     };
   }, [getScheduleTarget]);
 
-  const handlePlanPointerMove = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const state = dragStateRef.current;
-    if (!state || state.pointerId !== e.pointerId) return;
-    state.clientX = e.clientX;
-    state.clientY = e.clientY;
-
-    if (!state.isDragging) {
-      return;
-    }
-
-    e.preventDefault();
-    setDragTarget(getScheduleTarget(e.clientX, e.clientY));
-  }, [getScheduleTarget]);
-
-  const handlePlanPointerUp = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    const state = dragStateRef.current;
-    if (!state || state.pointerId !== e.pointerId) return;
-
-    window.clearTimeout(state.timer);
-    dragStateRef.current = null;
-
-    if (!state.isDragging) return;
-
-    e.preventDefault();
-    dragStateSuppressClick.current = true;
-    setDraggingPlanId(null);
-
-    const target = getScheduleTarget(e.clientX, e.clientY);
+  const finishPlanMove = React.useCallback((state: NonNullable<typeof dragStateRef.current>, clientX: number, clientY: number) => {
+    const target = getScheduleTarget(clientX, clientY);
     setDragTarget(null);
     if (!target) return;
 
@@ -554,7 +539,6 @@ function ScheduleGridComponent({
 
     const conflictingPlan = overlappingPlans[0];
     if (conflictingPlan) {
-      const targetEndHour = target.hour + state.plan.duration;
       const conflictingEndHour = getPlanEndMinutes(conflictingPlan) / 60;
 
       if (target.hour === conflictingPlan.startHour) {
@@ -585,6 +569,94 @@ function ScheduleGridComponent({
       startHour: target.hour,
     });
   }, [endHour, getScheduleTarget, onUpdatePlan, plans]);
+
+  const handlePlanPointerMove = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch') return;
+    const state = dragStateRef.current;
+    if (!state || state.pointerId !== e.pointerId) return;
+    state.clientX = e.clientX;
+    state.clientY = e.clientY;
+
+    if (!state.isDragging) {
+      return;
+    }
+
+    e.preventDefault();
+    setDragTarget(getScheduleTarget(e.clientX, e.clientY));
+  }, [getScheduleTarget]);
+
+  const handlePlanPointerUp = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
+    if (e.pointerType === 'touch') return;
+    const state = dragStateRef.current;
+    if (!state || state.pointerId !== e.pointerId) return;
+
+    window.clearTimeout(state.timer);
+    dragStateRef.current = null;
+
+    if (!state.isDragging) return;
+
+    e.preventDefault();
+    dragStateSuppressClick.current = true;
+    setDraggingPlanId(null);
+    finishPlanMove(state, e.clientX, e.clientY);
+  }, [finishPlanMove]);
+
+  const handlePlanTouchStart = React.useCallback((plan: Plan, e: React.TouchEvent<HTMLDivElement>) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    const previous = dragStateRef.current;
+    if (previous) window.clearTimeout(previous.timer);
+
+    dragStateSuppressClick.current = false;
+    dragStateRef.current = {
+      plan,
+      pointerId: touch.identifier,
+      startX: touch.clientX,
+      startY: touch.clientY,
+      clientX: touch.clientX,
+      clientY: touch.clientY,
+      element: e.currentTarget,
+      timer: window.setTimeout(() => {
+        const state = dragStateRef.current;
+        if (!state || state.pointerId !== touch.identifier) return;
+        state.isDragging = true;
+        setDraggingPlanId(plan.id);
+        setDragTarget(getScheduleTarget(state.clientX, state.clientY));
+      }, 1000),
+      isDragging: false,
+    };
+  }, [getScheduleTarget]);
+
+  const handlePlanTouchMove = React.useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    const state = dragStateRef.current;
+    const touch = Array.from(e.touches).find((item) => item.identifier === state?.pointerId);
+    if (!state || !touch) return;
+
+    state.clientX = touch.clientX;
+    state.clientY = touch.clientY;
+    if (!state.isDragging) return;
+
+    e.preventDefault();
+    setDragTarget(getScheduleTarget(touch.clientX, touch.clientY));
+  }, [getScheduleTarget]);
+
+  const handlePlanTouchEnd = React.useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    const state = dragStateRef.current;
+    if (!state) return;
+
+    const touch = Array.from(e.changedTouches).find((item) => item.identifier === state.pointerId);
+    if (!touch) return;
+
+    window.clearTimeout(state.timer);
+    dragStateRef.current = null;
+    if (!state.isDragging) return;
+
+    e.preventDefault();
+    dragStateSuppressClick.current = true;
+    setDraggingPlanId(null);
+    finishPlanMove(state, touch.clientX, touch.clientY);
+  }, [finishPlanMove]);
 
   const confirmPendingMove = React.useCallback(() => {
     if (!pendingMove) return;
@@ -968,6 +1040,9 @@ function ScheduleGridComponent({
                     handlePlanPointerDown={handlePlanPointerDown}
                     handlePlanPointerMove={handlePlanPointerMove}
                     handlePlanPointerUp={handlePlanPointerUp}
+                    handlePlanTouchStart={handlePlanTouchStart}
+                    handlePlanTouchMove={handlePlanTouchMove}
+                    handlePlanTouchEnd={handlePlanTouchEnd}
                     isDragging={draggingPlanId === plan?.id}
                     isDropTarget={dragTarget?.day === dayKey && dragTarget.hour >= hour && dragTarget.hour < hour + (plan?.duration || 1)}
                     dropTargetHour={dragTarget?.day === dayKey ? dragTarget.hour : null}
