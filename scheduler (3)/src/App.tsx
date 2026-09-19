@@ -2153,14 +2153,14 @@ function PlannerApp() {
       } else if (activeUid) {
         storage.setPendingSync(activeUid, 'plans', true);
       }
-      toast.success('Đã hoàn tác thay đổi');
+      toast.success(t('undoDone'));
     } catch (error) {
       if (activeUid) storage.setPendingSync(activeUid, 'plans', true);
       console.warn('Undo cloud save failed, local change persisted:', error);
     } finally {
       isUndoingRef.current = false;
     }
-  }, [activeUid, isOnline]);
+  }, [activeUid, isOnline, t]);
 
   const handleUpdatePlan = React.useCallback(async (p: Plan) => {
     captureUndoSnapshot();
@@ -2515,11 +2515,14 @@ function PlannerApp() {
         type="button"
         variant="outline"
         size="icon"
-        aria-label="Hoàn tác thay đổi"
-        title="Hoàn tác thay đổi (Ctrl+Z)"
+        aria-label={t('undo')}
+        title={`${t('undo')} (Ctrl+Z)`}
         disabled={!canUndo}
         onClick={() => void handleUndo()}
-        className="fixed bottom-4 left-4 z-[60] h-11 w-11 rounded-full border-border bg-card/95 shadow-lg backdrop-blur disabled:opacity-40"
+        className={cn(
+          "fixed bottom-4 left-4 z-[60] h-11 w-11 rounded-full border-border bg-card/95 shadow-lg backdrop-blur disabled:opacity-40",
+          !canUndo && "hidden md:inline-flex"
+        )}
       >
         <Undo2 className="h-5 w-5" />
       </Button>
