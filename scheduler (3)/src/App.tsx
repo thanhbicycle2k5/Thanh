@@ -2514,17 +2514,18 @@ function PlannerApp() {
       <Button
         type="button"
         variant="outline"
-        size="icon"
+        size="sm"
         aria-label={t('undo')}
         title={`${t('undo')} (Ctrl+Z)`}
         disabled={!canUndo}
         onClick={() => void handleUndo()}
         className={cn(
-          "fixed bottom-4 left-4 z-[60] h-11 w-11 rounded-full border-border bg-card/95 shadow-lg backdrop-blur disabled:opacity-40",
+          "fixed bottom-4 left-4 z-[60] h-11 rounded-full border-border bg-card/95 px-3 shadow-lg backdrop-blur disabled:opacity-40",
           !canUndo && "hidden md:inline-flex"
         )}
       >
         <Undo2 className="h-5 w-5" />
+        <span>{t('undo')}</span>
       </Button>
       {settingsState.backgroundConfig && (
         <div
