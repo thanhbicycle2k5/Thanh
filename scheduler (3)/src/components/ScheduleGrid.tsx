@@ -329,6 +329,8 @@ function ScheduleGridComponent({
     pointerId: number;
     startX: number;
     startY: number;
+    clientX: number;
+    clientY: number;
     timer: number;
     isDragging: boolean;
   } | null>(null);
@@ -483,12 +485,14 @@ function ScheduleGridComponent({
       pointerId: e.pointerId,
       startX: e.clientX,
       startY: e.clientY,
+      clientX: e.clientX,
+      clientY: e.clientY,
       timer: window.setTimeout(() => {
         const state = dragStateRef.current;
         if (!state || state.pointerId !== e.pointerId) return;
         state.isDragging = true;
         setDraggingPlanId(plan.id);
-        setDragTarget(getScheduleTarget(e.clientX, e.clientY));
+        setDragTarget(getScheduleTarget(state.clientX, state.clientY));
       }, 350),
       isDragging: false,
     };
@@ -497,13 +501,10 @@ function ScheduleGridComponent({
   const handlePlanPointerMove = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     const state = dragStateRef.current;
     if (!state || state.pointerId !== e.pointerId) return;
+    state.clientX = e.clientX;
+    state.clientY = e.clientY;
 
     if (!state.isDragging) {
-      const movedDistance = Math.hypot(e.clientX - state.startX, e.clientY - state.startY);
-      if (movedDistance > 8) {
-        window.clearTimeout(state.timer);
-        dragStateRef.current = null;
-      }
       return;
     }
 
