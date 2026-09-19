@@ -329,6 +329,8 @@ function PlannerApp() {
   const undoHideTimerRef = React.useRef<number | null>(null);
   const isUndoingRef = React.useRef(false);
   const [canUndo, setCanUndo] = React.useState(false);
+  const [isUndoSaving, setIsUndoSaving] = React.useState(false);
+  const [undoSavingSeconds, setUndoSavingSeconds] = React.useState(0);
   const weekMetasRef = React.useRef<Record<string, any>>(weekMetas);
   const settingsRef = React.useRef<AppSettings>(normalizeSettings(defaultSettings));
   React.useEffect(() => {
@@ -359,6 +361,19 @@ function PlannerApp() {
       window.clearTimeout(undoHideTimerRef.current);
     }
   }, []);
+
+  React.useEffect(() => {
+    if (!isUndoSaving) {
+      setUndoSavingSeconds(0);
+      return;
+    }
+
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      setUndoSavingSeconds(Math.floor((Date.now() - startedAt) / 1000));
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [isUndoSaving]);
   React.useEffect(() => {
     weekMetasRef.current = weekMetas;
   }, [weekMetas]);
@@ -2155,6 +2170,7 @@ function PlannerApp() {
     if (!previousPlans) return;
     undoSnapshotRef.current = null;
 
+    setIsUndoSaving(true);
     isUndoingRef.current = true;
     plansRef.current = previousPlans;
     setPlans(previousPlans);
@@ -2169,11 +2185,13 @@ function PlannerApp() {
     const persistUndo = () => {
       storage.savePlans(previousPlans, activeUid, false);
       if (!activeUid) {
+        setIsUndoSaving(false);
         return;
       }
 
       if (!isOnline) {
         storage.setPendingSync(activeUid, 'plans', true);
+        setIsUndoSaving(false);
         return;
       }
 
@@ -2182,7 +2200,8 @@ function PlannerApp() {
         .catch((error) => {
           storage.setPendingSync(activeUid, 'plans', true);
           console.warn('Undo cloud save failed, local change persisted:', error);
-        });
+        })
+        .finally(() => setIsUndoSaving(false));
     };
 
     if ('requestIdleCallback' in window) {
@@ -2560,13 +2579,24 @@ function PlannerApp() {
         disabled={!canUndo}
         onClick={handleUndo}
         className={cn(
-          "fixed bottom-4 left-4 z-[60] h-11 rounded-full border-border bg-card/95 px-3 shadow-lg backdrop-blur disabled:opacity-40",
-          !canUndo && "hidden md:inline-flex"
+          "fixed bottom-16 left-4 z-[60] h-11 rounded-full border-border bg-card/95 px-3 shadow-lg backdrop-blur disabled:opacity-40 md:bottom-4",
+          isUndoSaving
+            ? "hidden"
+            : !canUndo && "hidden md:inline-flex"
         )}
       >
         <Undo2 className="h-5 w-5" />
         <span>{t('undo')}</span>
       </Button>
+      {isUndoSaving && (
+        <div className="fixed bottom-16 left-4 z-[59] flex min-h-11 items-center gap-2 rounded-full border border-border bg-card/95 px-3 pl-4 text-xs text-muted-foreground shadow-lg backdrop-blur md:bottom-4">
+          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+          <span>
+            {undoSavingSeconds >= 5 ? t('undoSavingLong') : t('undoSaving')}
+            {` (${undoSavingSeconds}s)`}
+          </span>
+        </div>
+      )}
       {settingsState.backgroundConfig && (
         <div
           className="absolute inset-0 z-0 bg-background/40 dark:bg-background/60 pointer-events-none"
