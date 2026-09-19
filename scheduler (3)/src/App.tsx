@@ -116,11 +116,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-function WeekNoteEditor({ weekStart, initialNote, theme, placeholder, onSave, btnSaveText, btnSavedText }: {
+function WeekNoteEditor({ weekStart, initialNote, theme, placeholder, surfaceColor, onSave, btnSaveText, btnSavedText }: {
   weekStart: Date;
   initialNote: string;
   theme: Theme;
   placeholder: string;
+  surfaceColor: string;
   onSave: (note: string) => void;
   btnSaveText: string;
   btnSavedText: string;
@@ -140,7 +141,8 @@ function WeekNoteEditor({ weekStart, initialNote, theme, placeholder, onSave, bt
         onChange={(e) => setNote(e.target.value)}
         placeholder={placeholder}
         rows={3}
-        className="text-xs resize-none w-full bg-muted/50 border-border"
+        className="text-xs resize-none w-full border-border"
+        style={{ backgroundColor: surfaceColor }}
       />
       <Button
         size="sm"
@@ -2560,6 +2562,11 @@ function PlannerApp() {
     };
   }, [gymRestOpen, handleUndo, isCalendarOpen, isNoteOpen, isPomodoroOpen, isSearchOpen, isSettingsOpen, isSummaryOpen, selectedWeekStart]);
 
+  const visibleBoardOpacity = Number.isFinite(settingsState.boardOpacity)
+    ? Math.min(1, Math.max(0, settingsState.boardOpacity))
+    : 1;
+  const noteSurfaceColor = `color-mix(in srgb, var(--muted) ${Math.max(2, visibleBoardOpacity * 100)}%, transparent)`;
+
   return (
     <div 
       className={cn(
@@ -2857,13 +2864,14 @@ function PlannerApp() {
                       onCreateShare={handleCreateShare}
                       onCancelShare={handleCancelShare}
                  />
-                 <div className="p-4 border-t bg-muted/30">
+                 <div className="p-4 border-t" style={{ backgroundColor: noteSurfaceColor }}>
                <Label className="text-[10px] font-bold uppercase mb-2 block opacity-50">{t('weekNote')}</Label>
                <WeekNoteEditor 
                   weekStart={selectedWeekStart}
                   initialNote={weekMetas[format(selectedWeekStart, 'yyyy-MM-dd')]?.note || ''}
                   theme={settingsState.theme}
                   placeholder={t('weekNotePlaceholder')}
+                  surfaceColor={noteSurfaceColor}
                   btnSaveText={t('saveNote')}
                   btnSavedText={t('saved')}
                   onSave={(note) => {
