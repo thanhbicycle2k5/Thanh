@@ -58,6 +58,7 @@ import {
   Play,
   Pause,
   RotateCcw,
+  Undo2,
   X,
   Timer,
   Dumbbell,
@@ -323,11 +324,26 @@ function PlannerApp() {
   const [searchQuery, setSearchQuery] = React.useState('');
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const plansRef = React.useRef<Plan[]>(plans);
+  const undoSnapshotRef = React.useRef<Plan[] | null>(null);
+  const undoCaptureScheduledRef = React.useRef(false);
+  const isUndoingRef = React.useRef(false);
+  const [canUndo, setCanUndo] = React.useState(false);
   const weekMetasRef = React.useRef<Record<string, any>>(weekMetas);
   const settingsRef = React.useRef<AppSettings>(normalizeSettings(defaultSettings));
   React.useEffect(() => {
     plansRef.current = plans;
   }, [plans]);
+
+  const captureUndoSnapshot = React.useCallback(() => {
+    if (isUndoingRef.current || undoCaptureScheduledRef.current) return;
+
+    undoSnapshotRef.current = plansRef.current.map((plan) => ({ ...plan }));
+    undoCaptureScheduledRef.current = true;
+    setCanUndo(true);
+    window.setTimeout(() => {
+      undoCaptureScheduledRef.current = false;
+    }, 0);
+  }, []);
   React.useEffect(() => {
     weekMetasRef.current = weekMetas;
   }, [weekMetas]);
@@ -2119,7 +2135,35 @@ function PlannerApp() {
     return () => clearTimeout(timer);
   }, [selectedWeekStart]);
 
+  const handleUndo = React.useCallback(async () => {
+    const previousPlans = undoSnapshotRef.current;
+    if (!previousPlans) return;
+    undoSnapshotRef.current = null;
+
+    isUndoingRef.current = true;
+    plansRef.current = previousPlans;
+    setPlans(previousPlans);
+    storage.savePlans(previousPlans, activeUid, false);
+    setCanUndo(false);
+
+    try {
+      if (activeUid && isOnline) {
+        await cloudStorage.savePlans(activeUid, previousPlans);
+        storage.setPendingSync(activeUid, 'plans', false);
+      } else if (activeUid) {
+        storage.setPendingSync(activeUid, 'plans', true);
+      }
+      toast.success('Đã hoàn tác thay đổi');
+    } catch (error) {
+      if (activeUid) storage.setPendingSync(activeUid, 'plans', true);
+      console.warn('Undo cloud save failed, local change persisted:', error);
+    } finally {
+      isUndoingRef.current = false;
+    }
+  }, [activeUid, isOnline]);
+
   const handleUpdatePlan = React.useCallback(async (p: Plan) => {
+    captureUndoSnapshot();
     const oldPlan = plansRef.current.find(x => x.id === p.id);
     if (oldPlan && oldPlan.color !== 'green' && p.color === 'green') {
       void cancelScheduledNotificationById(makeNotificationId(p));
@@ -2182,9 +2226,10 @@ function PlannerApp() {
         storage.setPendingSync(activeUid, 'plans', true);
       }
     }
-  }, [activeUid, isOnline, settingsState.notificationSound, t, showSpeechBubbleText]);
+  }, [activeUid, captureUndoSnapshot, isOnline, settingsState.notificationSound, t, showSpeechBubbleText]);
 
   const handleAddPlan = React.useCallback(async (p: Plan) => {
+    captureUndoSnapshot();
     const normalized = markPlanForSync({
       ...p,
       id: p.id,
@@ -2218,9 +2263,10 @@ function PlannerApp() {
         storage.setPendingSync(activeUid, 'plans', true);
       }
     }
-  }, [activeUid, isOnline]);
+  }, [activeUid, captureUndoSnapshot, isOnline]);
 
   const handleDeletePlan = React.useCallback(async (id: string) => {
+    captureUndoSnapshot();
     const current = plansRef.current.find((x) => x.id === id);
     const nextPlans = plansRef.current.filter((x) => x.id !== id);
     setPlans(nextPlans);
@@ -2245,7 +2291,7 @@ function PlannerApp() {
     }
 
     void cancelScheduledNotificationById(id);
-  }, [activeUid, isOnline]);
+  }, [activeUid, captureUndoSnapshot, isOnline]);
 
   const handleCreateShare = React.useCallback(async (startWeek: Date, endWeek: Date, sourcePlans: Plan[]) => {
     if (!activeUid) throw new Error('Bạn cần đăng nhập để chia sẻ lịch.');
@@ -2376,6 +2422,16 @@ function PlannerApp() {
       || isNoteOpen || isCalendarOpen;
     
     const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        const target = e.target as HTMLElement | null;
+        const isEditingText = target?.matches('input, textarea, [contenteditable="true"]');
+        if (!isEditingText) {
+          e.preventDefault();
+          void handleUndo();
+        }
+        return;
+      }
+
       // Left arrow = previous week, Right arrow = next week
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
@@ -2443,7 +2499,7 @@ function PlannerApp() {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [gymRestOpen, isCalendarOpen, isNoteOpen, isPomodoroOpen, isSearchOpen, isSettingsOpen, isSummaryOpen, selectedWeekStart]);
+  }, [gymRestOpen, handleUndo, isCalendarOpen, isNoteOpen, isPomodoroOpen, isSearchOpen, isSettingsOpen, isSummaryOpen, selectedWeekStart]);
 
   return (
     <div 
@@ -2455,6 +2511,18 @@ function PlannerApp() {
       )}
     >
       <div ref={youtubeContainerRef} className="hidden" />
+      <Button
+        type="button"
+        variant="outline"
+        size="icon"
+        aria-label="Hoàn tác thay đổi"
+        title="Hoàn tác thay đổi (Ctrl+Z)"
+        disabled={!canUndo}
+        onClick={() => void handleUndo()}
+        className="fixed bottom-4 left-4 z-[60] h-11 w-11 rounded-full border-border bg-card/95 shadow-lg backdrop-blur disabled:opacity-40"
+      >
+        <Undo2 className="h-5 w-5" />
+      </Button>
       {settingsState.backgroundConfig && (
         <div
           className="absolute inset-0 z-0 bg-background/40 dark:bg-background/60 pointer-events-none"
