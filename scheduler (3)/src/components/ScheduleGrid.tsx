@@ -212,6 +212,8 @@ interface ScheduleCellProps {
   day: Date;
   handleUnifiedClick: (date: Date, hour: number, existingPlan?: Plan) => void;
   handlePasteTask: (date: Date, hour: number) => void;
+  showPasteAction: boolean;
+  handleShowPasteAction: (cellKey: string) => void;
   handleOpenEdit: (plan: Plan, e: React.MouseEvent) => void;
   handlePlanClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   handlePlanPointerDown: (plan: Plan, e: React.PointerEvent<HTMLDivElement>) => void;
@@ -236,6 +238,8 @@ const ScheduleCell = React.memo(function ScheduleCell({
   day,
   handleUnifiedClick,
   handlePasteTask,
+  showPasteAction,
+  handleShowPasteAction,
   handleOpenEdit,
   handlePlanClick,
   handlePlanPointerDown,
@@ -250,7 +254,6 @@ const ScheduleCell = React.memo(function ScheduleCell({
   t,
   boardOpacity,
 }: ScheduleCellProps) {
-  const [showPasteAction, setShowPasteAction] = React.useState(false);
   const longPressTimer = React.useRef<number | null>(null);
 
   if (isPartOfPreviousPlan) return null;
@@ -280,11 +283,11 @@ const ScheduleCell = React.memo(function ScheduleCell({
       onContextMenu={(e) => {
         if (plan) return;
         e.preventDefault();
-        setShowPasteAction(true);
+        handleShowPasteAction(`${dayKey}#${hour}`);
       }}
       onTouchStart={() => {
         if (plan) return;
-        longPressTimer.current = window.setTimeout(() => setShowPasteAction(true), 600);
+        longPressTimer.current = window.setTimeout(() => handleShowPasteAction(`${dayKey}#${hour}`), 600);
       }}
       onTouchEnd={() => {
         if (longPressTimer.current !== null) window.clearTimeout(longPressTimer.current);
@@ -340,7 +343,6 @@ const ScheduleCell = React.memo(function ScheduleCell({
               className="absolute inset-1 z-10 flex items-center justify-center gap-1 rounded-md bg-primary px-1 text-[10px] font-bold text-primary-foreground opacity-100 shadow"
               onClick={(e) => {
                 e.stopPropagation();
-                setShowPasteAction(false);
                 handlePasteTask(day, hour);
               }}
             >
@@ -423,6 +425,7 @@ function ScheduleGridComponent({
 
   const [editingPlan, setEditingPlan] = React.useState<Plan | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [pasteActionCell, setPasteActionCell] = React.useState<string | null>(null);
   const [newTitle, setNewTitle] = React.useState('');
   const [newColor, setNewColor] = React.useState<PlanColor>('yellow');
   const [newStartMinute, setNewStartMinute] = React.useState<number>(0);
@@ -892,7 +895,6 @@ function ScheduleGridComponent({
         startMinute: copiedTask.startMinute ?? 0,
         duration,
         color: copiedTask.color,
-        notes: copiedTask.notes,
       });
       toast.success('Đã dán task');
     } catch (error) {
@@ -1272,6 +1274,8 @@ function ScheduleGridComponent({
                     day={day}
                     handleUnifiedClick={handleUnifiedClick}
                     handlePasteTask={handlePasteTask}
+                    showPasteAction={pasteActionCell === `${dayKey}#${hour}`}
+                    handleShowPasteAction={setPasteActionCell}
                     handleOpenEdit={handleOpenEdit}
                     handlePlanClick={handlePlanClick}
                     handlePlanPointerDown={handlePlanPointerDown}
