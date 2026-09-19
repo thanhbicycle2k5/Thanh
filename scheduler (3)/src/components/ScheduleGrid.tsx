@@ -7,7 +7,7 @@ import {
 } from 'date-fns';
 import { Plan, PlanColor, Language, Theme, TaskApplyMode } from '../types';
 import { cn } from '@/lib/utils';
-import { Plus, Edit2, Trash2, Clock3, Share2, ExternalLink } from 'lucide-react';
+import { Plus, Edit2, Trash2, Clock3, Share2, ExternalLink, Clipboard } from 'lucide-react';
 import { Solar } from 'lunar-javascript';
 import { translations } from '../lib/i18n';
 import {
@@ -117,6 +117,78 @@ async function copyText(text: string) {
   if (!copied) throw new Error('Clipboard is unavailable');
 }
 
+const TASK_CLIPBOARD_TYPE = 'application/x-task2goal-task';
+
+type CopiedTask = Pick<Plan, 'title' | 'startMinute' | 'duration' | 'color' | 'notes'>;
+
+const getTaskClipboardText = (plan: Plan) => {
+  const start = formatPlanTime(plan.startHour, plan.startMinute ?? 0);
+  const end = formatPlanTime(plan.startHour + plan.duration, 0);
+  return `[${plan.title}], [${start} - ${end}]${plan.notes ? `, [${plan.notes}]` : ''}`;
+};
+
+async function copyPlan(plan: Plan) {
+  const text = getTaskClipboardText(plan);
+  const payload: CopiedTask = {
+    title: plan.title,
+    startMinute: plan.startMinute ?? 0,
+    duration: plan.duration,
+    color: plan.color,
+    notes: plan.notes,
+  };
+
+  if (navigator.clipboard?.write && typeof ClipboardItem !== 'undefined') {
+    await navigator.clipboard.write([
+      new ClipboardItem({
+        'text/plain': new Blob([text], { type: 'text/plain' }),
+        [TASK_CLIPBOARD_TYPE]: new Blob([JSON.stringify(payload)], { type: TASK_CLIPBOARD_TYPE }),
+      }),
+    ]);
+    return;
+  }
+
+  await copyText(text);
+}
+
+const parsePlainTask = (text: string): CopiedTask | null => {
+  const match = text.match(/^\[(.*)\], \[(\d{1,2}):(\d{2}) - (\d{1,2}):(\d{2})\](?:, \[(.*)\])?$/);
+  if (!match) return null;
+
+  const startHour = Number(match[2]);
+  const startMinute = Number(match[3]);
+  const endHour = Number(match[4]);
+  const endMinute = Number(match[5]);
+  const duration = endHour * 60 + endMinute > startHour * 60 + startMinute
+    ? Math.ceil((endHour * 60 + endMinute - (startHour * 60 + startMinute)) / 60)
+    : 1;
+
+  return {
+    title: match[1],
+    startMinute,
+    duration,
+    color: 'yellow',
+    notes: match[6] || undefined,
+  };
+};
+
+async function readCopiedTask() {
+  if (navigator.clipboard?.read) {
+    const items = await navigator.clipboard.read();
+    for (const item of items) {
+      if (item.types.includes(TASK_CLIPBOARD_TYPE)) {
+        const blob = await item.getType(TASK_CLIPBOARD_TYPE);
+        return JSON.parse(await blob.text()) as CopiedTask;
+      }
+    }
+  }
+
+  if (navigator.clipboard?.readText) {
+    return parsePlainTask(await navigator.clipboard.readText());
+  }
+
+  return null;
+}
+
 async function shareLinkOrCopy(url: string) {
   if (navigator.share) {
     await navigator.share({ title: 'Task2Goal', text: 'Lịch Task2Goal được chia sẻ', url });
@@ -133,6 +205,7 @@ interface ScheduleCellProps {
   isPartOfPreviousPlan: boolean;
   day: Date;
   handleUnifiedClick: (date: Date, hour: number, existingPlan?: Plan) => void;
+  handlePasteTask: (date: Date, hour: number) => void;
   handleOpenEdit: (plan: Plan, e: React.MouseEvent) => void;
   handlePlanClick: (e: React.MouseEvent<HTMLDivElement>) => void;
   handlePlanPointerDown: (plan: Plan, e: React.PointerEvent<HTMLDivElement>) => void;
@@ -156,6 +229,7 @@ const ScheduleCell = React.memo(function ScheduleCell({
   isPartOfPreviousPlan,
   day,
   handleUnifiedClick,
+  handlePasteTask,
   handleOpenEdit,
   handlePlanClick,
   handlePlanPointerDown,
@@ -170,6 +244,9 @@ const ScheduleCell = React.memo(function ScheduleCell({
   t,
   boardOpacity,
 }: ScheduleCellProps) {
+  const [showPasteAction, setShowPasteAction] = React.useState(false);
+  const longPressTimer = React.useRef<number | null>(null);
+
   if (isPartOfPreviousPlan) return null;
 
   const effectiveBoardOpacity = boardOpacity === 0 ? 0.12 : Math.min(1, Math.max(0, boardOpacity));
@@ -194,6 +271,21 @@ const ScheduleCell = React.memo(function ScheduleCell({
         backgroundImage: 'none',
       }}
       onClick={() => handleUnifiedClick(day, hour)}
+      onContextMenu={(e) => {
+        if (plan) return;
+        e.preventDefault();
+        setShowPasteAction(true);
+      }}
+      onTouchStart={() => {
+        if (plan) return;
+        longPressTimer.current = window.setTimeout(() => setShowPasteAction(true), 600);
+      }}
+      onTouchEnd={() => {
+        if (longPressTimer.current !== null) window.clearTimeout(longPressTimer.current);
+      }}
+      onTouchCancel={() => {
+        if (longPressTimer.current !== null) window.clearTimeout(longPressTimer.current);
+      }}
     >
       {plan ? (
         <div
@@ -236,6 +328,20 @@ const ScheduleCell = React.memo(function ScheduleCell({
       ) : (
         <div className="w-full h-full flex items-center justify-center opacity-10 group-hover:opacity-20 transition-opacity">
           <Plus className="w-4 md:w-5 h-4 md:h-5 text-muted-foreground" />
+          {showPasteAction && (
+            <button
+              type="button"
+              className="absolute inset-1 z-10 flex items-center justify-center gap-1 rounded-md bg-primary px-1 text-[10px] font-bold text-primary-foreground opacity-100 shadow"
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowPasteAction(false);
+                handlePasteTask(day, hour);
+              }}
+            >
+              <Clipboard className="h-3 w-3" />
+              <span>Dán task</span>
+            </button>
+          )}
         </div>
       )}
       {isDropTarget && dropTargetHour !== null && (
@@ -742,6 +848,53 @@ function ScheduleGridComponent({
     setPendingMove(null);
   }, [onUpdatePlan, pendingMove]);
 
+  const handlePasteTask = React.useCallback(async (date: Date, hour: number) => {
+    try {
+      const copiedTask = await readCopiedTask();
+      if (!copiedTask) {
+        toast.error('Không tìm thấy task đã sao chép');
+        return;
+      }
+
+      const dateIso = date.toISOString();
+      const duration = Math.max(1, copiedTask.duration || 1);
+      const pastedEndHour = hour + duration;
+      if (pastedEndHour > endHour) {
+        toast.error('Task không thể vượt quá giờ kết thúc của lịch');
+        return;
+      }
+
+      const overlaps = plans.some((plan) => {
+        if (!isSameDay(new Date(plan.date), date)) return false;
+        const planStart = plan.startHour * 60 + (plan.startMinute ?? 0);
+        const planEnd = getPlanEndMinutes(plan);
+        const pastedStart = hour * 60 + (copiedTask.startMinute ?? 0);
+        const pastedEnd = getPlanEndMinutes({ startHour: hour, startMinute: copiedTask.startMinute ?? 0, duration });
+        return planStart < pastedEnd && pastedStart < planEnd;
+      });
+
+      if (overlaps) {
+        toast.error('Ô này hoặc thời lượng task đã có task khác');
+        return;
+      }
+
+      await onAddPlan({
+        id: crypto.randomUUID(),
+        title: copiedTask.title,
+        date: dateIso,
+        startHour: hour,
+        startMinute: copiedTask.startMinute ?? 0,
+        duration,
+        color: copiedTask.color,
+        notes: copiedTask.notes,
+      });
+      toast.success('Đã dán task');
+    } catch (error) {
+      console.error('Unable to paste task:', error);
+      toast.error('Không thể dán task từ clipboard');
+    }
+  }, [onAddPlan, plans, endHour]);
+
   const handleUnifiedClick = React.useCallback((date: Date, hour: number, existingPlan?: Plan) => {
     if (dragStateSuppressClick.current) {
       dragStateSuppressClick.current = false;
@@ -942,6 +1095,25 @@ function ScheduleGridComponent({
     }
   };
 
+  const handleCopy = async () => {
+    if (!editingPlan) return;
+
+    try {
+      await copyPlan({
+        ...editingPlan,
+        title: newTitle,
+        startMinute: newStartMinute,
+        duration: newDuration,
+        color: newColor,
+        notes: newNotes || undefined,
+      });
+      toast.success('Đã sao chép task');
+    } catch (error) {
+      console.error('Unable to copy task:', error);
+      toast.error('Không thể sao chép task');
+    }
+  };
+
   const confirmDeletePlan = () => {
     if (editingPlan) {
       onDeletePlan(editingPlan.id);
@@ -1093,6 +1265,7 @@ function ScheduleGridComponent({
                     isPartOfPreviousPlan={isPartOfPreviousPlan}
                     day={day}
                     handleUnifiedClick={handleUnifiedClick}
+                    handlePasteTask={handlePasteTask}
                     handleOpenEdit={handleOpenEdit}
                     handlePlanClick={handlePlanClick}
                     handlePlanPointerDown={handlePlanPointerDown}
@@ -1396,6 +1569,10 @@ function ScheduleGridComponent({
           <DialogFooter className="flex justify-between w-full flex-row gap-2">
             {plans.some(p => p.id === editingPlan?.id) && (
               <div className="flex items-center">
+                <Button type="button" variant="outline" size="sm" onClick={() => void handleCopy()} className="mr-2 flex items-center gap-2 px-3 py-2" aria-label="Sao chép task" title="Sao chép task">
+                  <Clipboard className="w-4 h-4" />
+                  <span className="text-sm">Sao chép</span>
+                </Button>
                 <Button variant="destructive" size="sm" onClick={handleDelete} className="bg-destructive hover:bg-destructive/90 flex items-center gap-2 px-4 py-2">
                   <Trash2 className="w-4 h-4" />
                   <span className="text-sm">{t('delete')}</span>
