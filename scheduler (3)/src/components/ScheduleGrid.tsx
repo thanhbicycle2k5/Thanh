@@ -1062,44 +1062,42 @@ function ScheduleGridComponent({
         if (!overlaps(basePlan.date, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
           await onAddPlan(basePlan);
         }
-
-        // Handle applyMode 'day' -> apply daily until date
-        if (basePlan.applyMode === 'day' && basePlan.applyUntil) {
-          let cur = new Date(basePlan.date);
-          const end = new Date(basePlan.applyUntil);
-          cur.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
-          cur.setDate(cur.getDate() + 1);
-          while (cur <= end) {
-            const candidate = new Date(cur);
-            candidate.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
-            await addGeneratedDayPlan(candidate);
-            cur.setDate(cur.getDate() + 1);
-          }
-        }
-
-        // Handle applyMode 'week' -> apply for the selected number of weeks starting from the current task week.
-        if (basePlan.applyMode === 'week' && basePlan.applyWeekDays?.length) {
-          const weekCount = Math.max(1, Number(basePlan.applyWeekInterval) || 1);
-          const selectedWeekdays = (basePlan.applyWeekDays || []).map((d) => WEEK_DAYS.indexOf(d as WeekDay));
-          const baseStart = startOfMonday(new Date(basePlan.date));
-
-          for (let weekOffset = 0; weekOffset < weekCount; weekOffset += 1) {
-            const weekStart = new Date(baseStart);
-            weekStart.setDate(baseStart.getDate() + (weekOffset * 7));
-
-            for (const weekdayIndex of selectedWeekdays) {
-              const candidate = new Date(weekStart);
-              candidate.setDate(candidate.getDate() + weekdayIndex);
-              candidate.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
-              if (shouldSkipGeneratedDate(basePlan.date, candidate)) {
-                continue;
-              }
-              await addGeneratedWeekPlan(candidate);
-            }
-          }
-        }
       } else {
         await onUpdatePlan(basePlan);
+      }
+
+      if (basePlan.applyMode === 'day' && basePlan.applyUntil) {
+        let cur = new Date(basePlan.date);
+        const end = new Date(basePlan.applyUntil);
+        cur.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
+        cur.setDate(cur.getDate() + 1);
+        while (cur <= end) {
+          const candidate = new Date(cur);
+          candidate.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
+          await addGeneratedDayPlan(candidate);
+          cur.setDate(cur.getDate() + 1);
+        }
+      }
+
+      if (basePlan.applyMode === 'week' && basePlan.applyWeekDays?.length) {
+        const weekCount = Math.max(1, Number(basePlan.applyWeekInterval) || 1);
+        const selectedWeekdays = (basePlan.applyWeekDays || []).map((d) => WEEK_DAYS.indexOf(d as WeekDay));
+        const baseStart = startOfMonday(new Date(basePlan.date));
+
+        for (let weekOffset = 0; weekOffset < weekCount; weekOffset += 1) {
+          const weekStart = new Date(baseStart);
+          weekStart.setDate(baseStart.getDate() + (weekOffset * 7));
+
+          for (const weekdayIndex of selectedWeekdays) {
+            const candidate = new Date(weekStart);
+            candidate.setDate(candidate.getDate() + weekdayIndex);
+            candidate.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
+            if (shouldSkipGeneratedDate(basePlan.date, candidate)) {
+              continue;
+            }
+            await addGeneratedWeekPlan(candidate);
+          }
+        }
       }
 
       if (!isNew && !wasGreen && newColor === 'green') {
