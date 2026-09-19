@@ -453,11 +453,18 @@ function ScheduleGridComponent({
 
   React.useEffect(() => {
     const mainScrollContainer = document.getElementById('main-scroll-container');
-    if (!mainScrollContainer || !draggingPlanId) return;
+    if (!draggingPlanId) {
+      document.body.removeAttribute('data-task-dragging');
+      return;
+    }
+
+    document.body.setAttribute('data-task-dragging', 'true');
+    if (!mainScrollContainer) return;
 
     const previousOverflowY = mainScrollContainer.style.overflowY;
     mainScrollContainer.style.overflowY = 'hidden';
     return () => {
+      document.body.removeAttribute('data-task-dragging');
       mainScrollContainer.style.overflowY = previousOverflowY;
     };
   }, [draggingPlanId]);

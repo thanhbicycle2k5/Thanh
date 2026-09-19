@@ -2473,6 +2473,11 @@ function PlannerApp() {
     };
 
     const handleTouchStart = (e: TouchEvent) => {
+      if (document.body.dataset.taskDragging === 'true') {
+        touchStartedInPopup = true;
+        return;
+      }
+
       const target = e.target as Element | null;
       const hasMountedPopup = Boolean(document.querySelector(
         '[data-slot="dialog-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"], [data-slot="select-content"]'
@@ -2486,6 +2491,11 @@ function PlannerApp() {
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
+      if (document.body.dataset.taskDragging === 'true') {
+        touchStartedInPopup = false;
+        return;
+      }
+
       if (touchStartedInPopup) {
         touchStartedInPopup = false;
         return;
