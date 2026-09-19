@@ -332,6 +332,7 @@ function ScheduleGridComponent({
     startY: number;
     clientX: number;
     clientY: number;
+    element: HTMLDivElement;
     timer: number;
     isDragging: boolean;
   } | null>(null);
@@ -480,7 +481,6 @@ function ScheduleGridComponent({
     const previous = dragStateRef.current;
     if (previous) window.clearTimeout(previous.timer);
 
-    e.currentTarget.setPointerCapture(e.pointerId);
     dragStateRef.current = {
       plan,
       pointerId: e.pointerId,
@@ -488,10 +488,12 @@ function ScheduleGridComponent({
       startY: e.clientY,
       clientX: e.clientX,
       clientY: e.clientY,
+      element: e.currentTarget,
       timer: window.setTimeout(() => {
         const state = dragStateRef.current;
         if (!state || state.pointerId !== e.pointerId) return;
         state.isDragging = true;
+        state.element.setPointerCapture(state.pointerId);
         setDraggingPlanId(plan.id);
         setDragTarget(getScheduleTarget(state.clientX, state.clientY));
       }, 1000),
