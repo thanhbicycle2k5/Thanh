@@ -610,6 +610,11 @@ function ScheduleGridComponent({
   }, [onUpdatePlan, pendingMove]);
 
   const handleUnifiedClick = React.useCallback((date: Date, hour: number, existingPlan?: Plan) => {
+    if (dragStateSuppressClick.current) {
+      dragStateSuppressClick.current = false;
+      return;
+    }
+
     const existing = existingPlan ?? plans.find(p => isSameDay(new Date(p.date), date) && p.startHour === hour);
 
     if (!existing || existing.title === '') {
