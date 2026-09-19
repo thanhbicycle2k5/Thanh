@@ -2565,6 +2565,7 @@ function PlannerApp() {
   const visibleBoardOpacity = Number.isFinite(settingsState.boardOpacity)
     ? Math.min(1, Math.max(0, settingsState.boardOpacity))
     : 1;
+  const boardSurfaceColor = `color-mix(in srgb, var(--card) ${Math.max(2, visibleBoardOpacity * 100)}%, transparent)`;
   const noteSurfaceColor = `color-mix(in srgb, var(--muted) ${Math.max(2, visibleBoardOpacity * 100)}%, transparent)`;
 
   return (
@@ -3933,7 +3934,7 @@ function PlannerApp() {
       </Dialog>
 
       <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
-        {isSummaryOpen && <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+        {isSummaryOpen && <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" style={{ backgroundColor: boardSurfaceColor }}>
           <DialogHeader>
             <DialogTitle>{t('summaryYear').replace('{year}', format(new Date(), 'yyyy'))}</DialogTitle>
           </DialogHeader>
@@ -3946,13 +3947,14 @@ function PlannerApp() {
               const ratio = total > 0 ? (completed / total) : 0;
               
               return (
-                <div 
+                    <div 
                   key={i} 
                     className={cn(
                       "p-2 rounded border text-center transition-all cursor-pointer hover:scale-105",
                       isSameWeek(ws, new Date(), { weekStartsOn: 1 }) ? "ring-2 ring-[#107C41]" : "",
-                      "bg-muted/50 border-border"
+                      "border-border"
                     )}
+                    style={{ backgroundColor: boardSurfaceColor }}
                   onClick={() => { setSelectedWeekStart(ws); setIsSummaryOpen(false); }}
                 >
                   <p className="text-[10px] font-bold opacity-50 uppercase">{t('week')} {format(ws, 'w')}</p>
