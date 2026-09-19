@@ -1267,7 +1267,7 @@ function ScheduleGridComponent({
       <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px] !bg-transparent" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
         <thead className="sticky top-0 z-30">
           <tr className="backdrop-blur" style={{ backgroundColor: translucentCard }}>
-            <th className="w-14 md:w-20 border border-r-2 border-r-foreground/35 p-2 text-[10px] font-black uppercase tracking-wider sticky left-0 z-30 border-border text-muted-foreground shadow-[3px_0_5px_-3px_var(--foreground)]" style={{ backgroundColor: translucentCard }}>
+            <th className="relative w-14 md:w-20 border p-2 text-[10px] font-black uppercase tracking-wider sticky left-0 z-30 border-border text-muted-foreground after:absolute after:inset-y-0 after:right-[-1px] after:w-px after:bg-foreground/45 after:content-['']" style={{ backgroundColor: translucentCard }}>
               <div className="flex items-center justify-center gap-1">
                 <Clock3 className="h-4 w-4" aria-label="Thời gian" />
               </div>
@@ -1290,7 +1290,7 @@ function ScheduleGridComponent({
         <tbody style={{ background: 'transparent', backgroundColor: 'transparent' }}>
           {HOURS.map(hour => (
             <tr key={hour} data-schedule-hour={hour} className="h-10 md:h-12" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
-              <td className="border border-r-2 border-r-foreground/35 text-center font-black text-[10px] md:text-xs sticky left-0 z-20 border-border text-foreground shadow-[3px_0_5px_-3px_var(--foreground)]" style={{ backgroundColor: translucentCard }}>
+              <td className="relative border text-center font-black text-[10px] md:text-xs sticky left-0 z-20 border-border text-foreground after:absolute after:inset-y-0 after:right-[-1px] after:w-px after:bg-foreground/45 after:content-['']" style={{ backgroundColor: translucentCard }}>
                 {hour}:00
               </td>
               {daysOfCurrentWeek.map((day, dayIndex) => {
