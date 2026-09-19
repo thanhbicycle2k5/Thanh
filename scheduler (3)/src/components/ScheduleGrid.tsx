@@ -518,8 +518,7 @@ function ScheduleGridComponent({
     if (editingPlan?.date) {
       return editingPlan.date.slice(0, 10);
     }
-    const baseDate = new Date();
-    return format(baseDate, 'yyyy-MM-dd');
+    return '';
   }, [editingPlan?.date]);
 
   React.useEffect(() => {
@@ -1040,9 +1039,10 @@ function ScheduleGridComponent({
     setIsDialogOpen(false);
 
     try {
+      const baseDateKey = basePlan.date.slice(0, 10);
       const addGeneratedDayPlan = async (candidateDate: Date) => {
         const candidateKey = format(candidateDate, 'yyyy-MM-dd');
-        if (candidateDate < new Date(basePlan.date)) {
+        if (candidateKey < baseDateKey) {
           return;
         }
         if (!overlaps(candidateKey, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
@@ -1053,7 +1053,7 @@ function ScheduleGridComponent({
 
       const addGeneratedWeekPlan = async (candidateDate: Date) => {
         const candidateKey = format(candidateDate, 'yyyy-MM-dd');
-        if (candidateDate < new Date(basePlan.date)) {
+        if (candidateKey < baseDateKey) {
           return;
         }
         if (!overlaps(candidateKey, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
@@ -1090,8 +1090,8 @@ function ScheduleGridComponent({
       }
 
       if (basePlan.applyMode === 'day' && basePlan.applyUntil) {
-        let cur = new Date(basePlan.date);
-        const end = new Date(basePlan.applyUntil);
+        let cur = new Date(`${baseDateKey}T00:00:00`);
+        const end = new Date(`${basePlan.applyUntil}T00:00:00`);
         cur.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
         cur.setDate(cur.getDate() + 1);
         while (cur <= end) {
