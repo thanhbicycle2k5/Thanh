@@ -451,6 +451,17 @@ function ScheduleGridComponent({
     return () => window.clearTimeout(timer);
   }, [isDialogOpen]);
 
+  React.useEffect(() => {
+    const mainScrollContainer = document.getElementById('main-scroll-container');
+    if (!mainScrollContainer || !draggingPlanId) return;
+
+    const previousOverflowY = mainScrollContainer.style.overflowY;
+    mainScrollContainer.style.overflowY = 'hidden';
+    return () => {
+      mainScrollContainer.style.overflowY = previousOverflowY;
+    };
+  }, [draggingPlanId]);
+
   const handleTextFieldInteraction = React.useCallback(() => {
     if (typeof window === 'undefined') return;
 
@@ -477,6 +488,44 @@ function ScheduleGridComponent({
       hour: Number(row.dataset.scheduleHour),
     };
   }, []);
+
+  const autoScrollWhileDragging = React.useCallback((clientX: number, clientY: number) => {
+    const scheduleContainer = document.getElementById('schedule-scroll-container');
+    const mainScrollContainer = document.getElementById('main-scroll-container');
+    const edgeSize = 64;
+    const scrollStep = 14;
+
+    if (scheduleContainer) {
+      const rect = scheduleContainer.getBoundingClientRect();
+      if (clientX < rect.left + edgeSize) {
+        scheduleContainer.scrollLeft -= scrollStep;
+      } else if (clientX > rect.right - edgeSize) {
+        scheduleContainer.scrollLeft += scrollStep;
+      }
+    }
+
+    if (mainScrollContainer) {
+      const rect = mainScrollContainer.getBoundingClientRect();
+      if (clientY < rect.top + edgeSize) {
+        mainScrollContainer.scrollTop -= scrollStep;
+      } else if (clientY > rect.bottom - edgeSize) {
+        mainScrollContainer.scrollTop += scrollStep;
+      }
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!draggingPlanId) return;
+
+    const timer = window.setInterval(() => {
+      const state = dragStateRef.current;
+      if (!state?.isDragging) return;
+      autoScrollWhileDragging(state.clientX, state.clientY);
+      setDragTarget(getScheduleTarget(state.clientX, state.clientY));
+    }, 50);
+
+    return () => window.clearInterval(timer);
+  }, [autoScrollWhileDragging, draggingPlanId, getScheduleTarget]);
 
   const handlePlanClick = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!dragStateSuppressClick.current) return;
@@ -582,8 +631,9 @@ function ScheduleGridComponent({
     }
 
     e.preventDefault();
+    autoScrollWhileDragging(e.clientX, e.clientY);
     setDragTarget(getScheduleTarget(e.clientX, e.clientY));
-  }, [getScheduleTarget]);
+  }, [autoScrollWhileDragging, getScheduleTarget]);
 
   const handlePlanPointerUp = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'touch') return;
@@ -638,8 +688,9 @@ function ScheduleGridComponent({
     if (!state.isDragging) return;
 
     e.preventDefault();
+    autoScrollWhileDragging(touch.clientX, touch.clientY);
     setDragTarget(getScheduleTarget(touch.clientX, touch.clientY));
-  }, [getScheduleTarget]);
+  }, [autoScrollWhileDragging, getScheduleTarget]);
 
   const handlePlanTouchEnd = React.useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     const state = dragStateRef.current;
