@@ -426,6 +426,16 @@ function ScheduleGridComponent({
   const [editingPlan, setEditingPlan] = React.useState<Plan | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
   const [pasteActionCell, setPasteActionCell] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    if (!pasteActionCell) return;
+
+    const timer = window.setTimeout(() => {
+      setPasteActionCell(null);
+    }, 4000);
+
+    return () => window.clearTimeout(timer);
+  }, [pasteActionCell]);
   const [newTitle, setNewTitle] = React.useState('');
   const [newColor, setNewColor] = React.useState<PlanColor>('yellow');
   const [newStartMinute, setNewStartMinute] = React.useState<number>(0);
