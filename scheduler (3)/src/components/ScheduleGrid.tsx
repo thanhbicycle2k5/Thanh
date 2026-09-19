@@ -1014,10 +1014,15 @@ function ScheduleGridComponent({
 
   const handleSave = async () => {
     if (!editingPlan) return;
-    
-    const basePlan = { ...editingPlan, title: newTitle, color: newColor, startMinute: newStartMinute, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, notes: newNotes || undefined };
-    const wasGreen = plans.find(p => p.id === editingPlan.id)?.color === 'green';
-    const isNew = !plans.some(p => p.id === basePlan.id);
+
+    const previousPlan = allPlans.find(p => p.id === editingPlan.id) ?? editingPlan;
+    const isNew = !plans.some(p => p.id === editingPlan.id);
+    const recurrenceGroupId = newApplyMode !== 'none'
+      ? previousPlan.recurrenceGroupId ?? (isNew ? crypto.randomUUID() : undefined)
+      : undefined;
+    const basePlan = { ...editingPlan, title: newTitle, color: newColor, startMinute: newStartMinute, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, recurrenceGroupId, notes: newNotes || undefined };
+    const wasGreen = previousPlan.color === 'green';
+    const isDisablingRecurrence = !isNew && previousPlan.applyMode !== 'none' && newApplyMode === 'none';
 
     const overlaps = (dateIso: string, startHour: number, startMinute: number, duration: number) => {
       return plans.some(p => {
@@ -1064,6 +1069,24 @@ function ScheduleGridComponent({
         }
       } else {
         await onUpdatePlan(basePlan);
+      }
+
+      if (isDisablingRecurrence) {
+        const previousGroupId = previousPlan.recurrenceGroupId;
+        const generatedPlans = allPlans.filter((plan) => {
+          if (plan.id === basePlan.id) return false;
+          if (previousGroupId) return plan.recurrenceGroupId === previousGroupId;
+
+          return plan.applyMode === previousPlan.applyMode
+            && plan.applyUntil === previousPlan.applyUntil
+            && plan.title === previousPlan.title
+            && plan.startHour === previousPlan.startHour
+            && (plan.startMinute ?? 0) === (previousPlan.startMinute ?? 0)
+            && plan.duration === previousPlan.duration
+            && plan.color === previousPlan.color;
+        });
+
+        generatedPlans.forEach((plan) => onDeletePlan(plan.id));
       }
 
       if (basePlan.applyMode === 'day' && basePlan.applyUntil) {
