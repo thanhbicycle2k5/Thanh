@@ -2238,7 +2238,7 @@ function PlannerApp() {
       startHour: typeof p.startHour === 'number' ? p.startHour : oldPlan?.startHour ?? 0,
       duration: typeof p.duration === 'number' ? p.duration : oldPlan?.duration ?? 1,
       color: p.color ?? oldPlan?.color ?? 'yellow',
-      notes: p.notes ?? oldPlan?.notes,
+      notes: 'notes' in p ? p.notes : oldPlan?.notes,
       applyMode: p.applyMode ?? oldPlan?.applyMode ?? 'none',
       applyDays: p.applyDays ?? oldPlan?.applyDays,
       applyWeekInterval: p.applyWeekInterval ?? oldPlan?.applyWeekInterval,
