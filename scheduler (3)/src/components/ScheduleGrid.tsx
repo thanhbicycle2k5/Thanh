@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select";
 import { START_MINUTE_OPTIONS, formatPlanTime, getPlanEndMinutes } from '../lib/taskTime';
 import { getColorForClickCount, shouldSkipGeneratedDate } from '../lib/taskColor';
+import { getTaskClipboardText, parsePlainTask, type CopiedTask } from '../lib/taskClipboard';
 import type { SharedScheduleLink } from '../lib/firebase';
 
 const WEEK_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'] as const;
@@ -122,14 +123,6 @@ async function copyText(text: string) {
 
 const TASK_CLIPBOARD_TYPE = 'application/x-task2goal-task';
 
-type CopiedTask = Pick<Plan, 'title' | 'startMinute' | 'duration' | 'color' | 'notes'>;
-
-const getTaskClipboardText = (plan: Plan) => {
-  const start = formatPlanTime(plan.startHour, plan.startMinute ?? 0);
-  const end = formatPlanTime(plan.startHour + plan.duration, 0);
-  return `[${plan.title}], [${start} - ${end}]${plan.notes ? `, [${plan.notes}]` : ''}`;
-};
-
 async function copyPlan(plan: Plan) {
   const text = getTaskClipboardText(plan);
   const payload: CopiedTask = {
@@ -155,27 +148,6 @@ async function copyPlan(plan: Plan) {
 
   await copyText(text);
 }
-
-const parsePlainTask = (text: string): CopiedTask | null => {
-  const match = text.match(/^\[([\s\S]*?)\], \[(\d{1,2}):(\d{2}) - (\d{1,2}):(\d{2})\](?:, \[([\s\S]*)\])?$/);
-  if (!match) return null;
-
-  const startHour = Number(match[2]);
-  const startMinute = Number(match[3]);
-  const endHour = Number(match[4]);
-  const endMinute = Number(match[5]);
-  const duration = endHour * 60 + endMinute > startHour * 60 + startMinute
-    ? Math.ceil((endHour * 60 + endMinute - (startHour * 60 + startMinute)) / 60)
-    : 1;
-
-  return {
-    title: match[1],
-    startMinute,
-    duration,
-    color: 'yellow',
-    notes: match[6] || undefined,
-  };
-};
 
 async function readCopiedTask() {
   if (navigator.clipboard?.read) {
