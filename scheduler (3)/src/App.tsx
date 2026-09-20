@@ -82,7 +82,6 @@ import { DynamicCat, getCatImage } from './components/DynamicCat';
 import { SpeechBubbleOverlay } from './components/SpeechBubbleOverlay';
 import { BackgroundCustomizer } from './components/BackgroundCustomizer';
 import { CelebrationEffect } from './components/CelebrationEffect';
-import { QuickNoteEditor } from './components/QuickNoteEditor';
 import { SchedulyChat } from './components/SchedulyChat';
 import { getRandomCatQuote } from './data/catQuotes';
 import { checkLocalAI, LOCAL_AI_MODEL } from './services/localAI';
@@ -419,10 +418,7 @@ function PlannerApp() {
     settingsRef.current = settingsState;
   }, [settingsState]);
 
-  const [isNoteOpen, setIsNoteOpen] = React.useState(false);
-  const [noteText, setNoteText] = React.useState('');
   const [isMobile, setIsMobile] = React.useState(false);
-  const [isMobileNote, setIsMobileNote] = React.useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
   const suppressWeekPopoverClickRef = React.useRef(false);
   React.useEffect(() => {
@@ -455,10 +451,8 @@ function PlannerApp() {
   React.useEffect(() => {
     const query = window.matchMedia('(max-width: 768px)');
     setIsMobile(query.matches);
-    setIsMobileNote(query.matches);
     const handleMediaChange = (event: MediaQueryListEvent) => {
       setIsMobile(event.matches);
-      setIsMobileNote(event.matches);
     };
     query.addEventListener('change', handleMediaChange);
 
@@ -1268,11 +1262,8 @@ function PlannerApp() {
     setActiveSettingsTab('general');
     setMobileExpanded(null);
     setIsCalendarOpen(false);
-    setIsNoteOpen(false);
-    setNoteText('');
     setSelectedWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
     previousWeekStartRef.current = startOfWeek(new Date(), { weekStartsOn: 1 });
-    setIsMobileNote(false);
     setIsPomodoroOpen(false);
     setPomodoroMode('work');
     setPomodoroSecondsLeft(POMODORO_DURATIONS.work);
@@ -1314,7 +1305,6 @@ function PlannerApp() {
     if (!preserveAnonymousStorage) {
       storage.resetUserData();
       resetMusicPlayerState();
-      localStorage.removeItem('chronos_quick_note');
     }
 
     if (!preserveAnonymousStorage) {
@@ -1629,7 +1619,6 @@ function PlannerApp() {
       setUser(null);
       resetAppStateForGuest();
       resetMusicPlayerState();
-      localStorage.removeItem('chronos_quick_note');
     }
   }, [resetAppStateForGuest]);
 
@@ -2492,7 +2481,7 @@ function PlannerApp() {
     let scrollContainerStartX = 0;
     let touchStartedInPopup = false;
     const hasOpenPopup = isSettingsOpen || isSearchOpen || isSummaryOpen || isPomodoroOpen || gymRestOpen
-      || isNoteOpen || isCalendarOpen;
+      || isCalendarOpen;
     
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
@@ -2582,7 +2571,7 @@ function PlannerApp() {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, [gymRestOpen, handleUndo, isCalendarOpen, isNoteOpen, isPomodoroOpen, isSearchOpen, isSettingsOpen, isSummaryOpen, selectedWeekStart]);
+  }, [gymRestOpen, handleUndo, isCalendarOpen, isPomodoroOpen, isSearchOpen, isSettingsOpen, isSummaryOpen, selectedWeekStart]);
 
   const visibleBoardOpacity = Number.isFinite(settingsState.boardOpacity)
     ? Math.min(1, Math.max(0, settingsState.boardOpacity))
@@ -3066,60 +3055,7 @@ function PlannerApp() {
 
       {/* Floating UI Group */}
       <div className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
-        {isMobileNote ? (
-          <AnimatePresence>
-            {isNoteOpen && (
-              <>
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
-                  onClick={() => setIsNoteOpen(false)}
-                />
-                <motion.div
-                  initial={{ y: 200, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  exit={{ y: 200, opacity: 0 }}
-                  transition={{ type: 'spring', stiffness: 320, damping: 30 }}
-                  className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-xl rounded-t-3xl border border-border bg-card p-4 shadow-2xl shadow-black/10 pointer-events-auto"
-                >
-                  <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-muted-foreground/40" />
-                  <div className="flex items-center justify-between gap-3 pb-3">
-                    <div>
-                      <p className="text-sm font-bold">Ghi chú nhanh</p>
-                      <p className="text-[11px] opacity-70">Lưu tự động, không lo mất dữ liệu khi tải lại</p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setIsNoteOpen(false)}
-                      className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-muted/80 text-foreground transition hover:bg-muted"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                  <Textarea
-                    value={noteText}
-                    onChange={(e) => setNoteText(e.target.value)}
-                    placeholder="Ghi gì đó..."
-                    rows={10}
-                    className="min-h-[14rem] resize-none bg-muted/70 border-border"
-                  />
-                  <Button
-                    className="mt-4 h-11 w-full rounded-2xl bg-[#107C41] text-white shadow-lg shadow-[#107C41]/20 hover:bg-[#0d6435]"
-                    onClick={() => setIsNoteOpen(false)}
-                  >
-                    Đóng
-                  </Button>
-                </motion.div>
-              </>
-            )}
-          </AnimatePresence>
-        ) : null}
-
         <div className="fixed bottom-12 right-4 z-[9999] flex flex-col items-end gap-3 pointer-events-auto">
-          <QuickNoteEditor isMobile={isMobileNote} isOpen={isNoteOpen} onOpenChange={setIsNoteOpen} />
-
           <HealthTipPanel theme={settingsState.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settingsState.language} onActivate={(m) => { setCatMoodOverride(m); setTimeout(() => setCatMoodOverride(null), 4000); }} />
 
           {/* Pomodoro button grouped with other floating controls */}
