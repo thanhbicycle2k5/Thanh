@@ -2838,7 +2838,7 @@ function PlannerApp() {
                  </p>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="flex" onClick={() => setIsSummaryOpen(true)}>
+                <Button type="button" variant="outline" size="sm" className="flex" onClick={() => setIsSummaryOpen(true)}>
                   <Trophy className="w-3.5 h-3.5 mr-2 text-yellow-600" />
                   {t('summaryButton')}
                 </Button>
