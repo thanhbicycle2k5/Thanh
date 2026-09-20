@@ -84,15 +84,27 @@ const completeMiddles = [
   '[Tên nhiệm vụ] đã được xử lý gọn gàng.',
   '[Tên nhiệm vụ] đã biến thành chiến tích thật sự.',
   'bạn vừa chốt xong [Tên nhiệm vụ] không hề cẩu thả.',
-  'một lần nữa bạn chứng minh mình rất có khả năng.',
-  'điểm số năng suất của bạn vừa tăng hẳn lên.',
+  'bạn vừa dùng khả năng của mình để hoàn thành [Tên nhiệm vụ].',
+  'điểm số năng suất của bạn vừa tăng hẳn nhờ [Tên nhiệm vụ].',
   '[Tên nhiệm vụ] không còn là gánh nặng, mà là một thành công.',
-  'đúng là bạn đang đi đúng nhịp với bản thân.',
-  'tiến độ của bạn nghe rất đáng ngưỡng mộ.',
+  'bạn đang đi đúng nhịp khi hoàn thành [Tên nhiệm vụ].',
+  'tiến độ của bạn với [Tên nhiệm vụ] nghe rất đáng ngưỡng mộ.',
   'bạn đã khiến [Tên nhiệm vụ] phải gục ngã trước sự ổn định.',
-  'một việc đã xong, một việt trình lại trọn vẹn hơn.',
-  'bạn đã xóa sạch nỗi ngại với [Tên nhiệm vụ].',
-  'đây chính là kiểu hoàn thành có tâm và có chất.',
+  'một việc đã xong, hành trình với [Tên nhiệm vụ] lại trọn vẹn hơn.',
+  'bạn đã xóa sạch nỗi ngại khi xử lý [Tên nhiệm vụ].',
+  'đây chính là kiểu hoàn thành [Tên nhiệm vụ] có tâm và có chất.',
+  'bạn vừa đưa [Tên nhiệm vụ] từ danh sách chờ sang chiến tích.',
+  '[Tên nhiệm vụ] đã được bạn xử lý bằng sự kiên trì rất đáng nể.',
+  'mỗi bước cố gắng của bạn đã giúp [Tên nhiệm vụ] về đích.',
+  'bạn vừa chứng minh [Tên nhiệm vụ] không thể làm khó mình.',
+  'thành quả của [Tên nhiệm vụ] đang nói thay cho mọi lời khoe.',
+  'bạn đã hoàn thành [Tên nhiệm vụ] theo cách thật chỉn chu.',
+  '[Tên nhiệm vụ] hôm nay có một cái kết rất đẹp nhờ bạn.',
+  'sự tập trung của bạn đã biến [Tên nhiệm vụ] thành việc đã xong.',
+  'bạn vừa mở khóa thêm một chiến thắng mang tên [Tên nhiệm vụ].',
+  'nhìn [Tên nhiệm vụ] được đánh dấu hoàn thành mà mèo cũng vui lây.',
+  'bạn đã giữ lời với chính mình khi hoàn tất [Tên nhiệm vụ].',
+  '[Tên nhiệm vụ] vừa được chốt bằng một màn thể hiện quá ổn.',
 ];
 
 const completeClosers = [
@@ -110,7 +122,7 @@ const completeClosers = [
   'Đây là lúc nên vui một chút rồi quay lại nhé.',
 ];
 
-const completeMessages = buildUniqueComboMessages(completeOpeners, completeMiddles, completeClosers, 120);
+const completeMessages = buildUniqueComboMessages(completeOpeners, completeMiddles, completeClosers, 220);
 
 const goodnightMessages: string[] = [
   'Mèo thấy bạn đã làm rất đủ rồi, giờ hãy đặt lịch cho giấc ngủ thôi.',
@@ -219,6 +231,8 @@ const lastMessageIndexesByStatus: Record<SchedulyStatus, number[]> = {
   goodnight: [],
 };
 
+const RECENT_MESSAGE_HISTORY_LIMIT = 20;
+
 function getRandomIndex(status: SchedulyStatus): number {
   const messages = messagesByStatus[status];
   const length = messages.length;
@@ -234,7 +248,7 @@ function getRandomIndex(status: SchedulyStatus): number {
     : Math.floor(Math.random() * length);
 
   history.unshift(index);
-  if (history.length > 3) {
+  if (history.length > RECENT_MESSAGE_HISTORY_LIMIT) {
     history.pop();
   }
 
