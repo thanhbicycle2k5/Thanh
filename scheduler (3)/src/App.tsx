@@ -23,7 +23,7 @@ import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
 import { playNotificationSound, playCompletionMelody, playMeow } from './lib/sounds';
 import { getPlanReminderDate, getPlanStartDate, isWithinReminderWindow } from './lib/taskTime';
-import { calculatePomodoroRemainingSeconds } from './lib/pomodoro';
+import { calculatePomodoroRemainingSeconds, shouldStartPomodoroMusic } from './lib/pomodoro';
 import { getSchedulyMessage, SchedulyStatus } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
@@ -498,6 +498,7 @@ function PlannerApp() {
   const [speechBubble, setSpeechBubble] = React.useState<{ id: string; text: string; status: SchedulyStatus } | null>(null);
   const speechBubbleTimeoutRef = React.useRef<number | null>(null);
   const catClickTimeoutRef = React.useRef<number | null>(null);
+  const lastPomodoroMusicTrackRef = React.useRef<string | null>(null);
   const lastCatQuoteIdRef = React.useRef<number | undefined>(undefined);
   const [catPosition, setCatPosition] = React.useState<{ left: number; top: number } | null>(null);
   const [isSchedulyChatOpen, setIsSchedulyChatOpen] = React.useState(false);
@@ -548,6 +549,7 @@ function PlannerApp() {
     if (pomodoroRunning) {
       setPomodoroRunning(false);
       setPomodoroDeadline(null);
+      lastPomodoroMusicTrackRef.current = null;
       return;
     }
 
@@ -561,6 +563,7 @@ function PlannerApp() {
         if (!settingsState.musicEnabled) {
           handleUpdateSettings({ musicEnabled: true });
         }
+        lastPomodoroMusicTrackRef.current = trackId;
         void playTrack(trackId, true, true);
       }
     }
@@ -899,12 +902,21 @@ function PlannerApp() {
   }, [ensureYouTubeApi, getYouTubeConfig, handleYouTubeEnded, handleUpdateSettings, musicPlaybackMode, persistMusicState, playlistTracks, settingsState.musicEnabled, settingsState.musicVolume, stopAudioPlayback, stopYoutubePlayer]);
 
   React.useEffect(() => {
-    if (!pomodoroRunning || !pomodoroSoundEnabled || isMusicPlaying) return;
     const trackId = selectedMusicId ?? playlistTracks[0]?.id;
-    if (!trackId) return;
+    if (!shouldStartPomodoroMusic({
+      pomodoroRunning,
+      pomodoroSoundEnabled,
+      isMusicPlaying,
+      targetTrackId: trackId,
+      lastStartedTrackId: lastPomodoroMusicTrackRef.current,
+    })) {
+      return;
+    }
+
     if (!settingsState.musicEnabled) {
       handleUpdateSettings({ musicEnabled: true });
     }
+    lastPomodoroMusicTrackRef.current = trackId;
     void playTrack(trackId, true, true);
   }, [handleUpdateSettings, isMusicPlaying, playlistTracks, playTrack, pomodoroRunning, pomodoroSoundEnabled, selectedMusicId, settingsState.musicEnabled]);
 
