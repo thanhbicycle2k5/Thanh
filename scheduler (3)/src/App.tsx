@@ -14,6 +14,7 @@ import {
   isAfter,
   startOfDay,
 } from 'date-fns';
+import { enUS, vi } from 'date-fns/locale';
 import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack, AIProvider } from './types';
 import { storage, normalizeSettings, defaultSettings, mergeSettingsForSync } from './lib/storage';
 import { mergePlans, markPlanForSync, getDeviceId, enqueueSyncOperation, clearQueuedOperation, flushSyncQueue, hasQueuedOperations } from './lib/sync';
@@ -2829,7 +2830,9 @@ function PlannerApp() {
            <div className="mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                  <h2 className="text-2xl font-black">{t('weekOf')} {format(selectedWeekStart, 'w')}</h2>
-                 <p className="text-sm opacity-60">{format(selectedWeekStart, 'd MMMM')} - {format(addWeeks(selectedWeekStart, 1), 'd MMMM')}</p>
+                 <p className="text-sm opacity-60">
+                   {format(selectedWeekStart, 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })} - {format(addWeeks(selectedWeekStart, 1), 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })}
+                 </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button variant="outline" size="sm" className="hidden lg:flex" onClick={() => setIsSummaryOpen(true)}>
