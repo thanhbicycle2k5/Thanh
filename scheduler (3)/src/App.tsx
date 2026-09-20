@@ -3055,7 +3055,7 @@ function PlannerApp() {
 
       {/* Floating UI Group */}
       <div className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
-        <div className="fixed bottom-12 right-4 z-[9999] flex flex-col items-end gap-3 pointer-events-auto">
+        <div className="fixed bottom-20 right-4 z-[9999] flex flex-col items-end gap-3 pointer-events-auto">
           <HealthTipPanel theme={settingsState.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settingsState.language} onActivate={(m) => { setCatMoodOverride(m); setTimeout(() => setCatMoodOverride(null), 4000); }} />
 
           {/* Pomodoro button grouped with other floating controls */}
@@ -3087,7 +3087,7 @@ function PlannerApp() {
                   exit={{ opacity: 0, scale: 0.9, y: 10 }}
                   style={{ touchAction: 'none' }}
                   onPointerDown={(e) => e.stopPropagation()}
-                  className="absolute z-40 w-64 right-0 bottom-14 border shadow-2xl rounded-xl overflow-hidden cursor-move bg-card"
+                  className="absolute z-40 w-64 right-0 bottom-16 border shadow-2xl rounded-xl overflow-hidden cursor-move bg-card"
                 >
                   <div className="p-4 space-y-4">
                     <div className="flex items-center gap-2">
