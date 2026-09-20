@@ -2838,7 +2838,7 @@ function PlannerApp() {
                  </p>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" className="hidden lg:flex" onClick={() => setIsSummaryOpen(true)}>
+                <Button variant="outline" size="sm" className="flex" onClick={() => setIsSummaryOpen(true)}>
                   <Trophy className="w-3.5 h-3.5 mr-2 text-yellow-600" />
                   {t('summaryButton')}
                 </Button>
@@ -3819,7 +3819,7 @@ function PlannerApp() {
       </Dialog>
 
       <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
-        {isSummaryOpen && <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" style={{ backgroundColor: boardSurfaceColor }}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" style={{ backgroundColor: boardSurfaceColor }}>
           <DialogHeader>
             <DialogTitle>{t('summaryYear').replace('{year}', format(new Date(), 'yyyy'))}</DialogTitle>
           </DialogHeader>
@@ -3856,7 +3856,7 @@ function PlannerApp() {
               );
             })}
           </div>
-        </DialogContent>}
+        </DialogContent>
       </Dialog>
     </div>
   );
