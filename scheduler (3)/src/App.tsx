@@ -18,7 +18,7 @@ import { enUS, vi } from 'date-fns/locale';
 import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack, AIProvider } from './types';
 import { storage, normalizeSettings, defaultSettings, mergeSettingsForSync } from './lib/storage';
 import { mergePlans, markPlanForSync, getDeviceId, enqueueSyncOperation, clearQueuedOperation, flushSyncQueue, hasQueuedOperations } from './lib/sync';
-import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, subscribeWeekMetas, subscribeSharedScheduleLinks, updateSharedScheduleOwnerLabel, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule, SharedScheduleLink } from './lib/firebase';
+import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, subscribeWeekMetas, subscribeSharedScheduleLinks, updateSharedScheduleOwnerLabel, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule, deleteExpiredSharedSchedules, SharedScheduleLink } from './lib/firebase';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
@@ -1558,6 +1558,9 @@ function PlannerApp() {
                    void updateSharedScheduleOwnerLabel(firebaseUser.uid, link.id, ownerLabel).catch((error) => {
                      console.warn('Unable to backfill shared link owner label:', error);
                    });
+                 });
+                 void deleteExpiredSharedSchedules(firebaseUser.uid).catch((error) => {
+                   console.warn('Unable to clean expired shared links:', error);
                  });
                }, (error) => {
                  console.warn('Realtime shared links subscription failed:', error);

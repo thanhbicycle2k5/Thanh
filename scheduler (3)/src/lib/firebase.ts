@@ -365,6 +365,14 @@ export interface SharedScheduleLink {
   expiresAt: Timestamp;
 }
 
+const isExpiredShare = (expiresAt: Timestamp | Date | string | undefined): boolean => {
+  if (!expiresAt) return true;
+  const expiryMs = expiresAt instanceof Timestamp
+    ? expiresAt.toMillis()
+    : new Date(expiresAt).getTime();
+  return Number.isFinite(expiryMs) ? Date.now() >= expiryMs : true;
+};
+
 export const createSharedSchedule = async (snapshot: SharedScheduleSnapshot): Promise<string> => {
   const shareId = typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
@@ -389,6 +397,23 @@ export const createSharedSchedule = async (snapshot: SharedScheduleSnapshot): Pr
   return shareId;
 };
 
+export const deleteExpiredSharedSchedules = async (uid: string): Promise<void> => {
+  const currentLinks = await getDocs(collection(db, 'users', uid, 'sharedSchedules'));
+  const expiredIds = currentLinks.docs
+    .map((item) => item.data() as SharedScheduleLink)
+    .filter((link) => isExpiredShare(link.expiresAt))
+    .map((link) => link.id);
+
+  if (expiredIds.length === 0) return;
+
+  const batch = writeBatch(db);
+  expiredIds.forEach((shareId) => {
+    batch.delete(doc(db, 'sharedSchedules', shareId));
+    batch.delete(doc(db, 'users', uid, 'sharedSchedules', shareId));
+  });
+  await batch.commit();
+};
+
 export const subscribeSharedScheduleLinks = (
   uid: string,
   callback: (links: SharedScheduleLink[]) => void,
@@ -397,10 +422,30 @@ export const subscribeSharedScheduleLinks = (
   const linksCol = collection(db, 'users', uid, 'sharedSchedules');
   return onSnapshot(
     linksCol,
-    (snapshot) => {
+    async (snapshot) => {
       const links = snapshot.docs
         .map((item) => item.data() as SharedScheduleLink)
+        .filter((link) => !isExpiredShare(link.expiresAt))
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+      const expiredIds = snapshot.docs
+        .map((item) => item.data() as SharedScheduleLink)
+        .filter((link) => isExpiredShare(link.expiresAt))
+        .map((link) => link.id);
+
+      if (expiredIds.length > 0) {
+        try {
+          const batch = writeBatch(db);
+          expiredIds.forEach((shareId) => {
+            batch.delete(doc(db, 'sharedSchedules', shareId));
+            batch.delete(doc(db, 'users', uid, 'sharedSchedules', shareId));
+          });
+          await batch.commit();
+        } catch (error) {
+          console.warn('Unable to auto-delete expired shared links:', error);
+        }
+      }
+
       callback(links);
     },
     (error) => {
@@ -420,7 +465,16 @@ export const updateSharedScheduleOwnerLabel = async (uid: string, shareId: strin
 export const getSharedSchedule = async (shareId: string): Promise<SharedScheduleSnapshot | null> => {
   const snapshot = await getDoc(doc(db, 'sharedSchedules', shareId));
   if (!snapshot.exists()) return null;
-  return snapshot.data() as SharedScheduleSnapshot;
+  const share = snapshot.data() as SharedScheduleSnapshot;
+  if (isExpiredShare(share.expiresAt)) {
+    try {
+      await deleteDoc(doc(db, 'sharedSchedules', shareId));
+    } catch (error) {
+      console.warn('Unable to delete expired shared schedule:', error);
+    }
+    return null;
+  }
+  return share;
 };
 
 export const subscribeSharedSchedule = (
