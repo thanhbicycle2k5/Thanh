@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { allCatQuotes, catQuotes, catQuoteCategoryCounts, getRandomCatQuote } from './catQuotes';
 import { folkSayings } from './folkSayings';
+import { pomodoroEncouragementMessages } from '../lib/schedulyMessages';
 
 test('mascot quote data contains exactly 500 valid local quotes', () => {
   assert.equal(catQuotes.length, 500);
@@ -28,4 +29,10 @@ test('folk sayings add exactly 500 local entries to the mascot pool', () => {
   assert.ok(folkSayings.every((saying) => saying.text.trim().length > 0));
   assert.deepEqual(new Set(folkSayings.map((saying) => saying.kind)), new Set(['ca-dao', 'tuc-ngu']));
   assert.equal(allCatQuotes.length, 1000);
+});
+
+test('pomodoro encouragement pool contains 500 unique cheerful lines', () => {
+  assert.equal(pomodoroEncouragementMessages.length, 500);
+  assert.equal(new Set(pomodoroEncouragementMessages).size, 500);
+  assert.ok(pomodoroEncouragementMessages.every((line) => line.trim().length > 0));
 });

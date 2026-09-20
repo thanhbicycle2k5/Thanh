@@ -25,7 +25,7 @@ import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerSt
 import { playNotificationSound, playCompletionMelody, playMeow } from './lib/sounds';
 import { getPlanReminderDate, getPlanStartDate, isWithinReminderWindow } from './lib/taskTime';
 import { calculatePomodoroRemainingSeconds, shouldStartPomodoroMusic } from './lib/pomodoro';
-import { getSchedulyMessage, SchedulyStatus } from './lib/schedulyMessages';
+import { getSchedulyMessage, SchedulyStatus, getRandomPomodoroEncouragementMessage } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
 import { buildRemoteReminders, sendWebPushTest, subscribeToWebPush, syncWebPushReminders } from './lib/webPush';
@@ -515,6 +515,12 @@ function PlannerApp() {
       if (remaining <= 0) {
         playNotificationSound(settingsState.notificationSound);
         toast.success(t(pomodoroMode === 'work' ? 'workCompleted' : 'breakOver'));
+
+        if (pomodoroMode === 'work' || pomodoroMode === 'tutor') {
+          setCatMoodOverride('celebrating');
+          setSpeechBubble({ id: `pomodoro-encouragement-${Date.now()}`, text: getRandomPomodoroEncouragementMessage(), status: 'complete' });
+          window.setTimeout(() => setCatMoodOverride(null), 2500);
+        }
 
         if (pomodoroMode === 'tutor') {
           setPomodoroSessions(pomodoroSessions + 1);
