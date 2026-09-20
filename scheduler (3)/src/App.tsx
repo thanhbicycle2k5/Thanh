@@ -2689,18 +2689,18 @@ function PlannerApp() {
              <Button
                variant="ghost"
                size="icon"
-               className="h-9 w-9 shrink-0"
+               className={cn("h-9 w-9 shrink-0", isSearchOpen && "text-blue-600")}
                onClick={() => setIsSearchOpen(true)}
                title={t('searchTasks')}
                aria-label={t('searchTasks')}
              >
-               <Search className="w-4 h-4" />
+               <Search className={cn("w-4 h-4 transition-colors", isSearchOpen && "text-blue-600")} />
              </Button>
 
              <Popover>
                <PopoverTrigger asChild>
-                 <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" title={t('music')} aria-label={t('music')}>
-                    <Music className={cn("w-4 h-4 transition-all", isMusicPlaying && "text-[#107C41] animate-spin-slow")} />
+                 <Button variant="ghost" size="icon" className={cn("h-9 w-9 shrink-0", isMusicPlaying && "text-red-500")} title={t('music')} aria-label={t('music')}>
+                    <Music className={cn("w-4 h-4 transition-all", isMusicPlaying && "text-red-500 animate-spin-slow")} />
                  </Button>
                </PopoverTrigger>
                <PopoverContent className="w-80 p-4" align="end">
@@ -2802,7 +2802,7 @@ function PlannerApp() {
                </PopoverContent>
              </Popover>
 
-             <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-[#FF6B00]" onClick={() => {
+             <Button variant="ghost" size="icon" className={cn("h-9 w-9 shrink-0", gymRestOpen && "text-[#FF6B00]")} onClick={() => {
                 // Toggle gym panel: second press closes it
                 if (gymRestOpen) {
                   setGymRestOpen(false);
@@ -2817,7 +2817,7 @@ function PlannerApp() {
                 setCatMoodOverride('gym');
                 setTimeout(() => setCatMoodOverride(null), 5000);
               }}>
-                <Dumbbell className="w-4 h-4" />
+                <Dumbbell className={cn("w-4 h-4 transition-colors", gymRestOpen && "text-[#FF6B00]")} />
              </Button>
              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
                 setIsSettingsOpen(true);
