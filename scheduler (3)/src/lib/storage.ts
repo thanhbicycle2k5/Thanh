@@ -5,7 +5,7 @@ export const defaultSettings: AppSettings = {
   theme: 'light',
   musicEnabled: false,
   musicVolume: 0.3,
-  musicTrackId: 'lofi1',
+  musicTrackId: 'lofi2',
   musicPlaybackMode: 'loop_all',
   customMusicDataUrl: '',
   customMusicName: '',
