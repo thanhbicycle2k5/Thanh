@@ -22,7 +22,7 @@ import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged,
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
-import { playNotificationSound, playCompletionMelody, playMeow } from './lib/sounds';
+import { playNotificationSound, playCompletionMelody, playMeow, playLogoClick } from './lib/sounds';
 import { getPlanReminderDate, getPlanStartDate, isWithinReminderWindow } from './lib/taskTime';
 import { calculatePomodoroRemainingSeconds, shouldStartPomodoroMusic } from './lib/pomodoro';
 import { getSchedulyMessage, SchedulyStatus, getRandomPomodoroEncouragementMessage } from './lib/schedulyMessages';
@@ -308,14 +308,19 @@ const LEGACY_WEEK_COLOR_CLASSES: Record<string, string> = {
   'bg-orange-500/10 border-orange-500/20': 'bg-orange-500/30 border-orange-500/60',
 };
 
-const Logo = ({ className }: { className?: string }) => (
-  <span className={cn('inline-flex shrink-0 overflow-hidden border-2 border-white bg-white', className)}>
+const Logo = ({ className, onClick }: { className?: string; onClick?: () => void }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    className={cn('inline-flex shrink-0 overflow-hidden border-2 border-white bg-white transition-transform hover:scale-[1.02] active:scale-95 cursor-pointer', className)}
+    aria-label="Task2Goal logo"
+  >
     <img
       src="/task2goal-app-icon.png"
       alt="Task2Goal"
       className="h-full w-full object-contain object-center"
     />
-  </span>
+  </button>
 );
 
 function PlannerApp() {
@@ -2631,7 +2636,7 @@ function PlannerApp() {
       <header className="border-b sticky top-0 z-50 bg-background/95 dark:bg-background/95 backdrop-blur border-border relative">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-             <Logo className="w-8 h-8" />
+             <Logo className="w-8 h-8" onClick={async () => { await playLogoClick(); }} />
              <h1 className="text-lg font-black">{t('appName')}</h1>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">

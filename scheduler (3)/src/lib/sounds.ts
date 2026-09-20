@@ -215,6 +215,35 @@ export async function playCompletionMelody() {
   }
 }
 
+let logoClickAudio: HTMLAudioElement | null = null;
+
+export async function playLogoClick() {
+  try {
+    if (!logoClickAudio) {
+      logoClickAudio = new Audio('/Task2Goal_sound.mp3');
+      logoClickAudio.preload = 'auto';
+    }
+    logoClickAudio.currentTime = 0.75;
+    await logoClickAudio.play();
+  } catch (e) {
+    console.warn('Failed to play logo click audio asset, falling back to synth.', e);
+    const ctx = await getAudioContext();
+    const now = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(640, now + 0.15);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(0.15, now + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc.start(now);
+    osc.stop(now + 0.25);
+  }
+}
+
 let meowAudio: HTMLAudioElement | null = null;
 
 async function playFallbackMeow() {
