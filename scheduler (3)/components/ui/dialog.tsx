@@ -105,9 +105,10 @@ function DialogContent({
                 touchAction: "none",
               }
             : {
-                left: "50%",
-                top: "50%",
-                transform: "translate(-50%, -50%)",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 touchAction: "none",
               }
         }
@@ -117,22 +118,24 @@ function DialogContent({
         )}
         {...popupProps}
       >
-        {children}
-        {showCloseButton && (
-          <DialogPrimitive.Close
-            data-slot="dialog-close"
-            render={
-              <Button
-                variant="ghost"
-                className="absolute top-2 right-2"
-                size="icon-sm"
-              />
-            }
-          >
-            <XIcon />
-            <span className="sr-only">Close</span>
-          </DialogPrimitive.Close>
-        )}
+        <div className="relative max-h-[90vh] w-full max-w-[calc(100%-2rem)] overflow-y-auto rounded-xl">
+          {children}
+          {showCloseButton && (
+            <DialogPrimitive.Close
+              data-slot="dialog-close"
+              render={
+                <Button
+                  variant="ghost"
+                  className="absolute top-2 right-2"
+                  size="icon-sm"
+                />
+              }
+            >
+              <XIcon />
+              <span className="sr-only">Close</span>
+            </DialogPrimitive.Close>
+          )}
+        </div>
       </DialogPrimitive.Popup>
     </DialogPortal>
   )
