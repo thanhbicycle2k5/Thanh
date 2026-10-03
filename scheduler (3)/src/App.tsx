@@ -2381,6 +2381,7 @@ function PlannerApp() {
     captureUndoSnapshot();
     const current = plansRef.current.find((x) => x.id === id);
     const nextPlans = plansRef.current.filter((x) => x.id !== id);
+    plansRef.current = nextPlans;
     setPlans(nextPlans);
     storage.savePlans(nextPlans, activeUid, false);
 

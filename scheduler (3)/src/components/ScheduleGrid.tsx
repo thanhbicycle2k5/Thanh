@@ -350,7 +350,7 @@ interface ScheduleGridProps {
   plans: Plan[];
   onAddPlan: (plan: Plan) => void;
   onUpdatePlan: (plan: Plan) => void;
-  onDeletePlan: (id: string) => void;
+  onDeletePlan: (id: string) => Promise<void>;
   onPlanTurnGreen?: (plan: Plan) => void;
   language: Language;
   theme: Theme;
@@ -966,12 +966,22 @@ function ScheduleGridComponent({
     }, 300);
   }, [onPlanTurnGreen, onUpdatePlan, plans]);
 
-  const isAppliedOccurrence = (plan: Plan | null) => Boolean(
-    plan?.recurrenceGroupId && allPlans.some((candidate) =>
-      candidate.recurrenceGroupId === plan.recurrenceGroupId
-      && new Date(candidate.date).getTime() < new Date(plan.date).getTime()
-    )
-  );
+  const getAppliedSourcePlan = (plan: Plan | null) => {
+    if (!plan?.recurrenceGroupId) return undefined;
+
+    const groupPlans = allPlans.filter((candidate) => candidate.recurrenceGroupId === plan.recurrenceGroupId);
+    const sourcePlans = groupPlans.filter((candidate) => candidate.applyMode && candidate.applyMode !== 'none');
+    const sourcePlan = (sourcePlans.length ? sourcePlans : groupPlans)
+      .reduce<Plan | undefined>((earliest, candidate) => (
+        !earliest || new Date(candidate.date).getTime() < new Date(earliest.date).getTime()
+          ? candidate
+          : earliest
+      ), undefined);
+
+    return sourcePlan?.id === plan.id ? undefined : sourcePlan;
+  };
+
+  const isAppliedOccurrence = (plan: Plan | null) => Boolean(getAppliedSourcePlan(plan));
 
   const handleOpenEdit = React.useCallback((plan: Plan, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1097,7 +1107,7 @@ function ScheduleGridComponent({
         await onUpdatePlan(basePlan);
       }
 
-      generatedPlansToRemove.forEach((plan) => onDeletePlan(plan.id));
+      await Promise.all(generatedPlansToRemove.map((plan) => onDeletePlan(plan.id)));
 
       if (basePlan.applyMode === 'day' && basePlan.applyUntil) {
         let cur = new Date(`${baseDateKey}T00:00:00`);
@@ -1169,16 +1179,16 @@ function ScheduleGridComponent({
     }
   };
 
-  const confirmDeletePlan = () => {
+  const confirmDeletePlan = async () => {
     if (editingPlan) {
       if (editingPlan.applyMode !== 'none'
         && !isAppliedOccurrence(editingPlan)
         && editingPlan.recurrenceGroupId) {
-        allPlans
+        await Promise.all(allPlans
           .filter((plan) => plan.id !== editingPlan.id && plan.recurrenceGroupId === editingPlan.recurrenceGroupId)
-          .forEach((plan) => onDeletePlan(plan.id));
+          .map((plan) => onDeletePlan(plan.id)));
       }
-      onDeletePlan(editingPlan.id);
+      await onDeletePlan(editingPlan.id);
       setDeleteConfirmOpen(false);
       setIsDialogOpen(false);
     }
@@ -1449,6 +1459,14 @@ function ScheduleGridComponent({
             <DialogDescription className="text-muted-foreground">
               {editingPlan && `${formatPlanTime(editingPlan.startHour, editingPlan.startMinute ?? 0)} — ${format(new Date(editingPlan.date), 'EEE, d/M')}`}
             </DialogDescription>
+            {(() => {
+              const sourcePlan = getAppliedSourcePlan(editingPlan);
+              return sourcePlan?.applyMode === 'week' ? (
+                <p className="text-xs text-muted-foreground">
+                  {t('appliedByWeek').replace('{week}', String(getISOWeek(new Date(sourcePlan.date))))}
+                </p>
+              ) : null;
+            })()}
           </DialogHeader>
           <div className="grid gap-4 py-2">
             <div className="grid grid-cols-4 items-center gap-3">
