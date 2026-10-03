@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select";
 import { START_MINUTE_OPTIONS, formatPlanTime, getPlanEndMinutes } from '../lib/taskTime';
 import { getColorForClickCount } from '../lib/taskColor';
-import { getAppliedOccurrenceDateKeys } from '../lib/taskRecurrence';
+import { getAppliedOccurrenceDateKeys, toPlanDateTimestamp } from '../lib/taskRecurrence';
 import { getTaskClipboardText, parsePlainTask, type CopiedTask } from '../lib/taskClipboard';
 import type { SharedScheduleLink } from '../lib/firebase';
 
@@ -1010,6 +1010,7 @@ function ScheduleGridComponent({
       ), undefined);
     const groupSource = plan.recurrenceGroupId
       ? earliestPlan(allPlans.filter((candidate) => candidate.recurrenceGroupId === plan.recurrenceGroupId
+        && candidate.id !== plan.id
         && candidate.applyMode && candidate.applyMode !== 'none'))
       : undefined;
     if (groupSource) return groupSource;
@@ -1116,7 +1117,6 @@ function ScheduleGridComponent({
     try {
       const baseDateKey = format(new Date(basePlan.date), 'yyyy-MM-dd');
       const addGeneratedPlan = async (candidateKey: string) => {
-        const candidateDate = new Date(`${candidateKey}T00:00:00`);
         if (candidateKey <= baseDateKey
           || overlaps(candidateKey, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
           return;
@@ -1125,7 +1125,7 @@ function ScheduleGridComponent({
         await onAddPlan({
           ...basePlan,
           id: crypto.randomUUID(),
-          date: candidateDate.toISOString(),
+          date: toPlanDateTimestamp(candidateKey),
           applyMode: 'none',
           applyDays: undefined,
           applyWeekInterval: undefined,

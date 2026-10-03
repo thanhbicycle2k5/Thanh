@@ -1,7 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { format } from 'date-fns';
 
-import { getAppliedOccurrenceDateKeys } from './taskRecurrence';
+import { getAppliedOccurrenceDateKeys, toPlanDateTimestamp } from './taskRecurrence';
+
+test('generated plan timestamps preserve the exact local calendar date', () => {
+  const timestamp = toPlanDateTimestamp('2026-10-06');
+  assert.equal(format(new Date(timestamp), 'yyyy-MM-dd'), '2026-10-06');
+});
 
 test('daily recurrence creates child dates after the original date through the end date', () => {
   assert.deepEqual(getAppliedOccurrenceDateKeys({

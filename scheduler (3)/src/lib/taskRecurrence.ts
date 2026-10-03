@@ -6,6 +6,9 @@ type RecurringPlan = Pick<
   'date' | 'applyMode' | 'applyUntil' | 'applyWeekInterval' | 'applyWeekDays'
 >;
 
+export const toPlanDateTimestamp = (dateKey: string): string =>
+  new Date(`${dateKey}T12:00:00`).toISOString();
+
 export const getAppliedOccurrenceDateKeys = (plan: RecurringPlan): string[] => {
   const baseDate = new Date(plan.date);
   if (Number.isNaN(baseDate.getTime())) return [];
