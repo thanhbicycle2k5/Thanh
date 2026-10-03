@@ -1038,11 +1038,12 @@ function ScheduleGridComponent({
     setNewStartMinute(plan.startMinute ?? 0);
     setNewDuration(plan.duration);
     const appliedOccurrence = isAppliedOccurrence(plan);
+    const appliedSource = appliedOccurrence ? getAppliedSourcePlan(plan) : undefined;
     setNewApplyMode(appliedOccurrence ? 'none' : plan.applyMode || 'none');
-    setNewApplyDays(appliedOccurrence ? [] : plan.applyDays || []);
-    setNewApplyWeekInterval(appliedOccurrence ? 1 : plan.applyWeekInterval || 1);
-    setNewApplyWeekDays(appliedOccurrence ? [] : plan.applyWeekDays || []);
-    setNewApplyUntil(appliedOccurrence ? undefined : plan.applyUntil || plan.date.slice(0, 10));
+    setNewApplyDays(appliedOccurrence ? appliedSource?.applyDays || [] : plan.applyDays || []);
+    setNewApplyWeekInterval(appliedOccurrence ? appliedSource?.applyWeekInterval || 1 : plan.applyWeekInterval || 1);
+    setNewApplyWeekDays(appliedOccurrence ? appliedSource?.applyWeekDays || [] : plan.applyWeekDays || []);
+    setNewApplyUntil(appliedOccurrence ? appliedSource?.applyUntil : plan.applyUntil || plan.date.slice(0, 10));
     setNewNotes(plan.notes || '');
     setIsDialogOpen(true);
   };
@@ -1556,9 +1557,6 @@ function ScheduleGridComponent({
                   <p className="text-xs text-muted-foreground">
                     {t('applyMode')}: {t('applyToWeek')} · {t('applyWeeklyEvery')} {sourcePlan.applyWeekInterval || 1} {t('weeks')}
                   </p>
-                  <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => loadPlanForEdit(sourcePlan)}>
-                    {t('editSourceTask')}
-                  </Button>
                 </div>
               ) : null;
             })()}
