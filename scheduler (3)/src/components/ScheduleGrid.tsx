@@ -1078,8 +1078,7 @@ function ScheduleGridComponent({
       ? previousGeneratedPlans
       : [];
     const generatedPlanIdsToRemove = new Set(generatedPlansToRemove.map((plan) => plan.id));
-    const legacyPlansToLink = !isNew && !appliedOccurrence && !isDisablingRecurrence
-      && recurrenceGroupId && !previousPlan.recurrenceGroupId
+    const generatedPlansToUpdate = !isNew && !appliedOccurrence && !isDisablingRecurrence && !isChangingRecurrence
       ? previousGeneratedPlans.filter((plan) => !generatedPlanIdsToRemove.has(plan.id))
       : [];
 
@@ -1148,7 +1147,11 @@ function ScheduleGridComponent({
         }
       } else {
         await onUpdatePlan(basePlan);
-        await Promise.all(legacyPlansToLink.map((plan) => onUpdatePlan({ ...plan, recurrenceGroupId })));
+        await Promise.all(generatedPlansToUpdate.map((plan) => onUpdatePlan({
+          ...plan,
+          ...(newTitle !== previousPlan.title ? { title: newTitle } : {}),
+          ...(recurrenceGroupId && !plan.recurrenceGroupId ? { recurrenceGroupId } : {}),
+        })));
       }
 
       await Promise.all(generatedPlansToRemove.map((plan) => onDeletePlan(plan.id)));
