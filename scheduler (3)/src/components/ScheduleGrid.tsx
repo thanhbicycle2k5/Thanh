@@ -1031,8 +1031,7 @@ function ScheduleGridComponent({
     ))
     : allPlans.filter((plan) => isLegacyAppliedOccurrence(source, plan));
 
-  const handleOpenEdit = React.useCallback((plan: Plan, e: React.MouseEvent) => {
-    e.stopPropagation();
+  const loadPlanForEdit = (plan: Plan) => {
     setEditingPlan(plan);
     setNewTitle(plan.title);
     setNewColor(plan.color);
@@ -1046,16 +1045,23 @@ function ScheduleGridComponent({
     setNewApplyUntil(appliedOccurrence ? undefined : plan.applyUntil || plan.date.slice(0, 10));
     setNewNotes(plan.notes || '');
     setIsDialogOpen(true);
+  };
+
+  const handleOpenEdit = React.useCallback((plan: Plan, e: React.MouseEvent) => {
+    e.stopPropagation();
+    loadPlanForEdit(plan);
   }, [allPlans]);
 
   const handleSave = async () => {
     if (!editingPlan) return;
 
     const previousPlan = allPlans.find(p => p.id === editingPlan.id) ?? editingPlan;
-    const isNew = !plans.some(p => p.id === editingPlan.id);
+    const isNew = !allPlans.some(p => p.id === editingPlan.id);
     const appliedOccurrence = isAppliedOccurrence(previousPlan);
     const recurrenceGroupId = appliedOccurrence
-      ? previousPlan.recurrenceGroupId
+      ? newApplyMode !== 'none'
+        ? crypto.randomUUID()
+        : previousPlan.recurrenceGroupId
       : newApplyMode !== 'none'
         ? previousPlan.recurrenceGroupId ?? crypto.randomUUID()
         : undefined;
@@ -1535,7 +1541,7 @@ function ScheduleGridComponent({
         >
           <DialogHeader>
             <DialogTitle className="text-foreground">
-              {plans.some(p => p.id === editingPlan?.id) ? t('editPlan') : t('addPlan')}
+              {allPlans.some(p => p.id === editingPlan?.id) ? t('editPlan') : t('addPlan')}
             </DialogTitle>
             <DialogDescription className="text-muted-foreground">
               {editingPlan && `${formatPlanTime(editingPlan.startHour, editingPlan.startMinute ?? 0)} — ${format(new Date(editingPlan.date), 'EEE, d/M')}`}
@@ -1543,9 +1549,17 @@ function ScheduleGridComponent({
             {(() => {
               const sourcePlan = getAppliedSourcePlan(editingPlan);
               return sourcePlan?.applyMode === 'week' ? (
-                <p className="text-xs text-muted-foreground">
-                  {t('appliedByWeek').replace('{week}', String(getISOWeek(new Date(sourcePlan.date))))}
-                </p>
+                <div className="space-y-1">
+                  <p className="text-xs text-muted-foreground">
+                    {t('appliedByWeek').replace('{week}', String(getISOWeek(new Date(sourcePlan.date))))}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {t('applyMode')}: {t('applyToWeek')} · {t('applyWeeklyEvery')} {sourcePlan.applyWeekInterval || 1} {t('weeks')}
+                  </p>
+                  <Button type="button" variant="link" size="sm" className="h-auto p-0 text-xs" onClick={() => loadPlanForEdit(sourcePlan)}>
+                    {t('editSourceTask')}
+                  </Button>
+                </div>
               ) : null;
             })()}
           </DialogHeader>
@@ -1631,7 +1645,7 @@ function ScheduleGridComponent({
                 ))}
               </div>
             </div>
-            {!isAppliedOccurrence(editingPlan) && (
+            {editingPlan && (
               <>
                 <div className="grid grid-cols-4 items-center gap-3">
                   <Label className="text-right text-xs font-bold text-muted-foreground">
@@ -1734,7 +1748,7 @@ function ScheduleGridComponent({
             </div>
           </div>
           <DialogFooter className="flex justify-between w-full flex-row gap-2">
-            {plans.some(p => p.id === editingPlan?.id) && (
+            {allPlans.some(p => p.id === editingPlan?.id) && (
               <div className="flex items-center">
                 <Button type="button" variant="outline" size="icon" onClick={() => void handleCopy()} className="mr-2 h-8 w-8" aria-label="Sao chép task" title="Sao chép task">
                   <Copy className="h-4 w-4" />
