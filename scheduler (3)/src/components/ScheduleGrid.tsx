@@ -33,7 +33,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { START_MINUTE_OPTIONS, formatPlanTime, getPlanEndMinutes } from '../lib/taskTime';
-import { getColorForClickCount, shouldSkipGeneratedDate } from '../lib/taskColor';
+import { getColorForClickCount } from '../lib/taskColor';
+import { getAppliedOccurrenceDateKeys } from '../lib/taskRecurrence';
 import { getTaskClipboardText, parsePlainTask, type CopiedTask } from '../lib/taskClipboard';
 import type { SharedScheduleLink } from '../lib/firebase';
 
@@ -489,7 +490,7 @@ function ScheduleGridComponent({
 
   const defaultApplyUntilDate = React.useMemo(() => {
     if (editingPlan?.date) {
-      return editingPlan.date.slice(0, 10);
+      return format(new Date(editingPlan.date), 'yyyy-MM-dd');
     }
     return '';
   }, [editingPlan?.date]);
@@ -914,7 +915,7 @@ function ScheduleGridComponent({
         setNewApplyDays(existing.applyDays || []);
         setNewApplyWeekInterval(existing.applyWeekInterval || 1);
         setNewApplyWeekDays(existing.applyWeekDays || []);
-        setNewApplyUntil(existing.applyUntil || existing.date.slice(0, 10));
+        setNewApplyUntil(existing.applyUntil || format(new Date(existing.date), 'yyyy-MM-dd'));
         setNewNotes(existing.notes || '');
       } else {
         setEditingPlan({
@@ -1043,7 +1044,7 @@ function ScheduleGridComponent({
     setNewApplyDays(appliedOccurrence ? appliedSource?.applyDays || [] : plan.applyDays || []);
     setNewApplyWeekInterval(appliedOccurrence ? appliedSource?.applyWeekInterval || 1 : plan.applyWeekInterval || 1);
     setNewApplyWeekDays(appliedOccurrence ? appliedSource?.applyWeekDays || [] : plan.applyWeekDays || []);
-    setNewApplyUntil(appliedOccurrence ? appliedSource?.applyUntil : plan.applyUntil || plan.date.slice(0, 10));
+    setNewApplyUntil(appliedOccurrence ? appliedSource?.applyUntil : plan.applyUntil || format(new Date(plan.date), 'yyyy-MM-dd'));
     setNewNotes(plan.notes || '');
     setIsDialogOpen(true);
   };
@@ -1099,7 +1100,7 @@ function ScheduleGridComponent({
     const overlaps = (dateIso: string, startHour: number, startMinute: number, duration: number) => {
       return allPlans.some(p => {
         if (generatedPlanIdsToRemove.has(p.id)) return false;
-        if (!isSameDay(new Date(p.date), new Date(dateIso))) return false;
+        if (!isSameDay(new Date(p.date), new Date(`${dateIso}T00:00:00`))) return false;
 
         const pStart = (p.startHour * 60) + (p.startMinute ?? 0);
         const pEnd = getPlanEndMinutes({ startHour: p.startHour, startMinute: p.startMinute ?? 0, duration: p.duration });
@@ -1113,45 +1114,24 @@ function ScheduleGridComponent({
     setIsDialogOpen(false);
 
     try {
-      const baseDateKey = basePlan.date.slice(0, 10);
-      const addGeneratedDayPlan = async (candidateDate: Date) => {
-        const candidateKey = format(candidateDate, 'yyyy-MM-dd');
-        if (candidateKey < baseDateKey) {
+      const baseDateKey = format(new Date(basePlan.date), 'yyyy-MM-dd');
+      const addGeneratedPlan = async (candidateKey: string) => {
+        const candidateDate = new Date(`${candidateKey}T00:00:00`);
+        if (candidateKey <= baseDateKey
+          || overlaps(candidateKey, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
           return;
         }
-        if (!overlaps(candidateKey, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
-          const newPlan = {
-            ...basePlan,
-            id: crypto.randomUUID(),
-            date: candidateKey,
-            applyMode: 'none' as const,
-            applyDays: undefined,
-            applyWeekInterval: undefined,
-            applyWeekDays: undefined,
-            applyUntil: undefined,
-          };
-          await onAddPlan(newPlan);
-        }
-      };
 
-      const addGeneratedWeekPlan = async (candidateDate: Date) => {
-        const candidateKey = format(candidateDate, 'yyyy-MM-dd');
-        if (candidateKey < baseDateKey) {
-          return;
-        }
-        if (!overlaps(candidateKey, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
-          const newPlan = {
-            ...basePlan,
-            id: crypto.randomUUID(),
-            date: candidateKey,
-            applyMode: 'none' as const,
-            applyDays: undefined,
-            applyWeekInterval: undefined,
-            applyWeekDays: undefined,
-            applyUntil: undefined,
-          };
-          await onAddPlan(newPlan);
-        }
+        await onAddPlan({
+          ...basePlan,
+          id: crypto.randomUUID(),
+          date: candidateDate.toISOString(),
+          applyMode: 'none',
+          applyDays: undefined,
+          applyWeekInterval: undefined,
+          applyWeekDays: undefined,
+          applyUntil: undefined,
+        });
       };
 
       if (isNew) {
@@ -1170,37 +1150,9 @@ function ScheduleGridComponent({
 
       await Promise.all(generatedPlansToRemove.map((plan) => onDeletePlan(plan.id)));
 
-      if (basePlan.applyMode === 'day' && basePlan.applyUntil) {
-        let cur = new Date(`${baseDateKey}T00:00:00`);
-        const end = new Date(`${basePlan.applyUntil}T00:00:00`);
-        cur.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
-        cur.setDate(cur.getDate() + 1);
-        while (cur <= end) {
-          const candidate = new Date(cur);
-          candidate.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
-          await addGeneratedDayPlan(candidate);
-          cur.setDate(cur.getDate() + 1);
-        }
-      }
-
-      if (basePlan.applyMode === 'week' && basePlan.applyWeekDays?.length) {
-        const weekCount = Math.max(1, Number(basePlan.applyWeekInterval) || 1);
-        const selectedWeekdays = (basePlan.applyWeekDays || []).map((d) => WEEK_DAYS.indexOf(d as WeekDay));
-        const baseStart = startOfMonday(new Date(basePlan.date));
-
-        for (let weekOffset = 0; weekOffset < weekCount; weekOffset += 1) {
-          const weekStart = new Date(baseStart);
-          weekStart.setDate(baseStart.getDate() + (weekOffset * 7));
-
-          for (const weekdayIndex of selectedWeekdays) {
-            const candidate = new Date(weekStart);
-            candidate.setDate(candidate.getDate() + weekdayIndex);
-            candidate.setHours(basePlan.startHour, basePlan.startMinute ?? 0, 0, 0);
-            if (shouldSkipGeneratedDate(basePlan.date, candidate)) {
-              continue;
-            }
-            await addGeneratedWeekPlan(candidate);
-          }
+      if (basePlan.applyMode === 'day' || basePlan.applyMode === 'week') {
+        for (const dateKey of getAppliedOccurrenceDateKeys(basePlan)) {
+          await addGeneratedPlan(dateKey);
         }
       }
 
@@ -1549,14 +1501,18 @@ function ScheduleGridComponent({
             </DialogDescription>
             {(() => {
               const sourcePlan = getAppliedSourcePlan(editingPlan);
-              return sourcePlan?.applyMode === 'week' ? (
+              return sourcePlan?.applyMode === 'week' || sourcePlan?.applyMode === 'day' ? (
                 <div className="space-y-1">
                   <p className="text-xs text-muted-foreground">
-                    {t('appliedByWeek').replace('{week}', String(getISOWeek(new Date(sourcePlan.date))))}
+                    {sourcePlan.applyMode === 'day'
+                      ? t('appliedByDay').replace('{day}', format(new Date(sourcePlan.date), 'd/M/yyyy'))
+                      : t('appliedByWeek').replace('{week}', String(getISOWeek(new Date(sourcePlan.date))))}
                   </p>
-                  <p className="text-xs text-muted-foreground">
-                    {t('applyMode')}: {t('applyToWeek')} · {t('applyWeeklyEvery')} {sourcePlan.applyWeekInterval || 1} {t('weeks')}
-                  </p>
+                  {sourcePlan.applyMode === 'week' && (
+                    <p className="text-xs text-muted-foreground">
+                      {t('applyMode')}: {t('applyToWeek')} · {t('applyWeeklyEvery')} {sourcePlan.applyWeekInterval || 1} {t('weeks')}
+                    </p>
+                  )}
                 </div>
               ) : null;
             })()}
