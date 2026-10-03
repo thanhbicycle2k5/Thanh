@@ -2348,7 +2348,7 @@ function PlannerApp() {
       notes: 'notes' in p ? p.notes : oldPlan?.notes,
       applyMode: p.applyMode ?? oldPlan?.applyMode ?? 'none',
       applyDays: p.applyDays ?? oldPlan?.applyDays,
-      applyWeekInterval: p.applyWeekInterval ?? oldPlan?.applyWeekInterval,
+      applyWeekInterval: typeof p.applyWeekInterval === 'number' ? p.applyWeekInterval : oldPlan?.applyWeekInterval,
       applyWeekDays: p.applyWeekDays ?? oldPlan?.applyWeekDays,
       applyUntil: p.applyUntil ?? oldPlan?.applyUntil,
       reminderMinutes: typeof p.reminderMinutes === 'number' ? p.reminderMinutes : (oldPlan?.reminderMinutes ?? 0),

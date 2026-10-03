@@ -31,7 +31,10 @@ export const getAppliedOccurrenceDateKeys = (plan: RecurringPlan): string[] => {
   }
 
   if (plan.applyMode === 'week' && plan.applyWeekDays?.length) {
-    const weekCount = Math.max(1, Math.floor(Number(plan.applyWeekInterval) || 1));
+    const rawWeekCount = Number(plan.applyWeekInterval);
+    const weekCount = Number.isFinite(rawWeekCount) ? Math.max(0, Math.floor(rawWeekCount)) : 0;
+    if (weekCount === 0) return [];
+
     const baseDateAtMidnight = new Date(
       baseDate.getFullYear(),
       baseDate.getMonth(),
@@ -44,7 +47,7 @@ export const getAppliedOccurrenceDateKeys = (plan: RecurringPlan): string[] => {
       .sort((left, right) => left - right);
 
     const dateKeys: string[] = [];
-    for (let weekOffset = 0; weekOffset <= weekCount; weekOffset += 1) {
+    for (let weekOffset = 1; weekOffset <= weekCount; weekOffset += 1) {
       const weekStart = addDays(baseDateWeekStart, weekOffset * 7);
       for (const weekdayIndex of weekdayIndexes) {
         const candidateDate = addDays(weekStart, weekdayIndex);

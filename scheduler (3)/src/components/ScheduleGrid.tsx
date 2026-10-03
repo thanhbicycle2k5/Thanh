@@ -422,7 +422,7 @@ function ScheduleGridComponent({
   const [newDuration, setNewDuration] = React.useState(1);
   const [newApplyMode, setNewApplyMode] = React.useState<TaskApplyMode>('none');
   const [newApplyDays, setNewApplyDays] = React.useState<NonNullable<Plan['applyDays']>>([]);
-  const [newApplyWeekInterval, setNewApplyWeekInterval] = React.useState<number>(1);
+  const [newApplyWeekInterval, setNewApplyWeekInterval] = React.useState<number>(0);
   const [newApplyWeekDays, setNewApplyWeekDays] = React.useState<NonNullable<Plan['applyWeekDays']>>([]);
   const [newApplyUntil, setNewApplyUntil] = React.useState<string | undefined>(undefined);
   const [newNotes, setNewNotes] = React.useState('');
@@ -485,7 +485,7 @@ function ScheduleGridComponent({
   }, [editingPlan]);
 
   const displayWeekTarget = React.useMemo(() => {
-    return Math.max(1, currentTaskWeekIndex + Math.max(1, newApplyWeekInterval || 1));
+    return currentTaskWeekIndex + Math.max(0, newApplyWeekInterval);
   }, [currentTaskWeekIndex, newApplyWeekInterval]);
 
   const defaultApplyUntilDate = React.useMemo(() => {
@@ -913,7 +913,7 @@ function ScheduleGridComponent({
         setNewDuration(existing.duration);
         setNewApplyMode(existing.applyMode || 'none');
         setNewApplyDays(existing.applyDays || []);
-        setNewApplyWeekInterval(existing.applyWeekInterval || 1);
+        setNewApplyWeekInterval(existing.applyWeekInterval ?? 0);
         setNewApplyWeekDays(existing.applyWeekDays || []);
         setNewApplyUntil(existing.applyUntil || format(new Date(existing.date), 'yyyy-MM-dd'));
         setNewNotes(existing.notes || '');
@@ -933,7 +933,7 @@ function ScheduleGridComponent({
         setNewDuration(1);
         setNewApplyMode('none');
         setNewApplyDays([]);
-        setNewApplyWeekInterval(1);
+        setNewApplyWeekInterval(0);
         setNewApplyWeekDays([]);
         setNewApplyUntil(date.toISOString().slice(0, 10));
         setNewNotes('');
@@ -992,8 +992,8 @@ function ScheduleGridComponent({
       const weekOffset = Math.round((candidateWeek.getTime() - sourceWeek.getTime()) / (7 * 24 * 60 * 60 * 1000));
       const weekdayIndex = (candidateDate.getDay() + 6) % 7;
       const selectedWeekdays = source.applyWeekDays.map((day) => WEEK_DAYS.indexOf(day));
-      return weekOffset >= 0
-        && weekOffset <= Math.max(1, Number(source.applyWeekInterval) || 1)
+      return weekOffset >= 1
+        && weekOffset <= Math.max(0, Number(source.applyWeekInterval) || 0)
         && selectedWeekdays.includes(weekdayIndex);
     }
 
@@ -1043,7 +1043,7 @@ function ScheduleGridComponent({
     const appliedSource = appliedOccurrence ? getAppliedSourcePlan(plan) : undefined;
     setNewApplyMode(appliedOccurrence ? 'none' : plan.applyMode || 'none');
     setNewApplyDays(appliedOccurrence ? appliedSource?.applyDays || [] : plan.applyDays || []);
-    setNewApplyWeekInterval(appliedOccurrence ? appliedSource?.applyWeekInterval || 1 : plan.applyWeekInterval || 1);
+    setNewApplyWeekInterval(appliedOccurrence ? appliedSource?.applyWeekInterval ?? 0 : plan.applyWeekInterval ?? 0);
     setNewApplyWeekDays(appliedOccurrence ? appliedSource?.applyWeekDays || [] : plan.applyWeekDays || []);
     setNewApplyUntil(appliedOccurrence ? appliedSource?.applyUntil : plan.applyUntil || format(new Date(plan.date), 'yyyy-MM-dd'));
     setNewNotes(plan.notes || '');
@@ -1068,7 +1068,7 @@ function ScheduleGridComponent({
       : newApplyMode !== 'none'
         ? previousPlan.recurrenceGroupId ?? crypto.randomUUID()
         : undefined;
-    const basePlan = { ...editingPlan, title: newTitle, color: newColor, startMinute: newStartMinute, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, recurrenceGroupId, notes: newNotes || undefined };
+    const basePlan = { ...editingPlan, title: newTitle, color: newColor, startMinute: newStartMinute, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, recurrenceGroupId, notes: newNotes || undefined };
     const wasGreen = previousPlan.color === 'green';
     const isDisablingRecurrence = !isNew && !appliedOccurrence && previousPlan.applyMode !== 'none' && newApplyMode === 'none';
     const previousWeekDays = [...(previousPlan.applyWeekDays ?? [])].sort().join(',');
@@ -1077,7 +1077,7 @@ function ScheduleGridComponent({
       previousPlan.applyMode !== newApplyMode
       || (newApplyMode === 'day' && (previousPlan.applyUntil ?? '') !== (newApplyUntil ?? ''))
       || (newApplyMode === 'week'
-        && (previousPlan.applyWeekInterval ?? 1) !== (newApplyWeekInterval || 1))
+        && (previousPlan.applyWeekInterval ?? 0) !== newApplyWeekInterval)
       || (newApplyMode === 'week' && previousWeekDays !== nextWeekDays)
     );
     const previousGroupId = previousPlan.recurrenceGroupId;
@@ -1510,7 +1510,7 @@ function ScheduleGridComponent({
                   </p>
                   {sourcePlan.applyMode === 'week' && (
                     <p className="text-xs text-muted-foreground">
-                      {t('applyMode')}: {t('applyToWeek')} · {t('applyWeeklyEvery')} {sourcePlan.applyWeekInterval || 1} {t('weeks')}
+                      {t('applyMode')}: {t('applyToWeek')} · {t('applyWeeklyEvery')} {sourcePlan.applyWeekInterval ?? 0} {t('weeks')}
                     </p>
                   )}
                 </div>
@@ -1659,7 +1659,7 @@ function ScheduleGridComponent({
                     {t('applyWeeklyEvery')}
                   </Label>
                   <div className="col-span-3 flex items-center gap-2">
-                    <Input type="number" value={newApplyWeekInterval} onChange={(e) => setNewApplyWeekInterval(Number(e.target.value)||1)} className="w-20 bg-muted/50 border-border" />
+                    <Input type="number" min={0} step={1} value={newApplyWeekInterval} onChange={(e) => setNewApplyWeekInterval(Math.max(0, Math.floor(Number(e.target.value) || 0)))} className="w-20 bg-muted/50 border-border" />
                     <span className="text-xs text-muted-foreground">{t('weeks')}</span>
                     <span className="ml-auto text-xs font-medium text-muted-foreground">{t('week')} {displayWeekTarget}</span>
                   </div>

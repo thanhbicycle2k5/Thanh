@@ -23,10 +23,19 @@ test('weekly recurrence applies selected weekdays through the requested number o
     applyMode: 'week',
     applyWeekInterval: 1,
     applyWeekDays: ['mon', 'wed'],
-  }), ['2026-10-07', '2026-10-12', '2026-10-14']);
+  }), ['2026-10-12', '2026-10-14']);
 });
 
-test('weekly recurrence skips selected weekdays before the original task date', () => {
+test('zero weekly duration does not create child tasks', () => {
+  assert.deepEqual(getAppliedOccurrenceDateKeys({
+    date: new Date(2026, 9, 3).toISOString(),
+    applyMode: 'week',
+    applyWeekInterval: 0,
+    applyWeekDays: ['mon'],
+  }), []);
+});
+
+test('weekly recurrence skips the original week', () => {
   assert.deepEqual(getAppliedOccurrenceDateKeys({
     date: new Date(2026, 9, 3).toISOString(),
     applyMode: 'week',

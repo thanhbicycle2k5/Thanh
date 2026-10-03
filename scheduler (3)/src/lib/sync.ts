@@ -44,7 +44,7 @@ export const normalizePlanForStorage = (plan: Partial<Plan>): Plan => {
     reminderMinutes: typeof plan.reminderMinutes === 'number' ? plan.reminderMinutes : 0,
     applyMode: plan.applyMode || 'none',
     applyDays: plan.applyDays || undefined,
-    applyWeekInterval: plan.applyWeekInterval || undefined,
+    applyWeekInterval: typeof plan.applyWeekInterval === 'number' ? plan.applyWeekInterval : undefined,
     applyWeekDays: plan.applyWeekDays || undefined,
     applyUntil: plan.applyUntil || undefined,
     recurrenceGroupId: plan.recurrenceGroupId || undefined,
