@@ -54,6 +54,7 @@ test('same task id keeps the newest version across desktop and mobile', () => {
     duration: 3,
     color: 'green' as const,
     notes: 'weekend',
+    recurrenceGroupId: 'weekly-root-1',
     updatedAt: '2026-09-01T08:00:00.000Z',
     createdAt: '2026-08-30T00:00:00.000Z',
   };
@@ -76,4 +77,5 @@ test('same task id keeps the newest version across desktop and mobile', () => {
   assert.equal(merged[0].id, 'task-36-beach');
   assert.equal(merged[0].color, 'green');
   assert.equal(merged[0].notes, 'weekend');
+  assert.equal(merged[0].recurrenceGroupId, 'weekly-root-1');
 });

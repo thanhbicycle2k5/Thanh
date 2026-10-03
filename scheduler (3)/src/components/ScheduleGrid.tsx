@@ -349,7 +349,7 @@ interface ScheduleGridProps {
   currentWeekStart: Date;
   plans: Plan[];
   onAddPlan: (plan: Plan) => void;
-  onUpdatePlan: (plan: Plan) => void;
+  onUpdatePlan: (plan: Plan) => void | Promise<void>;
   onDeletePlan: (id: string) => Promise<void>;
   onPlanTurnGreen?: (plan: Plan) => void;
   language: Language;
@@ -966,10 +966,46 @@ function ScheduleGridComponent({
     }, 300);
   }, [onPlanTurnGreen, onUpdatePlan, plans]);
 
-  const getAppliedSourcePlan = (plan: Plan | null) => {
-    if (!plan?.recurrenceGroupId) return undefined;
+  const isLegacyAppliedOccurrence = (source: Plan, candidate: Plan) => {
+    if (candidate.id === source.id
+      || candidate.title !== source.title
+      || candidate.startHour !== source.startHour
+      || (candidate.startMinute ?? 0) !== (source.startMinute ?? 0)
+      || candidate.duration !== source.duration) {
+      return false;
+    }
 
-    const groupPlans = allPlans.filter((candidate) => candidate.recurrenceGroupId === plan.recurrenceGroupId);
+    const sourceDate = new Date(source.date);
+    const candidateDate = new Date(candidate.date);
+    const sourceDateKey = format(sourceDate, 'yyyy-MM-dd');
+    const candidateDateKey = format(candidateDate, 'yyyy-MM-dd');
+    if (candidateDateKey <= sourceDateKey) return false;
+
+    if (source.applyMode === 'day') {
+      return Boolean(source.applyUntil && candidateDateKey <= source.applyUntil);
+    }
+
+    if (source.applyMode === 'week' && source.applyWeekDays?.length) {
+      const sourceWeek = startOfMonday(sourceDate);
+      const candidateWeek = startOfMonday(candidateDate);
+      const weekOffset = Math.round((candidateWeek.getTime() - sourceWeek.getTime()) / (7 * 24 * 60 * 60 * 1000));
+      const weekdayIndex = (candidateDate.getDay() + 6) % 7;
+      const selectedWeekdays = source.applyWeekDays.map((day) => WEEK_DAYS.indexOf(day));
+      return weekOffset >= 0
+        && weekOffset < Math.max(1, Number(source.applyWeekInterval) || 1)
+        && selectedWeekdays.includes(weekdayIndex);
+    }
+
+    return false;
+  };
+
+  const getAppliedSourcePlan = (plan: Plan | null) => {
+    if (!plan) return undefined;
+
+    const groupPlans = plan.recurrenceGroupId
+      ? allPlans.filter((candidate) => candidate.recurrenceGroupId === plan.recurrenceGroupId
+        || (!candidate.recurrenceGroupId && isLegacyAppliedOccurrence(plan, candidate)))
+      : allPlans.filter((candidate) => candidate.applyMode !== 'none' && isLegacyAppliedOccurrence(candidate, plan));
     const sourcePlans = groupPlans.filter((candidate) => candidate.applyMode && candidate.applyMode !== 'none');
     const sourcePlan = (sourcePlans.length ? sourcePlans : groupPlans)
       .reduce<Plan | undefined>((earliest, candidate) => (
@@ -1027,18 +1063,19 @@ function ScheduleGridComponent({
     const generatedPlansToRemove = isDisablingRecurrence || isChangingRecurrence
       ? allPlans.filter((plan) => {
         if (plan.id === previousPlan.id) return false;
-        if (previousGroupId) return plan.recurrenceGroupId === previousGroupId;
+        if (previousGroupId) {
+          return plan.recurrenceGroupId === previousGroupId
+            || (!plan.recurrenceGroupId && isLegacyAppliedOccurrence(previousPlan, plan));
+        }
 
-        return plan.applyMode === previousPlan.applyMode
-          && plan.applyUntil === previousPlan.applyUntil
-          && plan.title === previousPlan.title
-          && plan.startHour === previousPlan.startHour
-          && (plan.startMinute ?? 0) === (previousPlan.startMinute ?? 0)
-          && plan.duration === previousPlan.duration
-          && plan.color === previousPlan.color;
+        return isLegacyAppliedOccurrence(previousPlan, plan);
       })
       : [];
     const generatedPlanIdsToRemove = new Set(generatedPlansToRemove.map((plan) => plan.id));
+    const legacyPlansToLink = !isNew && !appliedOccurrence && !isDisablingRecurrence
+      && !isChangingRecurrence && recurrenceGroupId && !previousPlan.recurrenceGroupId
+      ? allPlans.filter((plan) => isLegacyAppliedOccurrence(previousPlan, plan))
+      : [];
 
     const overlaps = (dateIso: string, startHour: number, startMinute: number, duration: number) => {
       return plans.some(p => {
@@ -1105,6 +1142,7 @@ function ScheduleGridComponent({
         }
       } else {
         await onUpdatePlan(basePlan);
+        await Promise.all(legacyPlansToLink.map((plan) => onUpdatePlan({ ...plan, recurrenceGroupId })));
       }
 
       await Promise.all(generatedPlansToRemove.map((plan) => onDeletePlan(plan.id)));
@@ -1181,12 +1219,14 @@ function ScheduleGridComponent({
 
   const confirmDeletePlan = async () => {
     if (editingPlan) {
-      if (editingPlan.applyMode !== 'none'
-        && !isAppliedOccurrence(editingPlan)
-        && editingPlan.recurrenceGroupId) {
-        await Promise.all(allPlans
-          .filter((plan) => plan.id !== editingPlan.id && plan.recurrenceGroupId === editingPlan.recurrenceGroupId)
-          .map((plan) => onDeletePlan(plan.id)));
+      if (editingPlan.applyMode !== 'none' && !isAppliedOccurrence(editingPlan)) {
+        const appliedPlans = editingPlan.recurrenceGroupId
+          ? allPlans.filter((plan) => plan.id !== editingPlan.id && (
+            plan.recurrenceGroupId === editingPlan.recurrenceGroupId
+            || (!plan.recurrenceGroupId && isLegacyAppliedOccurrence(editingPlan, plan))
+          ))
+          : allPlans.filter((plan) => isLegacyAppliedOccurrence(editingPlan, plan));
+        await Promise.all(appliedPlans.map((plan) => onDeletePlan(plan.id)));
       }
       await onDeletePlan(editingPlan.id);
       setDeleteConfirmOpen(false);

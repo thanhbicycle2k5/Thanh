@@ -47,6 +47,7 @@ export const normalizePlanForStorage = (plan: Partial<Plan>): Plan => {
     applyWeekInterval: plan.applyWeekInterval || undefined,
     applyWeekDays: plan.applyWeekDays || undefined,
     applyUntil: plan.applyUntil || undefined,
+    recurrenceGroupId: plan.recurrenceGroupId || undefined,
     createdAt: plan.createdAt || now,
     updatedAt: plan.updatedAt || now,
     deviceId: plan.deviceId || getDeviceId(),
