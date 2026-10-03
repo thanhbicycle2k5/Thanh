@@ -1065,25 +1065,26 @@ function ScheduleGridComponent({
       || (newApplyMode === 'week' && previousWeekDays !== nextWeekDays)
     );
     const previousGroupId = previousPlan.recurrenceGroupId;
-    const generatedPlansToRemove = isDisablingRecurrence || isChangingRecurrence
-      ? allPlans.filter((plan) => {
-        if (plan.id === previousPlan.id) return false;
-        if (previousGroupId) {
-          return plan.recurrenceGroupId === previousGroupId
-            || (!plan.recurrenceGroupId && isLegacyAppliedOccurrence(previousPlan, plan));
-        }
+    const previousGeneratedPlans = allPlans.filter((plan) => {
+      if (plan.id === previousPlan.id) return false;
+      if (previousGroupId) {
+        return plan.recurrenceGroupId === previousGroupId
+          || (!plan.recurrenceGroupId && isLegacyAppliedOccurrence(previousPlan, plan));
+      }
 
-        return isLegacyAppliedOccurrence(previousPlan, plan);
-      })
+      return isLegacyAppliedOccurrence(previousPlan, plan);
+    });
+    const generatedPlansToRemove = isDisablingRecurrence || isChangingRecurrence
+      ? previousGeneratedPlans
       : [];
     const generatedPlanIdsToRemove = new Set(generatedPlansToRemove.map((plan) => plan.id));
     const legacyPlansToLink = !isNew && !appliedOccurrence && !isDisablingRecurrence
-      && !isChangingRecurrence && recurrenceGroupId && !previousPlan.recurrenceGroupId
-      ? allPlans.filter((plan) => isLegacyAppliedOccurrence(previousPlan, plan))
+      && recurrenceGroupId && !previousPlan.recurrenceGroupId
+      ? previousGeneratedPlans.filter((plan) => !generatedPlanIdsToRemove.has(plan.id))
       : [];
 
     const overlaps = (dateIso: string, startHour: number, startMinute: number, duration: number) => {
-      return plans.some(p => {
+      return allPlans.some(p => {
         if (generatedPlanIdsToRemove.has(p.id)) return false;
         if (!isSameDay(new Date(p.date), new Date(dateIso))) return false;
 

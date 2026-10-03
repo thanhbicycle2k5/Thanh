@@ -2353,6 +2353,7 @@ function PlannerApp() {
     });
 
     const mergedPlans = mergePlans(plansRef.current, [normalized]);
+    plansRef.current = mergedPlans;
     setPlans(mergedPlans);
     storage.savePlans(mergedPlans, activeUid, false);
 
@@ -2362,6 +2363,7 @@ function PlannerApp() {
           await cloudStorage.savePlan(activeUid, normalized);
           clearQueuedOperation(activeUid, normalized.id);
           const finalPlans = mergePlans(storage.getPlans(activeUid), [normalized]);
+          plansRef.current = finalPlans;
           setPlans(finalPlans);
           storage.savePlans(finalPlans, activeUid, false);
           storage.setPendingSync(activeUid, 'plans', false);
