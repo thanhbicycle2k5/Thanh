@@ -350,7 +350,7 @@ function PlannerApp() {
     if (undoHideTimerRef.current !== null) {
       window.clearTimeout(undoHideTimerRef.current);
     }
-    undoSnapshotRef.current = plansRef.current.map((plan) => ({ ...plan }));
+    undoSnapshotRef.current = plansRef.current;
     undoCaptureScheduledRef.current = true;
     setCanUndo(true);
     window.setTimeout(() => {
@@ -2186,12 +2186,13 @@ function PlannerApp() {
   const handleUndo = React.useCallback(() => {
     const previousPlans = undoSnapshotRef.current;
     if (!previousPlans) return;
+    const currentPlans = plansRef.current;
     undoSnapshotRef.current = null;
 
     setIsUndoSaving(true);
     isUndoingRef.current = true;
     plansRef.current = previousPlans;
-    setPlans(previousPlans);
+    React.startTransition(() => setPlans(previousPlans));
     setCanUndo(false);
     if (undoHideTimerRef.current !== null) {
       window.clearTimeout(undoHideTimerRef.current);
@@ -2207,19 +2208,63 @@ function PlannerApp() {
         return;
       }
 
+      const previousPlansById = new Map<string, Plan>(previousPlans.map((plan) => [plan.id, plan]));
+      const currentPlansById = new Map<string, Plan>(currentPlans.map((plan) => [plan.id, plan]));
+      const plansToSave = previousPlans.filter((plan) => {
+        const currentPlan = currentPlansById.get(plan.id);
+        return !currentPlan
+          || currentPlan.updatedAt !== plan.updatedAt
+          || currentPlan.version !== plan.version;
+      });
+      const planIdsToDelete = currentPlans
+        .filter((plan) => !previousPlansById.has(plan.id))
+        .map((plan) => plan.id);
+
       if (!isOnline) {
+        plansToSave.forEach((plan) => enqueueSyncOperation(activeUid, 'update', plan));
+        planIdsToDelete.forEach((id) => {
+          const plan = currentPlansById.get(id);
+          enqueueSyncOperation(activeUid, 'delete', plan, id);
+        });
         storage.setPendingSync(activeUid, 'plans', true);
         setIsUndoSaving(false);
         return;
       }
 
-      void cloudStorage.savePlans(activeUid, previousPlans)
-        .then(() => storage.setPendingSync(activeUid, 'plans', false))
-        .catch((error) => {
-          storage.setPendingSync(activeUid, 'plans', true);
-          console.warn('Undo cloud save failed, local change persisted:', error);
-        })
-        .finally(() => setIsUndoSaving(false));
+      const syncUndoChanges = async () => {
+        let hasSyncError = false;
+        const operations = [
+          ...plansToSave.map((plan) => ({ type: 'save' as const, plan })),
+          ...planIdsToDelete.map((id) => ({ type: 'delete' as const, id })),
+        ];
+
+        for (let index = 0; index < operations.length; index += 20) {
+          const batch = operations.slice(index, index + 20);
+          await Promise.all(batch.map(async (operation) => {
+            try {
+              if (operation.type === 'save') {
+                await cloudStorage.savePlan(activeUid, operation.plan);
+              } else {
+                await cloudStorage.deletePlan(activeUid, operation.id);
+              }
+              clearQueuedOperation(activeUid, operation.type === 'save' ? operation.plan.id : operation.id);
+            } catch (error) {
+              hasSyncError = true;
+              if (operation.type === 'save') {
+                enqueueSyncOperation(activeUid, 'update', operation.plan);
+              } else {
+                enqueueSyncOperation(activeUid, 'delete', currentPlansById.get(operation.id), operation.id);
+              }
+              console.warn('Undo cloud save failed, local change persisted:', error);
+            }
+          }));
+        }
+
+        storage.setPendingSync(activeUid, 'plans', hasSyncError);
+        setIsUndoSaving(false);
+      };
+
+      void syncUndoChanges();
     };
 
     if ('requestIdleCallback' in window) {
