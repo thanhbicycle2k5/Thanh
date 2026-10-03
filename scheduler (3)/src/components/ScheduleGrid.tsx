@@ -966,6 +966,13 @@ function ScheduleGridComponent({
     }, 300);
   }, [onPlanTurnGreen, onUpdatePlan, plans]);
 
+  const isAppliedOccurrence = (plan: Plan | null) => Boolean(
+    plan?.recurrenceGroupId && allPlans.some((candidate) =>
+      candidate.recurrenceGroupId === plan.recurrenceGroupId
+      && new Date(candidate.date).getTime() < new Date(plan.date).getTime()
+    )
+  );
+
   const handleOpenEdit = React.useCallback((plan: Plan, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingPlan(plan);
@@ -973,26 +980,30 @@ function ScheduleGridComponent({
     setNewColor(plan.color);
     setNewStartMinute(plan.startMinute ?? 0);
     setNewDuration(plan.duration);
-    setNewApplyMode(plan.applyMode || 'none');
-    setNewApplyDays(plan.applyDays || []);
-    setNewApplyWeekInterval(plan.applyWeekInterval || 1);
-    setNewApplyWeekDays(plan.applyWeekDays || []);
-    setNewApplyUntil(plan.applyUntil || plan.date.slice(0, 10));
+    const appliedOccurrence = isAppliedOccurrence(plan);
+    setNewApplyMode(appliedOccurrence ? 'none' : plan.applyMode || 'none');
+    setNewApplyDays(appliedOccurrence ? [] : plan.applyDays || []);
+    setNewApplyWeekInterval(appliedOccurrence ? 1 : plan.applyWeekInterval || 1);
+    setNewApplyWeekDays(appliedOccurrence ? [] : plan.applyWeekDays || []);
+    setNewApplyUntil(appliedOccurrence ? undefined : plan.applyUntil || plan.date.slice(0, 10));
     setNewNotes(plan.notes || '');
     setIsDialogOpen(true);
-  }, []);
+  }, [allPlans]);
 
   const handleSave = async () => {
     if (!editingPlan) return;
 
     const previousPlan = allPlans.find(p => p.id === editingPlan.id) ?? editingPlan;
     const isNew = !plans.some(p => p.id === editingPlan.id);
-    const recurrenceGroupId = newApplyMode !== 'none'
-      ? previousPlan.recurrenceGroupId ?? (isNew ? crypto.randomUUID() : undefined)
-      : undefined;
+    const appliedOccurrence = isAppliedOccurrence(previousPlan);
+    const recurrenceGroupId = appliedOccurrence
+      ? previousPlan.recurrenceGroupId
+      : newApplyMode !== 'none'
+        ? previousPlan.recurrenceGroupId ?? (isNew ? crypto.randomUUID() : undefined)
+        : undefined;
     const basePlan = { ...editingPlan, title: newTitle, color: newColor, startMinute: newStartMinute, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, recurrenceGroupId, notes: newNotes || undefined };
     const wasGreen = previousPlan.color === 'green';
-    const isDisablingRecurrence = !isNew && previousPlan.applyMode !== 'none' && newApplyMode === 'none';
+    const isDisablingRecurrence = !isNew && !appliedOccurrence && previousPlan.applyMode !== 'none' && newApplyMode === 'none';
 
     const overlaps = (dateIso: string, startHour: number, startMinute: number, duration: number) => {
       return plans.some(p => {
@@ -1017,7 +1028,16 @@ function ScheduleGridComponent({
           return;
         }
         if (!overlaps(candidateKey, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
-          const newPlan = { ...basePlan, id: crypto.randomUUID(), date: candidateKey };
+          const newPlan = {
+            ...basePlan,
+            id: crypto.randomUUID(),
+            date: candidateKey,
+            applyMode: 'none' as const,
+            applyDays: undefined,
+            applyWeekInterval: undefined,
+            applyWeekDays: undefined,
+            applyUntil: undefined,
+          };
           await onAddPlan(newPlan);
         }
       };
@@ -1028,7 +1048,16 @@ function ScheduleGridComponent({
           return;
         }
         if (!overlaps(candidateKey, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
-          const newPlan = { ...basePlan, id: crypto.randomUUID(), date: candidateKey };
+          const newPlan = {
+            ...basePlan,
+            id: crypto.randomUUID(),
+            date: candidateKey,
+            applyMode: 'none' as const,
+            applyDays: undefined,
+            applyWeekInterval: undefined,
+            applyWeekDays: undefined,
+            applyUntil: undefined,
+          };
           await onAddPlan(newPlan);
         }
       };
@@ -1040,6 +1069,13 @@ function ScheduleGridComponent({
         }
       } else {
         await onUpdatePlan(basePlan);
+      }
+
+      if (!isNew && !appliedOccurrence && !isDisablingRecurrence
+        && previousPlan.recurrenceGroupId && newTitle !== previousPlan.title) {
+        allPlans
+          .filter((plan) => plan.id !== basePlan.id && plan.recurrenceGroupId === previousPlan.recurrenceGroupId)
+          .forEach((plan) => onUpdatePlan({ ...plan, title: newTitle }));
       }
 
       if (isDisablingRecurrence) {
@@ -1132,6 +1168,13 @@ function ScheduleGridComponent({
 
   const confirmDeletePlan = () => {
     if (editingPlan) {
+      if (editingPlan.applyMode !== 'none'
+        && !isAppliedOccurrence(editingPlan)
+        && editingPlan.recurrenceGroupId) {
+        allPlans
+          .filter((plan) => plan.id !== editingPlan.id && plan.recurrenceGroupId === editingPlan.recurrenceGroupId)
+          .forEach((plan) => onDeletePlan(plan.id));
+      }
       onDeletePlan(editingPlan.id);
       setDeleteConfirmOpen(false);
       setIsDialogOpen(false);
@@ -1486,48 +1529,50 @@ function ScheduleGridComponent({
                 ))}
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-3">
-              <Label className="text-right text-xs font-bold text-muted-foreground">
-                {t('applyMode')}
-              </Label>
-              <div className="col-span-3 flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={newApplyMode === 'day' ? 'default' : 'outline'}
-                  className="flex-1"
-                  onClick={() => {
-                    setNewApplyMode((prev) => {
-                      const nextMode = prev === 'day' ? 'none' : 'day';
-                      if (nextMode === 'day' && !newApplyUntil) {
-                        setNewApplyUntil(defaultApplyUntilDate);
-                      }
-                      return nextMode;
-                    });
-                  }}
-                >
-                  {t('applyToDay')}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={newApplyMode === 'week' ? 'default' : 'outline'}
-                  className="flex-1"
-                  onClick={() => {
-                    setNewApplyMode((prev) => {
-                      const nextMode = prev === 'week' ? 'none' : 'week';
-                      if (nextMode === 'week' && !newApplyUntil) {
-                        setNewApplyUntil(defaultApplyUntilDate);
-                      }
-                      return nextMode;
-                    });
-                  }}
-                >
-                  {t('applyToWeek')}
-                </Button>
-              </div>
-            </div>
-            {newApplyMode === 'day' && (
+            {!isAppliedOccurrence(editingPlan) && (
+              <>
+                <div className="grid grid-cols-4 items-center gap-3">
+                  <Label className="text-right text-xs font-bold text-muted-foreground">
+                    {t('applyMode')}
+                  </Label>
+                  <div className="col-span-3 flex gap-2">
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={newApplyMode === 'day' ? 'default' : 'outline'}
+                      className="flex-1"
+                      onClick={() => {
+                        setNewApplyMode((prev) => {
+                          const nextMode = prev === 'day' ? 'none' : 'day';
+                          if (nextMode === 'day' && !newApplyUntil) {
+                            setNewApplyUntil(defaultApplyUntilDate);
+                          }
+                          return nextMode;
+                        });
+                      }}
+                    >
+                      {t('applyToDay')}
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant={newApplyMode === 'week' ? 'default' : 'outline'}
+                      className="flex-1"
+                      onClick={() => {
+                        setNewApplyMode((prev) => {
+                          const nextMode = prev === 'week' ? 'none' : 'week';
+                          if (nextMode === 'week' && !newApplyUntil) {
+                            setNewApplyUntil(defaultApplyUntilDate);
+                          }
+                          return nextMode;
+                        });
+                      }}
+                    >
+                      {t('applyToWeek')}
+                    </Button>
+                  </div>
+                </div>
+                {newApplyMode === 'day' && (
               <div className="grid grid-cols-4 items-center gap-3">
                 <Label className="text-right text-xs font-bold text-muted-foreground">
                   {t('applyDailyUntil')}
@@ -1537,7 +1582,7 @@ function ScheduleGridComponent({
                 </div>
               </div>
             )}
-            {newApplyMode === 'week' && (
+              {newApplyMode === 'week' && (
               <>
                 <div className="grid grid-cols-4 items-center gap-3">
                   <Label className="text-right text-xs font-bold text-muted-foreground">
@@ -1566,6 +1611,8 @@ function ScheduleGridComponent({
                     ))}
                   </div>
                 </div>
+              </>
+                )}
               </>
             )}
             <div className="grid grid-cols-4 items-start gap-3">
