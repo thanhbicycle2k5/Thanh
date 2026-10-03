@@ -505,6 +505,52 @@ function PlannerApp() {
   const [localAIStatus, setLocalAIStatus] = React.useState<'LOCAL_AI_AVAILABLE' | 'LOCAL_AI_UNAVAILABLE' | 'CHECKING'>('CHECKING');
 
   React.useEffect(() => {
+    if (!pomodoroRunning || typeof navigator === 'undefined') return;
+
+    type ScreenWakeLockSentinel = { release: () => Promise<void> };
+    type ScreenWakeLockApi = { request: (type: 'screen') => Promise<ScreenWakeLockSentinel> };
+    const wakeLockApi = (navigator as Navigator & { wakeLock?: ScreenWakeLockApi }).wakeLock;
+    if (!wakeLockApi) return;
+
+    let wakeLock: ScreenWakeLockSentinel | null = null;
+    let requestPending = false;
+    let disposed = false;
+
+    const requestWakeLock = async () => {
+      if (disposed || requestPending || wakeLock || document.visibilityState !== 'visible') return;
+
+      requestPending = true;
+      try {
+        const requestedLock = await wakeLockApi.request('screen');
+        if (disposed) {
+          await requestedLock.release();
+        } else {
+          wakeLock = requestedLock;
+        }
+      } catch {
+        // Screen wake lock is optional and may be unavailable in some browsers.
+      } finally {
+        requestPending = false;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    void requestWakeLock();
+
+    return () => {
+      disposed = true;
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLock) void wakeLock.release().catch(() => undefined);
+    };
+  }, [pomodoroRunning]);
+
+  React.useEffect(() => {
     if (!pomodoroRunning || pomodoroDeadline === null) return;
 
     const tick = () => {
