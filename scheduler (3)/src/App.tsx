@@ -3913,7 +3913,7 @@ function PlannerApp() {
       </Dialog>
 
       <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto" style={{ backgroundColor: boardSurfaceColor }}>
+        {isSummaryOpen && <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-card dark:bg-card">
           <DialogHeader>
             <DialogTitle>{t('summaryYear').replace('{year}', format(new Date(), 'yyyy'))}</DialogTitle>
           </DialogHeader>
@@ -3950,7 +3950,7 @@ function PlannerApp() {
               );
             })}
           </div>
-        </DialogContent>
+        </DialogContent>}
       </Dialog>
     </div>
   );
