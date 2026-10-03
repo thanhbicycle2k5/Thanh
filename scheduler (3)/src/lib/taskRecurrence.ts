@@ -31,17 +31,30 @@ export const getAppliedOccurrenceDateKeys = (plan: RecurringPlan): string[] => {
   }
 
   if (plan.applyMode === 'week' && plan.applyWeekDays?.length) {
-    const interval = Math.max(1, Math.floor(Number(plan.applyWeekInterval) || 1));
-    const weekStart = startOfWeek(baseDate, { weekStartsOn: 1 });
-    const targetWeekStart = addDays(weekStart, interval * 7);
+    const weekCount = Math.max(1, Math.floor(Number(plan.applyWeekInterval) || 1));
+    const baseDateAtMidnight = new Date(
+      baseDate.getFullYear(),
+      baseDate.getMonth(),
+      baseDate.getDate(),
+    );
+    const baseDateWeekStart = startOfWeek(baseDateAtMidnight, { weekStartsOn: 1 });
     const weekdayIndexes = [...new Set(plan.applyWeekDays
       .map((day) => ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'].indexOf(day))
       .filter((index) => index >= 0))]
       .sort((left, right) => left - right);
 
-    return weekdayIndexes.map((weekdayIndex) => (
-      format(addDays(targetWeekStart, weekdayIndex), 'yyyy-MM-dd')
-    ));
+    const dateKeys: string[] = [];
+    for (let weekOffset = 0; weekOffset <= weekCount; weekOffset += 1) {
+      const weekStart = addDays(baseDateWeekStart, weekOffset * 7);
+      for (const weekdayIndex of weekdayIndexes) {
+        const candidateDate = addDays(weekStart, weekdayIndex);
+        if (candidateDate > baseDateAtMidnight) {
+          dateKeys.push(format(candidateDate, 'yyyy-MM-dd'));
+        }
+      }
+    }
+
+    return dateKeys;
   }
 
   return [];

@@ -993,7 +993,7 @@ function ScheduleGridComponent({
       const weekdayIndex = (candidateDate.getDay() + 6) % 7;
       const selectedWeekdays = source.applyWeekDays.map((day) => WEEK_DAYS.indexOf(day));
       return weekOffset >= 0
-        && weekOffset < Math.max(1, Number(source.applyWeekInterval) || 1)
+        && weekOffset <= Math.max(1, Number(source.applyWeekInterval) || 1)
         && selectedWeekdays.includes(weekdayIndex);
     }
 
