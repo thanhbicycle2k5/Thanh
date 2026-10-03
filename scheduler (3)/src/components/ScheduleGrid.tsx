@@ -1024,6 +1024,13 @@ function ScheduleGridComponent({
 
   const isAppliedOccurrence = (plan: Plan | null) => Boolean(getAppliedSourcePlan(plan));
 
+  const getAppliedPlansForSource = (source: Plan) => source.recurrenceGroupId
+    ? allPlans.filter((plan) => plan.id !== source.id && (
+      plan.recurrenceGroupId === source.recurrenceGroupId
+      || (!plan.recurrenceGroupId && isLegacyAppliedOccurrence(source, plan))
+    ))
+    : allPlans.filter((plan) => isLegacyAppliedOccurrence(source, plan));
+
   const handleOpenEdit = React.useCallback((plan: Plan, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingPlan(plan);
@@ -1226,20 +1233,22 @@ function ScheduleGridComponent({
     }
   };
 
-  const confirmDeletePlan = async () => {
+  const closeDeleteDialogs = () => {
+    setDeleteConfirmOpen(false);
+    setIsDialogOpen(false);
+  };
+
+  const confirmDeleteCurrentPlan = async () => {
     if (editingPlan) {
-      if (editingPlan.applyMode !== 'none' && !isAppliedOccurrence(editingPlan)) {
-        const appliedPlans = editingPlan.recurrenceGroupId
-          ? allPlans.filter((plan) => plan.id !== editingPlan.id && (
-            plan.recurrenceGroupId === editingPlan.recurrenceGroupId
-            || (!plan.recurrenceGroupId && isLegacyAppliedOccurrence(editingPlan, plan))
-          ))
-          : allPlans.filter((plan) => isLegacyAppliedOccurrence(editingPlan, plan));
-        await Promise.all(appliedPlans.map((plan) => onDeletePlan(plan.id)));
-      }
       await onDeletePlan(editingPlan.id);
+      closeDeleteDialogs();
+    }
+  };
+
+  const confirmDeleteAppliedPlans = async () => {
+    if (editingPlan) {
+      await Promise.all(getAppliedPlansForSource(editingPlan).map((plan) => onDeletePlan(plan.id)));
       setDeleteConfirmOpen(false);
-      setIsDialogOpen(false);
     }
   };
 
@@ -1469,16 +1478,39 @@ function ScheduleGridComponent({
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
         <DialogContent className="sm:rounded-2xl border-border max-w-xs bg-card p-5">
           <DialogHeader>
-            <DialogTitle className="pr-10 text-foreground text-base leading-6">Bạn có chắc chắn muốn xóa kế hoạch này?</DialogTitle>
+            <DialogTitle className="pr-10 text-foreground text-base leading-6">{t('confirmDeleteTask')}</DialogTitle>
+            {editingPlan
+              && editingPlan.applyMode !== 'none'
+              && !isAppliedOccurrence(editingPlan)
+              && getAppliedPlansForSource(editingPlan).length > 0 && (
+                <DialogDescription>{t('chooseDeleteScope')}</DialogDescription>
+              )}
           </DialogHeader>
-          <div className="flex justify-end gap-2 pt-2">
-            <Button variant="outline" size="sm" onClick={() => setDeleteConfirmOpen(false)} className="border-border bg-card text-foreground hover:bg-muted">
-              Không.
-            </Button>
-            <Button variant="destructive" size="sm" onClick={confirmDeletePlan} className="!bg-red-600 !text-white !opacity-100 hover:!bg-red-700">
-              Xóa đi!
-            </Button>
-          </div>
+          {editingPlan
+            && editingPlan.applyMode !== 'none'
+            && !isAppliedOccurrence(editingPlan)
+            && getAppliedPlansForSource(editingPlan).length > 0 ? (
+              <div className="flex flex-col gap-2 pt-2">
+                <Button variant="destructive" size="sm" onClick={confirmDeleteCurrentPlan} className="!bg-red-600 !text-white !opacity-100 hover:!bg-red-700">
+                  {t('deleteCurrentTask')}
+                </Button>
+                <Button variant="destructive" size="sm" onClick={confirmDeleteAppliedPlans} className="!bg-red-600 !text-white !opacity-100 hover:!bg-red-700">
+                  {t('deleteAppliedTasks')}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setDeleteConfirmOpen(false)} className="border-border bg-card text-foreground hover:bg-muted">
+                  {t('cancel')}
+                </Button>
+              </div>
+            ) : (
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" size="sm" onClick={() => setDeleteConfirmOpen(false)} className="border-border bg-card text-foreground hover:bg-muted">
+                  {t('cancel')}
+                </Button>
+                <Button variant="destructive" size="sm" onClick={confirmDeleteCurrentPlan} className="!bg-red-600 !text-white !opacity-100 hover:!bg-red-700">
+                  {t('delete')}
+                </Button>
+              </div>
+            )}
         </DialogContent>
       </Dialog>
 
