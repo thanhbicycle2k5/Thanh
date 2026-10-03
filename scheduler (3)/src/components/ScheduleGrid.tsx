@@ -966,9 +966,9 @@ function ScheduleGridComponent({
     }, 300);
   }, [onPlanTurnGreen, onUpdatePlan, plans]);
 
-  const isLegacyAppliedOccurrence = (source: Plan, candidate: Plan) => {
+  const isLegacyAppliedOccurrence = (source: Plan, candidate: Plan, allowTitleMismatch = false) => {
     if (candidate.id === source.id
-      || candidate.title !== source.title
+      || (!allowTitleMismatch && candidate.title !== source.title)
       || candidate.startHour !== source.startHour
       || (candidate.startMinute ?? 0) !== (source.startMinute ?? 0)
       || candidate.duration !== source.duration) {
@@ -1002,17 +1002,22 @@ function ScheduleGridComponent({
   const getAppliedSourcePlan = (plan: Plan | null) => {
     if (!plan) return undefined;
 
-    const groupPlans = plan.recurrenceGroupId
-      ? allPlans.filter((candidate) => candidate.recurrenceGroupId === plan.recurrenceGroupId
-        || (!candidate.recurrenceGroupId && isLegacyAppliedOccurrence(plan, candidate)))
-      : allPlans.filter((candidate) => candidate.applyMode !== 'none' && isLegacyAppliedOccurrence(candidate, plan));
-    const sourcePlans = groupPlans.filter((candidate) => candidate.applyMode && candidate.applyMode !== 'none');
-    const sourcePlan = (sourcePlans.length ? sourcePlans : groupPlans)
-      .reduce<Plan | undefined>((earliest, candidate) => (
+    const earliestPlan = (candidates: Plan[]) => candidates.reduce<Plan | undefined>((earliest, candidate) => (
         !earliest || new Date(candidate.date).getTime() < new Date(earliest.date).getTime()
           ? candidate
           : earliest
       ), undefined);
+    const groupSource = plan.recurrenceGroupId
+      ? earliestPlan(allPlans.filter((candidate) => candidate.recurrenceGroupId === plan.recurrenceGroupId
+        && candidate.applyMode && candidate.applyMode !== 'none'))
+      : undefined;
+    if (groupSource) return groupSource;
+
+    const findLegacySource = (allowTitleMismatch: boolean) => earliestPlan(allPlans.filter((candidate) => (
+      candidate.applyMode !== 'none'
+      && isLegacyAppliedOccurrence(candidate, plan, allowTitleMismatch)
+    )));
+    const sourcePlan = findLegacySource(false) ?? findLegacySource(true);
 
     return sourcePlan?.id === plan.id ? undefined : sourcePlan;
   };
