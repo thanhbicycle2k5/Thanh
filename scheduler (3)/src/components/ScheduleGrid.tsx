@@ -999,14 +999,40 @@ function ScheduleGridComponent({
     const recurrenceGroupId = appliedOccurrence
       ? previousPlan.recurrenceGroupId
       : newApplyMode !== 'none'
-        ? previousPlan.recurrenceGroupId ?? (isNew ? crypto.randomUUID() : undefined)
+        ? previousPlan.recurrenceGroupId ?? crypto.randomUUID()
         : undefined;
     const basePlan = { ...editingPlan, title: newTitle, color: newColor, startMinute: newStartMinute, duration: newDuration, applyMode: newApplyMode, applyDays: newApplyDays.length? newApplyDays: undefined, applyWeekInterval: newApplyWeekInterval || undefined, applyWeekDays: newApplyWeekDays.length? newApplyWeekDays: undefined, applyUntil: newApplyUntil || undefined, recurrenceGroupId, notes: newNotes || undefined };
     const wasGreen = previousPlan.color === 'green';
     const isDisablingRecurrence = !isNew && !appliedOccurrence && previousPlan.applyMode !== 'none' && newApplyMode === 'none';
+    const previousWeekDays = [...(previousPlan.applyWeekDays ?? [])].sort().join(',');
+    const nextWeekDays = [...newApplyWeekDays].sort().join(',');
+    const isChangingRecurrence = !isNew && !appliedOccurrence && previousPlan.applyMode !== 'none' && newApplyMode !== 'none' && (
+      previousPlan.applyMode !== newApplyMode
+      || (newApplyMode === 'day' && (previousPlan.applyUntil ?? '') !== (newApplyUntil ?? ''))
+      || (newApplyMode === 'week'
+        && (previousPlan.applyWeekInterval ?? 1) !== (newApplyWeekInterval || 1))
+      || (newApplyMode === 'week' && previousWeekDays !== nextWeekDays)
+    );
+    const previousGroupId = previousPlan.recurrenceGroupId;
+    const generatedPlansToRemove = isDisablingRecurrence || isChangingRecurrence
+      ? allPlans.filter((plan) => {
+        if (plan.id === previousPlan.id) return false;
+        if (previousGroupId) return plan.recurrenceGroupId === previousGroupId;
+
+        return plan.applyMode === previousPlan.applyMode
+          && plan.applyUntil === previousPlan.applyUntil
+          && plan.title === previousPlan.title
+          && plan.startHour === previousPlan.startHour
+          && (plan.startMinute ?? 0) === (previousPlan.startMinute ?? 0)
+          && plan.duration === previousPlan.duration
+          && plan.color === previousPlan.color;
+      })
+      : [];
+    const generatedPlanIdsToRemove = new Set(generatedPlansToRemove.map((plan) => plan.id));
 
     const overlaps = (dateIso: string, startHour: number, startMinute: number, duration: number) => {
       return plans.some(p => {
+        if (generatedPlanIdsToRemove.has(p.id)) return false;
         if (!isSameDay(new Date(p.date), new Date(dateIso))) return false;
 
         const pStart = (p.startHour * 60) + (p.startMinute ?? 0);
@@ -1071,30 +1097,7 @@ function ScheduleGridComponent({
         await onUpdatePlan(basePlan);
       }
 
-      if (!isNew && !appliedOccurrence && !isDisablingRecurrence
-        && previousPlan.recurrenceGroupId && newTitle !== previousPlan.title) {
-        allPlans
-          .filter((plan) => plan.id !== basePlan.id && plan.recurrenceGroupId === previousPlan.recurrenceGroupId)
-          .forEach((plan) => onUpdatePlan({ ...plan, title: newTitle }));
-      }
-
-      if (isDisablingRecurrence) {
-        const previousGroupId = previousPlan.recurrenceGroupId;
-        const generatedPlans = allPlans.filter((plan) => {
-          if (plan.id === basePlan.id) return false;
-          if (previousGroupId) return plan.recurrenceGroupId === previousGroupId;
-
-          return plan.applyMode === previousPlan.applyMode
-            && plan.applyUntil === previousPlan.applyUntil
-            && plan.title === previousPlan.title
-            && plan.startHour === previousPlan.startHour
-            && (plan.startMinute ?? 0) === (previousPlan.startMinute ?? 0)
-            && plan.duration === previousPlan.duration
-            && plan.color === previousPlan.color;
-        });
-
-        generatedPlans.forEach((plan) => onDeletePlan(plan.id));
-      }
+      generatedPlansToRemove.forEach((plan) => onDeletePlan(plan.id));
 
       if (basePlan.applyMode === 'day' && basePlan.applyUntil) {
         let cur = new Date(`${baseDateKey}T00:00:00`);
