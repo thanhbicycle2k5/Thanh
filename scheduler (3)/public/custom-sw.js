@@ -201,14 +201,6 @@ async function handleNotificationMessage(message) {
     fallbackScheduledTimeouts.delete(payload.id);
   }
 
-  await storeScheduledPayload(payload);
-  if ('sync' in self.registration) {
-    try {
-      await self.registration.sync.register('scheduly-notification-sync');
-    } catch (error) {
-      console.warn('Background notification sync registration failed', error);
-    }
-  }
   const delay = payload.fireAt - Date.now();
   if (delay <= 0) {
     return;
@@ -231,8 +223,18 @@ async function handleNotificationMessage(message) {
     }
   }
 
+  const fallbackPayload = { ...payload, delivery: 'fallback' };
+  await storeScheduledPayload(fallbackPayload);
+  if ('sync' in self.registration) {
+    try {
+      await self.registration.sync.register('scheduly-notification-sync');
+    } catch (error) {
+      console.warn('Background notification sync registration failed', error);
+    }
+  }
+
   const timeoutId = self.setTimeout(async () => {
-    await showNotification(payload);
+    await showNotification(fallbackPayload);
     await removeScheduledPayload(new Request(`/scheduly-notification/${payload.id}`));
     fallbackScheduledTimeouts.delete(payload.id);
   }, Math.max(0, delay));
@@ -260,6 +262,8 @@ async function triggerStoredNotifications() {
         ? payload.expiresAt
         : payload.fireAt + (15 * 60 * 1000);
       if (typeof payload.fireAt !== 'number' || expiresAt <= now) {
+        await removeScheduledPayload(request);
+      } else if (payload.delivery !== 'fallback') {
         await removeScheduledPayload(request);
       } else if (payload.fireAt <= now) {
         await showNotification(payload);

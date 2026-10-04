@@ -4,6 +4,7 @@ export type ScheduledNotificationPayload = {
   body: string;
   fireAt: number;
   expiresAt?: number;
+  delivery?: 'fallback';
 };
 
 const NOTIFICATION_SW_PATH = '/custom-sw.js';
@@ -227,19 +228,17 @@ export async function scheduleTaskNotification(payload: ScheduledNotificationPay
   }
 
   const registration = await getWorkerRegistration();
-  const fallbackTimeoutId = scheduleInPageFallback(payload);
   if (registration?.active) {
     try {
       registration.active.postMessage({
         type: SCHEDULY_NOTIFICATION_MESSAGE,
         payload,
       });
-      return fallbackTimeoutId;
+      return null;
     } catch (error) {
       console.warn('Failed to send scheduled notification to service worker', error);
     }
   }
 
-  // Fallback if service worker is not available.
-  return fallbackTimeoutId;
+  return scheduleInPageFallback(payload);
 }
