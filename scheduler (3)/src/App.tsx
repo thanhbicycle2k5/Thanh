@@ -26,7 +26,7 @@ import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerSt
 import { playNotificationSound, playCompletionMelody, playMeow, playLogoClick } from './lib/sounds';
 import { getPlanReminderDate, getPlanStartDate, isWithinReminderWindow } from './lib/taskTime';
 import { calculatePomodoroRemainingSeconds, shouldStartPomodoroMusic } from './lib/pomodoro';
-import { calculateStreak, getCompletedDayKeys, getLocalDateKey } from './lib/streak';
+import { calculateStreak, getCompletedDayKeys, getLocalDateKey, getPlanLocalDateKey } from './lib/streak';
 import { getSchedulyMessage, SchedulyStatus, getRandomPomodoroEncouragementMessage } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
@@ -405,6 +405,7 @@ function PlannerApp() {
   const [openWeekPopoverKey, setOpenWeekPopoverKey] = React.useState<string | null>(null);
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const [streakTodayKey, setStreakTodayKey] = React.useState(() => getLocalDateKey(new Date()));
+  const previousStreakSnapshotRef = React.useRef<{ dateKey: string; current: number } | null>(null);
   const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(storage.getSettings()));
   const [settingsError, setSettingsError] = React.useState<string | null>(null);
   const [sharedLinks, setSharedLinks] = React.useState<SharedScheduleLink[]>([]);
@@ -1703,6 +1704,17 @@ function PlannerApp() {
     }, 5000);
   }, []);
 
+  const showStreakSpeechBubble = React.useCallback((text: string) => {
+    if (speechBubbleTimeoutRef.current !== null) {
+      window.clearTimeout(speechBubbleTimeoutRef.current);
+    }
+    setSpeechBubble({ id: `streak-${Date.now()}`, text, status: 'complete' });
+    speechBubbleTimeoutRef.current = window.setTimeout(() => {
+      setSpeechBubble(null);
+      speechBubbleTimeoutRef.current = null;
+    }, 5000);
+  }, []);
+
   const handleCatClick = React.useCallback(() => {
     if (catClickTimeoutRef.current !== null) {
       window.clearTimeout(catClickTimeoutRef.current);
@@ -2312,7 +2324,9 @@ function PlannerApp() {
   const handleUpdatePlan = React.useCallback(async (p: Plan) => {
     captureUndoSnapshot();
     const oldPlan = plansRef.current.find(x => x.id === p.id);
-    if (oldPlan && oldPlan.color !== 'green' && p.color === 'green') {
+    const isNewCompletion = Boolean(oldPlan && oldPlan.color !== 'green' && p.color === 'green');
+    let streakEncouragement: string | null = null;
+    if (isNewCompletion) {
       void cancelScheduledNotificationById(makeNotificationId(p));
 
       const motivators = [t('motivate1'), t('motivate2'), t('motivate3'), t('motivate4'), t('motivate5')];
@@ -2322,7 +2336,35 @@ function PlannerApp() {
         duration: 3000
       });
       setShowCelebration(true);
-      showSpeechBubbleText('complete', p.title || 'nhiệm vụ', p.id);
+
+      const today = new Date();
+      const todayKey = getLocalDateKey(today);
+      const currentPlans = plansRef.current;
+      const beforeStreak = calculateStreak(
+        getCompletedDayKeys(currentPlans),
+        today,
+        settingsRef.current.streakBest
+      );
+      const completedDateKey = getPlanLocalDateKey(p.date);
+      if (completedDateKey === todayKey) {
+        const nextPlans = mergePlans(currentPlans, [{ ...oldPlan, ...p, color: 'green' }]);
+        const afterStreak = calculateStreak(
+          getCompletedDayKeys(nextPlans),
+          today,
+          settingsRef.current.streakBest
+        );
+        if (afterStreak.current > beforeStreak.current) {
+          streakEncouragement = [5, 7, 10, 30].includes(afterStreak.current)
+            ? t('streakMilestoneEncouragement', { days: String(afterStreak.current) })
+            : t('streakStartEncouragement');
+        }
+      }
+
+      if (streakEncouragement) {
+        showStreakSpeechBubble(streakEncouragement);
+      } else {
+        showSpeechBubbleText('complete', p.title || 'nhiệm vụ', p.id);
+      }
     }
 
     const normalized = markPlanForSync({
@@ -2373,7 +2415,7 @@ function PlannerApp() {
         storage.setPendingSync(activeUid, 'plans', true);
       }
     }
-  }, [activeUid, captureUndoSnapshot, isOnline, settingsState.notificationSound, t, showSpeechBubbleText]);
+  }, [activeUid, captureUndoSnapshot, isOnline, settingsState.notificationSound, t, showSpeechBubbleText, showStreakSpeechBubble]);
 
   const handleAddPlan = React.useCallback(async (p: Plan) => {
     captureUndoSnapshot();
@@ -2511,6 +2553,16 @@ function PlannerApp() {
       });
     }
   }, [completedStreakDays, handleUpdateSettings, settingsState.streakBest, settingsState.streakDays, streakStats.best]);
+
+  React.useEffect(() => {
+    const previous = previousStreakSnapshotRef.current;
+    if (previous && previous.dateKey !== streakTodayKey
+      && previous.current > 0
+      && streakStats.current === 0) {
+      showStreakSpeechBubble(t('streakLostEncouragement'));
+    }
+    previousStreakSnapshotRef.current = { dateKey: streakTodayKey, current: streakStats.current };
+  }, [showStreakSpeechBubble, streakStats.current, streakTodayKey, t]);
 
   const weekTabs = React.useMemo(() => {
     const today = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -2952,6 +3004,11 @@ function PlannerApp() {
                        className="mt-1 h-7 gap-1.5 px-2 text-xs"
                        aria-label={`${t('streakLabel')}: ${streakStats.current} ${t('streakDays')}`}
                        title={`${t('streakLabel')}: ${streakStats.current} ${t('streakDays')}`}
+                       onClick={() => {
+                         if (!streakStats.completedToday) {
+                           showStreakSpeechBubble(t('streakRiskEncouragement'));
+                         }
+                       }}
                      >
                        <span className={cn("text-sm", !streakStats.completedToday && "grayscale opacity-50")}>🔥</span>
                        <span>{t('streakLabel')}: {streakStats.current} {t('streakDays')}</span>
@@ -2961,7 +3018,7 @@ function PlannerApp() {
                      <p className="font-semibold">{t('streakCurrent')}: {streakStats.current} {t('streakDays')}</p>
                      <p className="text-muted-foreground">{t('streakBest')}: {streakStats.best} {t('streakDays')}</p>
                      <p className="border-t border-border pt-2 text-xs text-muted-foreground">
-                       {streakStats.completedToday ? t('streakDoneToday') : t('streakDoToday')}
+                       {streakStats.completedToday ? t('streakDoneToday') : t('streakRiskEncouragement')}
                      </p>
                    </PopoverContent>
                  </Popover>
