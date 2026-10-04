@@ -7,7 +7,7 @@ import {
 } from 'date-fns';
 import { Plan, PlanColor, Language, Theme, TaskApplyMode } from '../types';
 import { cn } from '@/lib/utils';
-import { Plus, Edit2, Trash2, Clock3, Share2, ExternalLink, Clipboard, Copy } from 'lucide-react';
+import { Plus, Edit2, Trash2, Clock3, Share2, ExternalLink, Clipboard, Copy, Maximize2 } from 'lucide-react';
 import { Solar } from 'lunar-javascript';
 import { translations } from '../lib/i18n';
 import {
@@ -426,6 +426,8 @@ function ScheduleGridComponent({
   const [newApplyWeekDays, setNewApplyWeekDays] = React.useState<NonNullable<Plan['applyWeekDays']>>([]);
   const [newApplyUntil, setNewApplyUntil] = React.useState<string | undefined>(undefined);
   const [newNotes, setNewNotes] = React.useState('');
+  const [expandedNotesOpen, setExpandedNotesOpen] = React.useState(false);
+  const [expandedNotesDraft, setExpandedNotesDraft] = React.useState('');
   const [allowTextInput, setAllowTextInput] = React.useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
   const scheduleTableRef = React.useRef<HTMLTableElement>(null);
@@ -1493,9 +1495,10 @@ function ScheduleGridComponent({
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent
-          className="sm:rounded-2xl border-border max-w-sm bg-card"
+          allowTouchScroll
+          className="sm:rounded-2xl border-border max-w-sm bg-card flex max-h-[calc(100dvh-2rem)] min-h-0 flex-col overflow-hidden"
         >
-          <DialogHeader>
+          <DialogHeader className="shrink-0">
             <DialogTitle className="text-foreground">
               {allPlans.some(p => p.id === editingPlan?.id) ? t('editPlan') : t('addPlan')}
             </DialogTitle>
@@ -1520,7 +1523,8 @@ function ScheduleGridComponent({
               ) : null;
             })()}
           </DialogHeader>
-          <div className="grid gap-4 py-2">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y py-2">
+            <div className="grid gap-4">
             <div className="grid grid-cols-4 items-center gap-3">
               <Label htmlFor="title" className="text-right text-xs font-bold text-muted-foreground">
                 {t('title')}
@@ -1692,19 +1696,36 @@ function ScheduleGridComponent({
               <Label className="text-right text-xs font-bold pt-2 text-muted-foreground">
                 {t('notes')}
               </Label>
-              <Textarea
-                value={newNotes}
-                onChange={(e) => setNewNotes(e.target.value)}
-                placeholder={t('notesPlaceholder')}
-                rows={2}
-                readOnly={typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches && !allowTextInput}
-                onPointerDown={handleTextFieldInteraction}
-                onFocus={handleTextFieldInteraction}
-                className="col-span-3 text-xs resize-none bg-muted/50 border-border placeholder:text-muted-foreground"
-              />
+              <div className="col-span-3 relative">
+                <Textarea
+                  value={newNotes}
+                  onChange={(e) => setNewNotes(e.target.value)}
+                  placeholder={t('notesPlaceholder')}
+                  rows={2}
+                  readOnly={typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches && !allowTextInput}
+                  onPointerDown={handleTextFieldInteraction}
+                  onFocus={handleTextFieldInteraction}
+                  className="pr-10 text-xs resize-none bg-muted/50 border-border placeholder:text-muted-foreground"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1 h-7 w-7"
+                  aria-label="Phóng to phần ghi chú"
+                  title="Phóng to phần ghi chú"
+                  onClick={() => {
+                    setExpandedNotesDraft(newNotes);
+                    setExpandedNotesOpen(true);
+                  }}
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
             </div>
           </div>
-          <DialogFooter className="flex justify-between w-full flex-row gap-2">
+          <DialogFooter className="shrink-0 flex justify-between w-full flex-row gap-2">
             {allPlans.some(p => p.id === editingPlan?.id) && (
               <div className="flex items-center">
                 <Button type="button" variant="outline" size="icon" onClick={() => void handleCopy()} className="mr-2 h-8 w-8" aria-label="Sao chép task" title="Sao chép task">
@@ -1724,6 +1745,52 @@ function ScheduleGridComponent({
                 {t('save')}
               </Button>
             </div>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={expandedNotesOpen}
+        onOpenChange={(open) => {
+          setExpandedNotesOpen(open);
+          if (!open) setExpandedNotesDraft(newNotes);
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          allowTouchScroll
+          className="flex max-h-[calc(100dvh-2rem)] min-h-0 max-w-2xl flex-col overflow-hidden border-border bg-card sm:rounded-2xl"
+        >
+          <DialogHeader className="shrink-0">
+            <DialogTitle>{t('notes')}</DialogTitle>
+          </DialogHeader>
+          <Textarea
+            autoFocus
+            value={expandedNotesDraft}
+            onChange={(event) => setExpandedNotesDraft(event.target.value)}
+            placeholder={t('notesPlaceholder')}
+            className="min-h-0 flex-1 resize-none bg-muted/50 text-sm"
+          />
+          <DialogFooter className="shrink-0 flex-row justify-end">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setExpandedNotesDraft(newNotes);
+                setExpandedNotesOpen(false);
+              }}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                setNewNotes(expandedNotesDraft);
+                setExpandedNotesOpen(false);
+              }}
+            >
+              {t('save')}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
