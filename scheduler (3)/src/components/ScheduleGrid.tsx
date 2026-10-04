@@ -1794,7 +1794,7 @@ function ScheduleGridComponent({
             </div>
             </div>
           </div>
-          <DialogFooter className="shrink-0 flex justify-between w-full flex-row gap-2">
+          <DialogFooter className="col-span-full w-[calc(100%+2rem)] shrink-0 flex flex-row justify-between gap-2">
             {allPlans.some(p => p.id === editingPlan?.id) && (
               <div className="flex items-center">
                 <Button type="button" variant="outline" size="icon" onClick={() => void handleCopy()} className="mr-2 h-8 w-8" aria-label="Sao chép task" title="Sao chép task">
