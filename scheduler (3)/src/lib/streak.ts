@@ -51,12 +51,13 @@ export const getCompletedDayKeys = (plans: Plan[]): string[] => {
 export const calculateStreak = (
   completedDayKeys: string[],
   today: Date,
-  previousBest = 0
+  historicalDayKeys: string[] = []
 ): StreakStats => {
-  const validDayKeys = [...new Set(completedDayKeys.filter(isValidDateKey))].sort();
+  const currentDayKeys = [...new Set(completedDayKeys.filter(isValidDateKey))].sort();
+  const validDayKeys = [...new Set([...currentDayKeys, ...historicalDayKeys.filter(isValidDateKey)])].sort();
   const completedDays = new Set(validDayKeys);
   const todayKey = getLocalDateKey(today);
-  const completedToday = completedDays.has(todayKey);
+  const completedToday = currentDayKeys.includes(todayKey);
 
   let current = 0;
   let currentDay = completedToday ? todayKey : shiftDateKey(todayKey, -1);
@@ -78,7 +79,7 @@ export const calculateStreak = (
 
   return {
     current,
-    best: Math.max(current, bestFromHistory, Number.isFinite(previousBest) ? previousBest : 0),
+    best: Math.max(current, bestFromHistory),
     completedToday,
     completedDayKeys: validDayKeys,
   };

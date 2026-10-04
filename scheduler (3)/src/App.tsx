@@ -2307,7 +2307,7 @@ function PlannerApp() {
       const beforeStreak = calculateStreak(
         getCompletedDayKeys(currentPlans),
         today,
-        settingsRef.current.streakBest
+        settingsRef.current.streakDays
       );
       const completedDateKey = getPlanLocalDateKey(p.date);
       if (completedDateKey === todayKey) {
@@ -2315,7 +2315,7 @@ function PlannerApp() {
         const afterStreak = calculateStreak(
           getCompletedDayKeys(nextPlans),
           today,
-          settingsRef.current.streakBest
+          settingsRef.current.streakDays
         );
         if (afterStreak.current > beforeStreak.current) {
           streakEncouragement = [5, 7, 10, 30].includes(afterStreak.current)
@@ -2495,8 +2495,8 @@ function PlannerApp() {
   const completedPlansCount = currentWeekPlans.filter(p => p.color === 'green').length;
   const completedStreakDays = React.useMemo(() => getCompletedDayKeys(plans), [plans]);
   const streakStats = React.useMemo(
-    () => calculateStreak(completedStreakDays, new Date(`${streakTodayKey}T12:00:00`), settingsState.streakBest),
-    [completedStreakDays, settingsState.streakBest, streakTodayKey]
+    () => calculateStreak(completedStreakDays, new Date(`${streakTodayKey}T12:00:00`), settingsState.streakDays),
+    [completedStreakDays, settingsState.streakDays, streakTodayKey]
   );
 
   React.useEffect(() => {
@@ -2507,16 +2507,18 @@ function PlannerApp() {
   }, []);
 
   React.useEffect(() => {
+    if (authLoading || syncing) return;
+
     const savedDays = settingsState.streakDays ?? [];
-    const daysChanged = savedDays.length !== completedStreakDays.length
-      || savedDays.some((day, index) => day !== completedStreakDays[index]);
+    const daysChanged = savedDays.length !== streakStats.completedDayKeys.length
+      || savedDays.some((day, index) => day !== streakStats.completedDayKeys[index]);
     if (daysChanged || streakStats.best !== settingsState.streakBest) {
       handleUpdateSettings({
         streakBest: streakStats.best,
-        streakDays: completedStreakDays,
+        streakDays: streakStats.completedDayKeys,
       });
     }
-  }, [completedStreakDays, handleUpdateSettings, settingsState.streakBest, settingsState.streakDays, streakStats.best]);
+  }, [authLoading, handleUpdateSettings, settingsState.streakBest, settingsState.streakDays, streakStats.best, streakStats.completedDayKeys, syncing]);
 
   React.useEffect(() => {
     const previous = previousStreakSnapshotRef.current;
@@ -2967,9 +2969,6 @@ function PlannerApp() {
                    <PopoverContent align="start" className="space-y-2">
                      <p className="font-semibold">{t('streakCurrent')}: {streakStats.current} {t('streakDays')}</p>
                      <p className="text-muted-foreground">{t('streakBest')}: {streakStats.best} {t('streakDays')}</p>
-                     <p className="border-t border-border pt-2 text-xs text-muted-foreground">
-                       {streakStats.completedToday ? t('streakDoneToday') : t('streakRiskEncouragement')}
-                     </p>
                    </PopoverContent>
                  </Popover>
               </div>
