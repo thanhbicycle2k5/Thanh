@@ -935,7 +935,7 @@ function ScheduleGridComponent({
         setNewApplyDays([]);
         setNewApplyWeekInterval(0);
         setNewApplyWeekDays([]);
-        setNewApplyUntil(date.toISOString().slice(0, 10));
+        setNewApplyUntil(format(date, 'yyyy-MM-dd'));
         setNewNotes('');
       }
       setIsDialogOpen(true);
