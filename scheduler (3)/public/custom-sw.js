@@ -147,8 +147,7 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
-self.addEventListener('message', async (event) => {
-  const message = event.data;
+async function handleNotificationMessage(message) {
   if (!message) {
     return;
   }
@@ -196,6 +195,12 @@ self.addEventListener('message', async (event) => {
     return;
   }
 
+  const existingTimeout = fallbackScheduledTimeouts.get(payload.id);
+  if (existingTimeout !== undefined) {
+    self.clearTimeout(existingTimeout);
+    fallbackScheduledTimeouts.delete(payload.id);
+  }
+
   await storeScheduledPayload(payload);
   if ('sync' in self.registration) {
     try {
@@ -215,6 +220,8 @@ self.addEventListener('message', async (event) => {
         body: payload.body,
         tag: payload.id,
         renotify: false,
+        icon: '/task2goal-app-icon.png',
+        badge: '/task2goal-app-icon.png',
         showTrigger: new TimestampTrigger(payload.fireAt),
         data: payload,
       });
@@ -226,10 +233,22 @@ self.addEventListener('message', async (event) => {
 
   const timeoutId = self.setTimeout(async () => {
     await showNotification(payload);
-    await triggerStoredNotifications();
+    await removeScheduledPayload(new Request(`/scheduly-notification/${payload.id}`));
     fallbackScheduledTimeouts.delete(payload.id);
   }, Math.max(0, delay));
   fallbackScheduledTimeouts.set(payload.id, timeoutId);
+}
+
+self.addEventListener('message', (event) => {
+  const message = event.data;
+  if (!message) return;
+
+  if (message.type === 'SCHEDULY_SKIP_WAITING') {
+    event.waitUntil(self.skipWaiting());
+    return;
+  }
+
+  event.waitUntil(handleNotificationMessage(message));
 });
 
 async function triggerStoredNotifications() {
@@ -237,7 +256,9 @@ async function triggerStoredNotifications() {
   const now = Date.now();
   await Promise.all(
     items.map(async ({ request, payload }) => {
-      if (payload.fireAt <= now && now - payload.fireAt < 60_000) {
+      if (payload.expiresAt && payload.expiresAt <= now) {
+        await removeScheduledPayload(request);
+      } else if (payload.fireAt <= now) {
         await showNotification(payload);
         await removeScheduledPayload(request);
       }
@@ -254,6 +275,10 @@ self.addEventListener('sync', (event) => {
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const taskId = event.notification.data?.taskId;
+  const notificationId = event.notification.tag;
+  if (notificationId) {
+    event.waitUntil(removeScheduledPayload(new Request(`/scheduly-notification/${notificationId}`)));
+  }
   const targetUrl = taskId ? `/?taskId=${encodeURIComponent(taskId)}` : '/';
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {

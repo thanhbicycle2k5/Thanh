@@ -10,6 +10,18 @@ test('supports start minutes in 15-minute increments', () => {
     startMinute: 15,
   });
 
+  test('interprets date-only task dates in the local timezone', () => {
+    const start = getPlanStartDate({
+      date: '2026-10-04',
+      startHour: 9,
+    });
+
+    assert.equal(start.getFullYear(), 2026);
+    assert.equal(start.getMonth(), 9);
+    assert.equal(start.getDate(), 4);
+    assert.equal(start.getHours(), 9);
+  });
+
   const reminder = getPlanReminderDate({
     date: '2026-09-01',
     startHour: 9,

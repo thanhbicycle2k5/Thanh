@@ -30,7 +30,6 @@ import { calculateStreak, getCompletedDayKeys, getLocalDateKey, getPlanLocalDate
 import { getSchedulyMessage, SchedulyStatus, getRandomPomodoroEncouragementMessage } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
-import { buildRemoteReminders, sendWebPushTest, subscribeToWebPush, syncWebPushReminders } from './lib/webPush';
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
 import { SharedScheduleView } from './components/SharedScheduleView';
@@ -406,6 +405,7 @@ function PlannerApp() {
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const [streakTodayKey, setStreakTodayKey] = React.useState(() => getLocalDateKey(new Date()));
   const previousStreakSnapshotRef = React.useRef<{ dateKey: string; current: number } | null>(null);
+  const notificationToggleInFlightRef = React.useRef(false);
   const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(storage.getSettings()));
   const [settingsError, setSettingsError] = React.useState<string | null>(null);
   const [sharedLinks, setSharedLinks] = React.useState<SharedScheduleLink[]>([]);
@@ -1363,7 +1363,6 @@ function PlannerApp() {
     };
     const handleOffline = () => {
       setIsOnline(false);
-      clearAllScheduledNotifications();
     };
 
     window.addEventListener('online', handleOnline);
@@ -1764,8 +1763,6 @@ function PlannerApp() {
     return await requestUniversalNotificationPermission();
   }, []);
 
-  const ENABLE_BACKGROUND_PUSH_NOTIFICATIONS = false;
-
   const openNotificationSettings = React.useCallback(() => {
     if (typeof window === 'undefined') return false;
 
@@ -1790,56 +1787,51 @@ function PlannerApp() {
   }, []);
 
   const handleToggleNotifications = React.useCallback(async (enabled: boolean) => {
-    if (enabled === settingsState.notificationsEnabled) {
+    if (notificationToggleInFlightRef.current || enabled === settingsRef.current.notificationsEnabled) {
       return;
     }
+    notificationToggleInFlightRef.current = true;
 
     if (!enabled) {
-      await clearAllScheduledNotifications();
-      try {
-        await syncWebPushReminders([]);
-      } catch (error) {
-        console.warn('Failed to clear server reminders:', error);
-      }
       handleUpdateSettings({ notificationsEnabled: false });
+      void clearAllScheduledNotifications().catch((error) => {
+        console.error('Failed to cancel scheduled notifications:', error);
+        toast.error('Không thể hủy toàn bộ thông báo đã lên lịch.');
+      });
+      notificationToggleInFlightRef.current = false;
       return;
     }
 
-    const permission = await getNotificationPermission();
-    if (permission !== 'granted') {
-      if (permission === 'denied') {
-        const opened = openNotificationSettings();
-        toast.error(opened ? 'Quyền thông báo đã bị chặn. Hãy bật lại trong cài đặt trình duyệt.' : 'Quyền thông báo đã bị chặn. Hãy bật lại trong cài đặt trình duyệt.');
-      } else {
-        toast.error('Chưa cấp quyền thông báo. Hãy cho phép khi trình duyệt hỏi.');
+    try {
+      const permission = await getNotificationPermission();
+      if (permission !== 'granted') {
+        if (permission === 'denied') {
+          openNotificationSettings();
+          toast.error('Quyền thông báo đã bị chặn. Hãy bật lại trong cài đặt trình duyệt.');
+        } else {
+          toast.error('Chưa cấp quyền thông báo. Hãy cho phép khi trình duyệt hỏi.');
+        }
+        handleUpdateSettings({ notificationsEnabled: false });
+        return;
       }
-      await clearAllScheduledNotifications();
-      handleUpdateSettings({ notificationsEnabled: false });
-      return;
-    }
 
-    if (ENABLE_BACKGROUND_PUSH_NOTIFICATIONS) {
       const registration = await registerNotificationWorker();
       if (!registration) {
         toast.error('Could not register the notification service worker.');
-        handleUpdateSettings({ notificationsEnabled: false });
         return;
       }
-      try {
-        await subscribeToWebPush(registration);
-      } catch (error) {
-        console.error('Push subscription failed:', error);
-        toast.error(error instanceof Error ? error.message : 'Could not enable push notifications.');
-        handleUpdateSettings({ notificationsEnabled: false });
-        return;
-      }
+      handleUpdateSettings({ notificationsEnabled: true });
+    } catch (error) {
+      console.error('Failed to enable notifications:', error);
+      toast.error(error instanceof Error ? error.message : 'Could not enable notifications.');
+      handleUpdateSettings({ notificationsEnabled: false });
+    } finally {
+      notificationToggleInFlightRef.current = false;
     }
-
-    handleUpdateSettings({ notificationsEnabled: true });
-  }, [settingsState.notificationsEnabled, getNotificationPermission, openNotificationSettings, handleUpdateSettings]);
+  }, [getNotificationPermission, openNotificationSettings, handleUpdateSettings, clearAllScheduledNotifications]);
 
   const sendReminderNotification = React.useCallback(async (plan: Plan) => {
-    if (!isOnline || !settingsState.notificationsEnabled || plan.color === 'green') {
+    if (!settingsState.notificationsEnabled || plan.color === 'green') {
       return;
     }
 
@@ -1893,135 +1885,107 @@ function PlannerApp() {
         showImmediateNotification(taskName);
       }
     }
-  }, [makeNotificationId, user, showSpeechBubbleText, getEventDate, getMinutesUntilStart, isWithinReminderWindow, isOnline, settingsState]);
+  }, [makeNotificationId, user, showSpeechBubbleText, getEventDate, getMinutesUntilStart, isWithinReminderWindow, settingsState]);
 
   const scheduleUpcomingNotifications = React.useCallback(async () => {
-    if (!isOnline || !settingsState.notificationsEnabled) {
+    if (!settingsState.notificationsEnabled) {
       return;
     }
 
-    await clearAllScheduledNotifications();
+    await clearAllWorkerNotifications();
     if (typeof window === 'undefined') {
       return;
     }
 
-    const permission = await getNotificationPermission();
-    if (permission !== 'granted') {
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
       return;
     }
 
-    if (ENABLE_BACKGROUND_PUSH_NOTIFICATIONS) {
+    const now = Date.now();
+    const pendingPlans = plansRef.current
+      .filter((plan) => plan.color !== 'green')
+      .map((plan) => ({
+        plan,
+        eventAt: getEventDate(plan).getTime(),
+        fireAt: getPlanReminderDate({
+          date: plan.date,
+          startHour: plan.startHour,
+          startMinute: plan.startMinute,
+        }).getTime(),
+      }))
+      .filter(({ eventAt }) => eventAt > now)
+      .sort((a, b) => a.fireAt - b.fireAt);
+
+    for (const { plan, eventAt, fireAt } of pendingPlans) {
+      const notificationId = makeNotificationId(plan);
+      if (firedNotificationIdsRef.current.has(notificationId)) continue;
+
+      const payload = {
+        id: notificationId,
+        title: buildNotificationTitle(),
+        body: buildNotificationBody(plan.title),
+        fireAt,
+        expiresAt: eventAt,
+      };
+
+      if (fireAt <= now) {
+        firedNotificationIdsRef.current.add(notificationId);
+        storage.addFiredNotificationId(notificationId, user?.uid);
+        await showNowNotification(payload.title, payload.body, payload.id);
+        continue;
+      }
+
       try {
-        await syncWebPushReminders(buildRemoteReminders(
-          plansRef.current,
-          () => buildNotificationTitle(),
-          (plan) => buildNotificationBody(plan.title),
-          (plan) => getPlanReminderDate({ date: plan.date, startHour: plan.startHour, startMinute: plan.startMinute }).getTime(),
-        ));
+        await scheduleTaskNotification(payload);
       } catch (error) {
-        console.error('Failed to sync server reminders:', error);
+        console.error(`Failed to schedule reminder for task "${plan.title}":`, error);
       }
     }
-
-    const now = Date.now();
-    const today = startOfDay(new Date());
-
-    plansRef.current.forEach((plan) => {
-      if (plan.color === 'green') {
-        return;
-      }
-      if (!isSameWeek(new Date(plan.date), selectedWeekStart, { weekStartsOn: 1 })) {
-        return;
-      }
-      if (!isSameDay(new Date(plan.date), today)) {
-        return;
-      }
-
-      const notificationId = makeNotificationId(plan);
-      if (firedNotificationIdsRef.current.has(notificationId)) {
-        return;
-      }
-
-      const eventDate = getEventDate(plan);
-      const remindAt = getPlanReminderDate({
-        date: plan.date,
-        startHour: plan.startHour,
-        startMinute: plan.startMinute,
-      }).getTime();
-      if (eventDate.getTime() <= now) {
-        return;
-      }
-
-      const minutesUntilStart = (eventDate.getTime() - now) / 60_000;
-      if (isWithinReminderWindow(minutesUntilStart)) {
-        void sendReminderNotification(plan);
-      }
-    });
-  }, [clearAllScheduledNotifications, getEventDate, makeNotificationId, sendReminderNotification, getNotificationPermission, selectedWeekStart, settingsState.notificationsEnabled, isOnline]);
+  }, [getEventDate, makeNotificationId, settingsState.notificationsEnabled, user]);
 
   const scanForMissedNotifications = React.useCallback(() => {
-    if (!isOnline || !settingsState.notificationsEnabled || typeof window === 'undefined') {
+    if (!settingsState.notificationsEnabled || typeof window === 'undefined') {
       return;
     }
-
-    const now = Date.now();
-    const today = startOfDay(new Date());
 
     plansRef.current.forEach((plan) => {
       if (plan.color === 'green') {
         return;
       }
-      if (!isSameWeek(new Date(plan.date), selectedWeekStart, { weekStartsOn: 1 })) {
-        return;
-      }
-      if (!isSameDay(new Date(plan.date), today)) {
-        return;
-      }
-
       const notificationId = makeNotificationId(plan);
       if (firedNotificationIdsRef.current.has(notificationId)) {
         return;
       }
 
       const eventDate = getEventDate(plan);
-      const minutesUntilStart = (eventDate.getTime() - now) / 60_000;
+      const minutesUntilStart = (eventDate.getTime() - Date.now()) / 60_000;
       if (isWithinReminderWindow(minutesUntilStart)) {
         void sendReminderNotification(plan);
       }
     });
-  }, [getEventDate, makeNotificationId, sendReminderNotification, selectedWeekStart, settingsState.notificationsEnabled, isOnline]);
+  }, [getEventDate, makeNotificationId, sendReminderNotification, settingsState.notificationsEnabled]);
 
   const startNotifications = React.useCallback(async () => {
-    const permission = await getNotificationPermission();
-    if (permission !== 'granted') {
-      toast.error('Notification permission denied.');
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
+      toast.error('Quyền thông báo chưa được cấp. Hãy bật lại trong cài đặt.');
+      handleUpdateSettings({ notificationsEnabled: false });
       return;
     }
 
-    if (ENABLE_BACKGROUND_PUSH_NOTIFICATIONS) {
-      const registration = await registerNotificationWorker();
-      if (!registration) {
-        toast.error('Could not register the notification service worker.');
-        return;
-      }
-      try {
-        await subscribeToWebPush(registration);
-      } catch (error) {
-        console.error('Push subscription refresh failed:', error);
-        toast.error(error instanceof Error ? error.message : 'Could not connect push notifications.');
-        return;
-      }
+    const registration = await registerNotificationWorker();
+    if (!registration) {
+      toast.error('Could not register the notification service worker.');
+      handleUpdateSettings({ notificationsEnabled: false });
+      return;
     }
-    await clearAllScheduledNotifications();
-    void scheduleUpcomingNotifications();
     if (notificationScannerRef.current !== null) {
       window.clearInterval(notificationScannerRef.current);
     }
     notificationScannerRef.current = window.setInterval(scanForMissedNotifications, 30_000);
-  }, [clearAllScheduledNotifications, getNotificationPermission, registerNotificationWorker, scheduleUpcomingNotifications, scanForMissedNotifications, handleUpdateSettings]);
+  }, [registerNotificationWorker, scanForMissedNotifications, handleUpdateSettings]);
 
   React.useEffect(() => {
-    if (!settingsState.notificationsEnabled || !isOnline) {
+    if (!settingsState.notificationsEnabled) {
       void clearAllScheduledNotifications();
       return;
     }
@@ -2031,15 +1995,15 @@ function PlannerApp() {
     return () => {
       void clearAllScheduledNotifications();
     };
-  }, [settingsState.notificationsEnabled, isOnline, clearAllScheduledNotifications, startNotifications]);
+  }, [settingsState.notificationsEnabled, clearAllScheduledNotifications, startNotifications]);
 
   React.useEffect(() => {
-    if (!settingsState.notificationsEnabled || !isOnline) {
+    if (!settingsState.notificationsEnabled) {
       return;
     }
 
     void scheduleUpcomingNotifications();
-  }, [plans, settingsState.notificationsEnabled, isOnline, scheduleUpcomingNotifications]);
+  }, [plans, settingsState.notificationsEnabled, scheduleUpcomingNotifications]);
 
   const formatSeconds = (seconds: number) => {
     const min = Math.floor(seconds / 60);
@@ -2825,21 +2789,7 @@ function PlannerApp() {
                variant="ghost"
                size="icon"
                className="h-9 w-9 shrink-0"
-               onClick={async () => {
-                 if (!settingsState.notificationsEnabled) {
-                   const permission = await getNotificationPermission();
-                   if (permission === 'denied') {
-                     openNotificationSettings();
-                     toast.info('Vui lòng bật quyền thông báo trong cài đặt trình duyệt.');
-                     return;
-                   }
-                   if (permission === 'default') {
-                     await handleToggleNotifications(true);
-                     return;
-                   }
-                 }
-                 void handleToggleNotifications(!settingsState.notificationsEnabled);
-               }}
+               onClick={() => { void handleToggleNotifications(!settingsState.notificationsEnabled); }}
                title={settingsState.notificationsEnabled ? 'Tắt nhắc nhở thông minh' : 'Bật nhắc nhở thông minh'}
                aria-label={settingsState.notificationsEnabled ? 'Disable smart reminders' : 'Enable smart reminders'}
              >
@@ -3861,7 +3811,11 @@ function PlannerApp() {
                         disabled={!settingsState.notificationsEnabled}
                         onClick={async () => {
                           try {
-                            await sendWebPushTest();
+                            await showNowNotification(
+                              buildNotificationTitle(),
+                              buildNotificationBody('thông báo thử'),
+                              'task2goal-test-notification'
+                            );
                             toast.success('Test notification sent.');
                           } catch (error) {
                             toast.error(error instanceof Error ? error.message : 'Could not send the test notification.');

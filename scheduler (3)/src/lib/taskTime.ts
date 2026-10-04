@@ -8,7 +8,10 @@ export const formatPlanTime = (hour: number, minute: number = 0) => {
 };
 
 export const getPlanStartDate = (plan: Pick<Plan, 'date' | 'startHour' | 'startMinute'>) => {
-  const start = new Date(plan.date);
+  const dateOnly = /^(\d{4})-(\d{2})-(\d{2})$/.exec(plan.date);
+  const start = dateOnly
+    ? new Date(Number(dateOnly[1]), Number(dateOnly[2]) - 1, Number(dateOnly[3]))
+    : new Date(plan.date);
   start.setHours(plan.startHour, plan.startMinute ?? 0, 0, 0);
   return start;
 };
