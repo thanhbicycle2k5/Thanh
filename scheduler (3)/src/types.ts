@@ -87,6 +87,8 @@ export interface AppSettings {
   catColor?: CatColor;
   weekTransitionEffect?: WeekTransitionEffect;
   aiProvider?: AIProvider;
+  streakBest: number;
+  streakDays: string[];
   updatedAt?: string;
 }
 

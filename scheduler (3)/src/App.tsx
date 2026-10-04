@@ -26,6 +26,7 @@ import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerSt
 import { playNotificationSound, playCompletionMelody, playMeow, playLogoClick } from './lib/sounds';
 import { getPlanReminderDate, getPlanStartDate, isWithinReminderWindow } from './lib/taskTime';
 import { calculatePomodoroRemainingSeconds, shouldStartPomodoroMusic } from './lib/pomodoro';
+import { calculateStreak, getCompletedDayKeys, getLocalDateKey } from './lib/streak';
 import { getSchedulyMessage, SchedulyStatus, getRandomPomodoroEncouragementMessage } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
@@ -403,6 +404,7 @@ function PlannerApp() {
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   const [openWeekPopoverKey, setOpenWeekPopoverKey] = React.useState<string | null>(null);
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
+  const [streakTodayKey, setStreakTodayKey] = React.useState(() => getLocalDateKey(new Date()));
   const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(storage.getSettings()));
   const [settingsError, setSettingsError] = React.useState<string | null>(null);
   const [sharedLinks, setSharedLinks] = React.useState<SharedScheduleLink[]>([]);
@@ -2485,6 +2487,30 @@ function PlannerApp() {
 
   const totalPlansCount = currentWeekPlans.length;
   const completedPlansCount = currentWeekPlans.filter(p => p.color === 'green').length;
+  const completedStreakDays = React.useMemo(() => getCompletedDayKeys(plans), [plans]);
+  const streakStats = React.useMemo(
+    () => calculateStreak(completedStreakDays, new Date(`${streakTodayKey}T12:00:00`), settingsState.streakBest),
+    [completedStreakDays, settingsState.streakBest, streakTodayKey]
+  );
+
+  React.useEffect(() => {
+    const timer = window.setInterval(() => {
+      setStreakTodayKey(getLocalDateKey(new Date()));
+    }, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  React.useEffect(() => {
+    const savedDays = settingsState.streakDays ?? [];
+    const daysChanged = savedDays.length !== completedStreakDays.length
+      || savedDays.some((day, index) => day !== completedStreakDays[index]);
+    if (daysChanged || streakStats.best !== settingsState.streakBest) {
+      handleUpdateSettings({
+        streakBest: streakStats.best,
+        streakDays: completedStreakDays,
+      });
+    }
+  }, [completedStreakDays, handleUpdateSettings, settingsState.streakBest, settingsState.streakDays, streakStats.best]);
 
   const weekTabs = React.useMemo(() => {
     const today = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -2917,6 +2943,28 @@ function PlannerApp() {
                  <p className="text-sm text-muted-foreground">
                    {format(selectedWeekStart, 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })} - {format(subDays(addWeeks(selectedWeekStart, 1), 1), 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })}
                  </p>
+                 <Popover>
+                   <PopoverTrigger asChild>
+                     <Button
+                       type="button"
+                       variant="ghost"
+                       size="sm"
+                       className="mt-1 h-7 gap-1.5 px-2 text-xs"
+                       aria-label={`${t('streakLabel')}: ${streakStats.current} ${t('streakDays')}`}
+                       title={`${t('streakLabel')}: ${streakStats.current} ${t('streakDays')}`}
+                     >
+                       <span className={cn("text-sm", !streakStats.completedToday && "grayscale opacity-50")}>🔥</span>
+                       <span>{t('streakLabel')}: {streakStats.current} {t('streakDays')}</span>
+                     </Button>
+                   </PopoverTrigger>
+                   <PopoverContent align="start" className="space-y-2">
+                     <p className="font-semibold">{t('streakCurrent')}: {streakStats.current} {t('streakDays')}</p>
+                     <p className="text-muted-foreground">{t('streakBest')}: {streakStats.best} {t('streakDays')}</p>
+                     <p className="border-t border-border pt-2 text-xs text-muted-foreground">
+                       {streakStats.completedToday ? t('streakDoneToday') : t('streakDoToday')}
+                     </p>
+                   </PopoverContent>
+                 </Popover>
               </div>
               <div className="flex items-center gap-2">
                 <Button type="button" variant="outline" size="sm" className="flex" onClick={() => setIsSummaryOpen(true)}>

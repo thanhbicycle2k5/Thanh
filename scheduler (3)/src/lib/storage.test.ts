@@ -8,6 +8,16 @@ test('none is a valid notification sound setting', () => {
   assert.equal(normalizeSettings({ notificationSound: 'none' }).notificationSound, 'none');
 });
 
+test('streak history is normalized for local and cloud settings', () => {
+  const settings = normalizeSettings({
+    streakBest: 7,
+    streakDays: ['2026-10-02', '2026-10-01', 'invalid', '2026-10-02'],
+  });
+
+  assert.equal(settings.streakBest, 7);
+  assert.deepEqual(settings.streakDays, ['2026-10-01', '2026-10-02']);
+});
+
 test('remote settings win when newer than stale local settings', () => {
   const local = { ...defaultSettings, theme: 'light' as const, updatedAt: '2024-01-01T00:00:00.000Z' };
   const remote = { ...defaultSettings, theme: 'dark' as const, updatedAt: '2024-01-02T00:00:00.000Z' };
