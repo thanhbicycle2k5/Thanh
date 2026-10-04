@@ -478,13 +478,11 @@ function PlannerApp() {
     }
   }, [settingsState.gymRestDurationSeconds, gymRestRunning]);
 
-  type PomodoroMode = 'work' | 'short' | 'long' | 'tutor' | 'tutorBreak';
+  type PomodoroMode = 'work' | 'short' | 'long';
   const POMODORO_DURATIONS: Record<PomodoroMode, number> = {
     work: 25 * 60,
     short: 5 * 60,
     long: 15 * 60,
-    tutor: 45 * 60,
-    tutorBreak: 5 * 60,
   };
   const [isPomodoroOpen, setIsPomodoroOpen] = React.useState(false);
   const [pomodoroMode, setPomodoroMode] = React.useState<PomodoroMode>('work');
@@ -561,22 +559,13 @@ function PlannerApp() {
         playNotificationSound(settingsState.notificationSound);
         toast.success(t(pomodoroMode === 'work' ? 'workCompleted' : 'breakOver'));
 
-        if (pomodoroMode === 'work' || pomodoroMode === 'tutor') {
+        if (pomodoroMode === 'work') {
           setCatMoodOverride('celebrating');
           setSpeechBubble({ id: `pomodoro-encouragement-${Date.now()}`, text: getRandomPomodoroEncouragementMessage(), status: 'complete' });
           window.setTimeout(() => setCatMoodOverride(null), 2500);
         }
 
-        if (pomodoroMode === 'tutor') {
-          setPomodoroSessions(pomodoroSessions + 1);
-          setPomodoroMode('tutorBreak');
-          setPomodoroSecondsLeft(POMODORO_DURATIONS.tutorBreak);
-          setPomodoroDeadline(Date.now() + POMODORO_DURATIONS.tutorBreak * 1000);
-        } else if (pomodoroMode === 'tutorBreak') {
-          setPomodoroMode('tutor');
-          setPomodoroSecondsLeft(POMODORO_DURATIONS.tutor);
-          setPomodoroDeadline(Date.now() + POMODORO_DURATIONS.tutor * 1000);
-        } else if (pomodoroMode === 'work') {
+        if (pomodoroMode === 'work') {
           const completedSessions = pomodoroSessions + 1;
           const nextMode: PomodoroMode = completedSessions % 4 === 0 ? 'long' : 'short';
           setPomodoroSessions(completedSessions);
@@ -631,9 +620,6 @@ function PlannerApp() {
     setPomodoroSecondsLeft(POMODORO_DURATIONS[mode]);
     setPomodoroDeadline(null);
     setPomodoroRunning(false);
-  };
-  const toggleTutorMode = () => {
-    switchPomodoroMode(pomodoroMode === 'tutor' ? 'work' : 'tutor');
   };
 
   const firedNotificationIdsRef = React.useRef<Set<string>>(new Set());
@@ -2507,8 +2493,8 @@ function PlannerApp() {
   // Determine cat mood based on current state
   const getCatMood = React.useCallback((): CatMood => {
     if (pomodoroRunning) {
-      if (pomodoroMode === 'work' || pomodoroMode === 'tutor') return 'gym';
-      if (pomodoroMode === 'short' || pomodoroMode === 'tutorBreak') return 'shortBreak';
+      if (pomodoroMode === 'work') return 'gym';
+      if (pomodoroMode === 'short') return 'shortBreak';
       if (pomodoroMode === 'long') return 'longBreak';
     }
     
@@ -3191,24 +3177,12 @@ function PlannerApp() {
                   <div className="p-4 space-y-4">
                     <div className="flex items-center gap-2">
                       <h3 className="font-bold text-sm uppercase tracking-wider">{t('pomodoro')}</h3>
-                      <Button
-                        type="button"
-                        variant={pomodoroMode === 'tutor' ? 'secondary' : 'ghost'}
-                        size="xs"
-                        className={cn(
-                          "h-7 rounded-lg px-2 text-[10px] font-semibold",
-                          pomodoroMode === 'tutor' && "bg-background text-red-600 shadow-sm"
-                        )}
-                        onClick={toggleTutorMode}
-                      >
-                        {t('tutorMode')}
-                      </Button>
                       <Badge variant="outline">{pomodoroSessions} {t('sessions')}</Badge>
                     </div>
                     
                     <div className={cn(
                       "text-center py-6 rounded-2xl transition-colors duration-500",
-                      pomodoroMode === 'work' || pomodoroMode === 'tutor'
+                      pomodoroMode === 'work'
                         ? "bg-red-500/10 text-red-600 dark:text-red-400" 
                         : "bg-teal-500/10 text-teal-600 dark:text-teal-400"
                     )}>
@@ -3222,9 +3196,7 @@ function PlannerApp() {
                             ? 'shortBreak'
                             : pomodoroMode === 'long'
                               ? 'longBreak'
-                              : pomodoroMode === 'tutorBreak'
-                                ? 'tutorBreak'
-                                : pomodoroMode
+                              : 'work'
                         )}
                       </p>
                     </div>
@@ -3238,14 +3210,14 @@ function PlannerApp() {
                           className={cn(
                             "flex-1 text-[10px] rounded-lg transition-all",
                             pomodoroMode === m && (
-                              pomodoroMode === 'work' || pomodoroMode === 'tutor'
+                              pomodoroMode === 'work'
                                 ? "bg-background text-red-600 shadow-sm" 
                                 : "bg-background text-teal-600 shadow-sm"
                             )
                           )}
                           onClick={() => switchPomodoroMode(m)}
                         >
-                          {t(m === 'work' ? 'work' : m === 'short' ? 'shortBreak' : m === 'long' ? 'longBreak' : 'tutorMode' as any)}
+                          {t(m === 'work' ? 'work' : m === 'short' ? 'shortBreak' : 'longBreak')}
                         </Button>
                       ))}
                     </div>
@@ -3274,7 +3246,7 @@ function PlannerApp() {
                           "flex-1 h-10 rounded-xl font-bold transition-all",
                           pomodoroRunning 
                             ? "bg-secondary text-secondary-foreground hover:bg-secondary/80" 
-                            : (pomodoroMode === 'work' || pomodoroMode === 'tutor' ? "bg-red-600 hover:bg-red-700 text-white" : "bg-teal-600 hover:bg-teal-700 text-white")
+                            : (pomodoroMode === 'work' ? "bg-red-600 hover:bg-red-700 text-white" : "bg-teal-600 hover:bg-teal-700 text-white")
                         )}
                         onClick={togglePomodoro}
                       >
