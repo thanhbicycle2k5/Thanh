@@ -2662,7 +2662,7 @@ function PlannerApp() {
     ? Math.min(1, Math.max(0, settingsState.boardOpacity))
     : 1;
   const boardSurfaceColor = `color-mix(in srgb, var(--card) ${Math.max(2, visibleBoardOpacity * 100)}%, transparent)`;
-  const noteSurfaceColor = `color-mix(in srgb, var(--muted) ${Math.max(2, visibleBoardOpacity * 100)}%, transparent)`;
+  const noteSurfaceColor = 'var(--muted)';
 
   return (
     <div 
@@ -3079,7 +3079,7 @@ function PlannerApp() {
                                   queueWeekMetaCloudSave(key, { note: e.target.value });
                                }}
                                placeholder={t('weekNotePlaceholder')}
-                               className="text-xs min-h-[100px] resize-none rounded-xl bg-muted/50 border-border"
+                               className="text-xs min-h-[100px] resize-none rounded-xl bg-muted border-border"
                             />
                          </div>
                          
