@@ -5,6 +5,7 @@ const SCHEDULY_CLEAR_ALL_NOTIFICATIONS = 'SCHEDULY_CLEAR_ALL_NOTIFICATIONS';
 const APP_SHELL_URLS = ['/', '/index.html', '/task2goal-app-icon.png', '/task2goal-splash-square.png', '/manifest.webmanifest'];
 
 const fallbackScheduledTimeouts = new Map();
+let notificationMessageQueue = Promise.resolve();
 
 async function openScheduleCache() {
   return await caches.open(SCHEDULE_CACHE_NAME);
@@ -50,7 +51,9 @@ async function clearScheduledPayloads() {
 async function closeActiveNotifications() {
   try {
     const notifications = await self.registration.getNotifications();
-    notifications.forEach((notification) => notification.close());
+    notifications
+      .filter((notification) => notification.tag?.startsWith('scheduly-'))
+      .forEach((notification) => notification.close());
   } catch (error) {
     console.warn('Failed to close scheduled notifications', error);
   }
@@ -90,7 +93,8 @@ self.addEventListener('activate', (event) => {
         })
       );
       await self.clients.claim();
-      await triggerStoredNotifications();
+      await clearScheduledPayloads();
+      await closeActiveNotifications();
     })()
   );
 });
@@ -245,12 +249,12 @@ self.addEventListener('message', (event) => {
   const message = event.data;
   if (!message) return;
 
-  if (message.type === 'SCHEDULY_SKIP_WAITING') {
-    event.waitUntil(self.skipWaiting());
-    return;
-  }
-
-  event.waitUntil(handleNotificationMessage(message));
+  notificationMessageQueue = notificationMessageQueue
+    .catch((error) => {
+      console.error('Previous notification message failed:', error);
+    })
+    .then(() => handleNotificationMessage(message));
+  event.waitUntil(notificationMessageQueue);
 });
 
 async function triggerStoredNotifications() {
@@ -266,7 +270,9 @@ async function triggerStoredNotifications() {
       } else if (payload.delivery !== 'fallback') {
         await removeScheduledPayload(request);
       } else if (payload.fireAt <= now) {
-        await showNotification(payload);
+        if (now - payload.fireAt <= 60_000) {
+          await showNotification(payload);
+        }
         await removeScheduledPayload(request);
       }
     })
