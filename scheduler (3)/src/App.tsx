@@ -12,6 +12,8 @@ import {
   subWeeks, 
   isSameWeek,
   isAfter,
+  getISOWeek,
+  getISOWeekYear,
 } from 'date-fns';
 import { enUS, vi } from 'date-fns/locale';
 import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack, AIProvider } from './types';
@@ -2476,6 +2478,20 @@ function PlannerApp() {
     const today = startOfWeek(new Date(), { weekStartsOn: 1 });
     return Array.from({ length: 21 }, (_, i) => addWeeks(today, i - 10));
   }, []);
+  const summaryWeekGroups = React.useMemo(() => {
+    const currentWeek = startOfWeek(new Date(), { weekStartsOn: 1 });
+    const weeks = Array.from({ length: 52 }, (_, index) => addWeeks(currentWeek, index - 26));
+    return weeks.reduce<Array<{ year: number; weeks: Date[] }>>((groups, week) => {
+      const year = getISOWeekYear(week);
+      const currentGroup = groups[groups.length - 1];
+      if (currentGroup?.year === year) {
+        currentGroup.weeks.push(week);
+      } else {
+        groups.push({ year, weeks: [week] });
+      }
+      return groups;
+    }, []);
+  }, []);
 
   // Determine cat mood based on current state
   const getCatMood = React.useCallback((): CatMood => {
@@ -2885,7 +2901,15 @@ function PlannerApp() {
         <div className="container mx-auto max-w-7xl">
            <div className="mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
-                 <h2 className="text-2xl font-black">{t('weekOf')} {format(selectedWeekStart, 'w')}</h2>
+                 <button
+                   type="button"
+                   className="text-left rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                   onClick={() => setIsSummaryOpen(true)}
+                   aria-label={`${t('weekOf')} ${getISOWeek(selectedWeekStart)}, ${t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}`}
+                 >
+                   <h2 className="text-2xl font-black">{t('weekOf')} {getISOWeek(selectedWeekStart)}</h2>
+                   <p className="text-xs font-semibold text-muted-foreground">{t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}</p>
+                 </button>
                  <p className="text-sm text-muted-foreground">
                    {format(selectedWeekStart, 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })} - {format(subDays(addWeeks(selectedWeekStart, 1), 1), 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })}
                  </p>
@@ -2913,12 +2937,6 @@ function PlannerApp() {
                      <p className="text-muted-foreground">{t('streakBest')}: {streakStats.best} {t('streakDays')}</p>
                    </PopoverContent>
                  </Popover>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button type="button" variant="outline" size="sm" className="flex" onClick={() => setIsSummaryOpen(true)}>
-                  <Trophy className="w-3.5 h-3.5 mr-2 text-yellow-600" />
-                  {t('summaryButton')}
-                </Button>
               </div>
            </div>
 
@@ -3027,7 +3045,7 @@ function PlannerApp() {
                           )}
                           onClick={() => setSelectedWeekStart(ws)}
                         >
-                          {t('week')} {format(ws, 'w')}
+                          {t('week')} {getISOWeek(ws)}
                           {meta.note && <span className="ml-1 opacity-50">✎</span>}
                         </button>
                       </PopoverTrigger>
@@ -3892,9 +3910,11 @@ function PlannerApp() {
             <DialogTitle>{t('summaryYear').replace('{year}', format(new Date(), 'yyyy'))}</DialogTitle>
           </DialogHeader>
           <div className="min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-            {Array.from({ length: 52 }, (_, i) => {
-              const ws = startOfWeek(addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), i - 26), { weekStartsOn: 1 });
+            {summaryWeekGroups.map(({ year, weeks }) => (
+              <section key={year} className="mb-4 last:mb-0">
+                <h3 className="mb-2 text-sm font-bold text-muted-foreground">{t('yearLabel', { year: String(year) })}</h3>
+                <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6">
+            {weeks.map((ws) => {
               const weekPlans = plans.filter(p => isSameWeek(new Date(p.date), ws, { weekStartsOn: 1 }));
               const completed = weekPlans.filter(p => p.color === 'green').length;
               const total = weekPlans.length;
@@ -3902,7 +3922,7 @@ function PlannerApp() {
               
               return (
                     <div 
-                  key={i} 
+                  key={format(ws, 'yyyy-MM-dd')}
                     className={cn(
                       "p-2 rounded border border-border text-center transition-all cursor-pointer hover:scale-105",
                       isSameWeek(ws, new Date(), { weekStartsOn: 1 }) ? "ring-2 ring-[#107C41]" : "",
@@ -3910,7 +3930,7 @@ function PlannerApp() {
                     style={{ backgroundColor: noteSurfaceColor }}
                   onClick={() => { setSelectedWeekStart(ws); setIsSummaryOpen(false); }}
                 >
-                  <p className="text-[10px] font-bold opacity-50 uppercase">{t('week')} {format(ws, 'w')}</p>
+                  <p className="text-[10px] font-bold opacity-50 uppercase">{t('week')} {getISOWeek(ws)}</p>
                   <div className="my-1 flex justify-center">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black relative overflow-hidden" 
                          style={{ background: `conic-gradient(#107C41 ${ratio * 360}deg, var(--chart-track) 0deg)` }}>
@@ -3923,7 +3943,9 @@ function PlannerApp() {
                 </div>
               );
             })}
-            </div>
+                </div>
+              </section>
+            ))}
           </div>
         </DialogContent>}
       </Dialog>
