@@ -2229,7 +2229,10 @@ function PlannerApp() {
     }
   }, [activeUid, isOnline, t]);
 
-  const handleUpdatePlan = React.useCallback(async (p: Plan) => {
+  const handleUpdatePlan = React.useCallback(async (
+    p: Plan,
+    options?: { suppressCompletionToast?: boolean }
+  ) => {
     captureUndoSnapshot();
     const oldPlan = plansRef.current.find(x => x.id === p.id);
     const isNewCompletion = Boolean(oldPlan && oldPlan.color !== 'green' && p.color === 'green');
@@ -2237,12 +2240,14 @@ function PlannerApp() {
     if (isNewCompletion) {
       void cancelScheduledNotificationById(makeNotificationId(p));
 
-      const motivators = [t('motivate1'), t('motivate2'), t('motivate3'), t('motivate4'), t('motivate5')];
-      const message = motivators[Math.floor(Math.random() * motivators.length)];
-      toast.success(message, {
-        icon: <Trophy className="w-4 h-4 text-yellow-500" />,
-        duration: 3000
-      });
+      if (!options?.suppressCompletionToast) {
+        const motivators = [t('motivate1'), t('motivate2'), t('motivate3'), t('motivate4'), t('motivate5')];
+        const message = motivators[Math.floor(Math.random() * motivators.length)];
+        toast.success(message, {
+          icon: <Trophy className="w-4 h-4 text-yellow-500" />,
+          duration: 3000
+        });
+      }
       setShowCelebration(true);
 
       const today = new Date();

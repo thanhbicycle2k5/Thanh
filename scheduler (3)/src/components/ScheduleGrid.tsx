@@ -350,7 +350,7 @@ interface ScheduleGridProps {
   currentWeekStart: Date;
   plans: Plan[];
   onAddPlan: (plan: Plan) => void;
-  onUpdatePlan: (plan: Plan) => void | Promise<void>;
+  onUpdatePlan: (plan: Plan, options?: { suppressCompletionToast?: boolean }) => void | Promise<void>;
   onDeletePlan: (id: string) => Promise<void>;
   onPlanTurnGreen?: (plan: Plan) => void;
   language: Language;
@@ -984,7 +984,7 @@ function ScheduleGridComponent({
       if (clickCount.current === 1) {
         onUpdatePlan(updated);
       } else if (clickCount.current === 2) {
-        onUpdatePlan(updated);
+        onUpdatePlan(updated, { suppressCompletionToast: true });
         if (existing.color !== 'green') {
           onPlanTurnGreen?.(updated);
         }
