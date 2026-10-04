@@ -3046,10 +3046,7 @@ function PlannerApp() {
                               ? "shadow-lg scale-105 border-2 border-[#107C41]"
                               : "text-muted-foreground border-border hover:border-primary/30"
                           )}
-                          onClick={() => {
-                            setSelectedWeekStart(ws);
-                            setOpenWeekPopoverKey((currentKey) => currentKey === key ? null : key);
-                          }}
+                          onClick={() => setSelectedWeekStart(ws)}
                         >
                           {t('week')} {getISOWeek(ws)}
                           {meta.note && <span className="ml-1 opacity-50">✎</span>}
