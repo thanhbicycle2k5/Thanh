@@ -2911,9 +2911,9 @@ function PlannerApp() {
       <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth relative z-10" id="main-scroll-container">
         <div className="container mx-auto max-w-7xl">
            <div className="mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
+              <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
                  <h2 className="text-2xl font-black">{t('weekOf')} {format(selectedWeekStart, 'w')}</h2>
-                 <p className="text-sm opacity-60">
+                 <p className="text-sm text-muted-foreground">
                    {format(selectedWeekStart, 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })} - {format(addWeeks(selectedWeekStart, 1), 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })}
                  </p>
               </div>
