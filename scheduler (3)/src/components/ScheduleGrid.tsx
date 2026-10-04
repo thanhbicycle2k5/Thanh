@@ -433,6 +433,13 @@ function ScheduleGridComponent({
   const scheduleTableRef = React.useRef<HTMLTableElement>(null);
   const scheduleHeaderScrollRef = React.useRef<HTMLDivElement>(null);
   const scheduleBodyScrollRef = React.useRef<HTMLDivElement>(null);
+  const scheduleHorizontalSyncFrameRef = React.useRef<number | null>(null);
+  const scheduleHorizontalSyncTargetRef = React.useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => () => {
+    if (scheduleHorizontalSyncFrameRef.current !== null) {
+      window.cancelAnimationFrame(scheduleHorizontalSyncFrameRef.current);
+    }
+  }, []);
   const withScheduleExportHeader = React.useCallback(async <T,>(capture: () => Promise<T>): Promise<T> => {
     const header = scheduleTableRef.current?.querySelector('thead');
     header?.classList.remove('hidden');
@@ -1326,8 +1333,18 @@ function ScheduleGridComponent({
   const effectiveBoardOpacity = visibleBoardOpacity === 0 ? 0.12 : visibleBoardOpacity;
   const translucentCard = `color-mix(in srgb, var(--card) ${Math.max(2, effectiveBoardOpacity * 100)}%, transparent)`;
   const syncScheduleHorizontalScroll = (source: HTMLDivElement | null, target: HTMLDivElement | null) => {
-    if (!source || !target || target.scrollLeft === source.scrollLeft) return;
-    target.scrollLeft = source.scrollLeft;
+    if (!source || !target || target === scheduleHorizontalSyncTargetRef.current) return;
+
+    if (scheduleHorizontalSyncFrameRef.current !== null) {
+      window.cancelAnimationFrame(scheduleHorizontalSyncFrameRef.current);
+    }
+    scheduleHorizontalSyncTargetRef.current = target;
+    const scrollLeft = source.scrollLeft;
+    scheduleHorizontalSyncFrameRef.current = window.requestAnimationFrame(() => {
+      if (target.scrollLeft !== scrollLeft) target.scrollLeft = scrollLeft;
+      scheduleHorizontalSyncFrameRef.current = null;
+      scheduleHorizontalSyncTargetRef.current = null;
+    });
   };
   const scheduleHeaderRow = (
     <tr className="backdrop-blur" style={{ backgroundColor: translucentCard }}>
@@ -1362,7 +1379,7 @@ function ScheduleGridComponent({
       >
         <div
           ref={scheduleHeaderScrollRef}
-          className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="touch-pan-x overflow-x-auto [scroll-behavior:auto] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           onScroll={(event) => syncScheduleHorizontalScroll(event.currentTarget, scheduleBodyScrollRef.current)}
         >
           <table className="w-full border-collapse table-fixed min-w-[600px] !bg-transparent" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
@@ -1377,7 +1394,7 @@ function ScheduleGridComponent({
       <div
         id="schedule-scroll-container"
         ref={scheduleBodyScrollRef}
-        className="overflow-x-auto"
+        className="touch-pan-x overflow-x-auto [scroll-behavior:auto]"
         onScroll={(event) => syncScheduleHorizontalScroll(event.currentTarget, scheduleHeaderScrollRef.current)}
       >
       <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px] !bg-transparent" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
