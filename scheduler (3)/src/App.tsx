@@ -8,6 +8,7 @@ import {
   format, 
   startOfWeek, 
   addWeeks, 
+  subDays,
   subWeeks, 
   isSameDay,
   isSameWeek,
@@ -2914,7 +2915,7 @@ function PlannerApp() {
               <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
                  <h2 className="text-2xl font-black">{t('weekOf')} {format(selectedWeekStart, 'w')}</h2>
                  <p className="text-sm text-muted-foreground">
-                   {format(selectedWeekStart, 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })} - {format(addWeeks(selectedWeekStart, 1), 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })}
+                   {format(selectedWeekStart, 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })} - {format(subDays(addWeeks(selectedWeekStart, 1), 1), 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })}
                  </p>
               </div>
               <div className="flex items-center gap-2">
