@@ -2914,7 +2914,24 @@ function PlannerApp() {
 
       <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth relative z-10" id="main-scroll-container">
         <div className="container mx-auto max-w-7xl">
-           <div ref={weekSummaryStickyRef} className="sticky top-0 z-40 mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-transparent py-1">
+           <div ref={weekSummaryStickyRef} className="sticky top-0 z-40 isolate mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 py-1">
+              {settingsState.backgroundConfig && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 z-0 bg-background/40 dark:bg-background/60"
+                  style={{
+                    ...getBackgroundStyle(),
+                    backgroundAttachment: settingsState.backgroundConfig.type === 'image' ? 'fixed' : undefined,
+                    opacity: Number.isFinite(settingsState.backgroundConfig.opacity)
+                      ? settingsState.backgroundConfig.opacity
+                      : 1,
+                  }}
+                />
+              )}
+              {!settingsState.backgroundConfig && (
+                <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 bg-background" />
+              )}
+              <div className="relative z-10 flex w-full flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
               <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
                  <button
                    type="button"
@@ -2954,6 +2971,7 @@ function PlannerApp() {
                      </PopoverContent>
                    </Popover>
                  </div>
+              </div>
               </div>
            </div>
 
