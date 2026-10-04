@@ -2668,15 +2668,17 @@ function PlannerApp() {
   const noteSurfaceColor = settingsState.theme === 'dark' ? '#27272a' : '#f5f5f5';
   const weekSummaryContent = (
     <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
-      <button
+      <motion.button
         type="button"
-        className="flex cursor-pointer items-baseline gap-2 rounded-lg border border-border px-2 py-1 text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex cursor-pointer items-baseline gap-2 rounded-lg px-2 py-1 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={() => setIsSummaryOpen(true)}
+        whileTap={{ scale: 0.96, y: 1 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 24 }}
         aria-label={`${t('weekOf')} ${getISOWeek(selectedWeekStart)}, ${t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}`}
       >
         <span className="whitespace-nowrap text-2xl font-black">{t('weekOf')} {getISOWeek(selectedWeekStart)}</span>
         <span className="whitespace-nowrap text-xs font-semibold text-muted-foreground">{t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}</span>
-      </button>
+      </motion.button>
       <div className="flex min-w-0 items-center justify-between gap-1">
         <p className="whitespace-nowrap text-sm text-muted-foreground">
           {format(selectedWeekStart, 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })} - {format(subDays(addWeeks(selectedWeekStart, 1), 1), 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })}
