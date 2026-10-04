@@ -24,7 +24,6 @@ import {
   Timestamp,
   FieldPath,
 } from "firebase/firestore";
-import { getFunctions } from "firebase/functions";
 import { Plan, AppSettings } from "../types";
 const firebaseConfig = {
   apiKey: "AIzaSyAI2wBxUR9V5OHr1fVNHJbNv0ReUqxjOww",
@@ -40,7 +39,6 @@ const isNewApp = getApps().length === 0;
 const app = isNewApp ? initializeApp(firebaseConfig) : getApp();
 
 export const auth = getAuth(app);
-export const functions = getFunctions(app, "us-central1");
 
 // Keep Firestore data available offline and share the cache across browser tabs.
 export const db = initializeFirestore(app, {

@@ -18,6 +18,47 @@ const fallbackTimeouts = new Map<string, number>();
 
 const normalizeTaskName = (taskName: string) => taskName?.trim() || DEFAULT_TASK_LABEL;
 
+function postWorkerMessage(
+  registration: ServiceWorkerRegistration,
+  message: Record<string, unknown>
+): Promise<void> {
+  const worker = registration.active;
+  if (!worker || typeof MessageChannel === 'undefined') {
+    worker?.postMessage(message);
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const timeoutId = window.setTimeout(() => {
+      console.warn('Timed out waiting for notification service worker acknowledgement.');
+      channel.port1.close();
+      channel.port2.close();
+      resolve();
+    }, 5000);
+
+    channel.port1.onmessage = (event) => {
+      window.clearTimeout(timeoutId);
+      channel.port1.close();
+      channel.port2.close();
+      if (event.data?.error) {
+        console.error('Notification service worker failed to clear scheduled reminders:', event.data.error);
+      }
+      resolve();
+    };
+
+    try {
+      worker.postMessage(message, [channel.port2]);
+    } catch (error) {
+      window.clearTimeout(timeoutId);
+      channel.port1.close();
+      channel.port2.close();
+      console.warn('Failed to send message to notification service worker:', error);
+      resolve();
+    }
+  });
+}
+
 function scheduleInPageFallback(payload: ScheduledNotificationPayload): number | null {
   const delay = payload.fireAt - Date.now();
   if (delay <= 0 || typeof window === 'undefined') {
@@ -156,7 +197,7 @@ export async function clearScheduledNotifications(): Promise<void> {
   }
 
   if (registration?.active) {
-    registration.active.postMessage({ type: SCHEDULY_CLEAR_ALL_NOTIFICATIONS });
+    await postWorkerMessage(registration, { type: SCHEDULY_CLEAR_ALL_NOTIFICATIONS });
   }
 }
 

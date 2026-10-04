@@ -10,10 +10,8 @@ import {
   addWeeks, 
   subDays,
   subWeeks, 
-  isSameDay,
   isSameWeek,
   isAfter,
-  startOfDay,
 } from 'date-fns';
 import { enUS, vi } from 'date-fns/locale';
 import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack, AIProvider } from './types';
@@ -24,13 +22,12 @@ import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
 import { playNotificationSound, playCompletionMelody, playMeow, playLogoClick } from './lib/sounds';
-import { getPlanReminderDate, getPlanStartDate, isReminderStillRelevant, isWithinReminderWindow } from './lib/taskTime';
+import { getPlanStartDate, isReminderStillRelevant } from './lib/taskTime';
 import { calculatePomodoroRemainingSeconds, shouldStartPomodoroMusic } from './lib/pomodoro';
 import { calculateStreak, getCompletedDayKeys, getLocalDateKey, getPlanLocalDateKey, isPlanOnLocalDate } from './lib/streak';
 import { getSchedulyMessage, SchedulyStatus, getRandomPomodoroEncouragementMessage } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
-import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
-import { buildRemoteReminders, sendWebPushTest, subscribeToWebPush, syncWebPushReminders, unsubscribeFromWebPush } from './lib/webPush';
+import { requestUniversalNotificationPermission, registerNotificationWorker, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
 import { SharedScheduleView } from './components/SharedScheduleView';
@@ -1669,6 +1666,10 @@ function PlannerApp() {
   }, [settingsState.theme]);
 
   const makeNotificationId = React.useCallback((plan: Plan) => {
+    return `scheduly-${plan.id}-${plan.startHour}-${plan.startMinute ?? 0}-${plan.date}`;
+  }, []);
+
+  const makeLegacyNotificationId = React.useCallback((plan: Plan) => {
     const title = plan.title?.trim() || 'nhiệm vụ';
     const nameToken = title.replace(/[\s\W]+/g, '_').toLowerCase();
     return `scheduly-${nameToken}-${plan.startHour}-${plan.startMinute ?? 0}-${plan.date}`;
@@ -1795,11 +1796,7 @@ function PlannerApp() {
 
     if (!enabled) {
       handleUpdateSettings({ notificationsEnabled: false });
-      const cleanup = [
-        clearAllScheduledNotifications(),
-        ...(activeUid ? [unsubscribeFromWebPush()] : []),
-      ];
-      void Promise.all(cleanup).catch((error) => {
+      void clearAllScheduledNotifications().catch((error) => {
         console.error('Failed to disable scheduled notifications:', error);
         toast.error('Không thể hủy toàn bộ thông báo nền. Hãy kết nối mạng rồi thử lại.');
       });
@@ -1808,12 +1805,6 @@ function PlannerApp() {
     }
 
     try {
-      if (!activeUid) {
-        toast.error('Hãy đăng nhập để nhận thông báo khi ứng dụng đã đóng.');
-        handleUpdateSettings({ notificationsEnabled: false });
-        return;
-      }
-
       const permission = await getNotificationPermission();
       if (permission !== 'granted') {
         if (permission === 'denied') {
@@ -1831,7 +1822,6 @@ function PlannerApp() {
         toast.error('Could not register the notification service worker.');
         return;
       }
-      await subscribeToWebPush(registration);
       handleUpdateSettings({ notificationsEnabled: true });
     } catch (error) {
       console.error('Failed to enable notifications:', error);
@@ -1840,7 +1830,7 @@ function PlannerApp() {
     } finally {
       notificationToggleInFlightRef.current = false;
     }
-  }, [activeUid, getNotificationPermission, openNotificationSettings, handleUpdateSettings, clearAllScheduledNotifications]);
+  }, [getNotificationPermission, openNotificationSettings, handleUpdateSettings, clearAllScheduledNotifications]);
 
   const sendReminderNotification = React.useCallback(async (plan: Plan) => {
     if (!settingsState.notificationsEnabled || plan.color === 'green') {
@@ -1848,39 +1838,26 @@ function PlannerApp() {
     }
 
     const today = new Date();
-    const todayKey = getLocalDateKey(today);
     if (!isPlanOnLocalDate(plan.date, today)) {
       return;
     }
 
     const notificationId = makeNotificationId(plan);
     const minutesUntilStart = getMinutesUntilStart(plan);
-    if (!isWithinReminderWindow(minutesUntilStart)) {
+    if (!isReminderStillRelevant(minutesUntilStart)) {
       return;
     }
 
-    if (firedNotificationIdsRef.current.has(notificationId)) {
+    if (firedNotificationIdsRef.current.has(notificationId)
+      || firedNotificationIdsRef.current.has(makeLegacyNotificationId(plan))) {
       return;
     }
 
-    // Mark once the task truly enters the reminder window so repeated scan passes do not retrigger the same sound.
+    // Mark before awaiting browser APIs so overlapping scans cannot repeat the reminder.
     firedNotificationIdsRef.current.add(notificationId);
     storage.addFiredNotificationId(notificationId, user?.uid);
 
     const taskName = plan.title?.trim() || 'công việc';
-    const remindAt = getPlanReminderDate({
-      date: plan.date,
-      startHour: plan.startHour,
-      startMinute: plan.startMinute,
-    }).getTime();
-    const payload = {
-      id: notificationId,
-      title: buildNotificationTitle(),
-      body: buildNotificationBody(taskName),
-      fireAt: remindAt,
-      taskDate: todayKey,
-    };
-
     if (settingsState.catEnabled !== false) {
       playMeow();
       showSpeechBubbleText('remind', taskName, notificationId);
@@ -1888,98 +1865,14 @@ function PlannerApp() {
     void playNotificationSound(settingsState.notificationSound);
 
     try {
-      if (remindAt <= Date.now()) {
-        await showNowNotification(payload.title, payload.body, payload.id);
-      } else {
-        await scheduleTaskNotification(payload);
-      }
+      await showNowNotification(buildNotificationTitle(), buildNotificationBody(taskName), notificationId);
     } catch (error) {
       console.error('Failed to schedule notification', error);
       if (settingsRef.current.notificationsEnabled) {
         showImmediateNotification(taskName);
       }
     }
-  }, [makeNotificationId, user, showSpeechBubbleText, getEventDate, getMinutesUntilStart, isWithinReminderWindow, settingsState]);
-
-  const scheduleUpcomingNotifications = React.useCallback(async () => {
-    if (!settingsState.notificationsEnabled) {
-      return;
-    }
-
-    await clearAllWorkerNotifications();
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
-      return;
-    }
-
-    const now = Date.now();
-    const today = new Date(now);
-    const todayKey = getLocalDateKey(today);
-    const pendingPlans = plansRef.current
-      .filter((plan) => plan.color !== 'green' && isPlanOnLocalDate(plan.date, today))
-      .map((plan) => ({
-        plan,
-        eventAt: getEventDate(plan).getTime(),
-        fireAt: getPlanReminderDate({
-          date: plan.date,
-          startHour: plan.startHour,
-          startMinute: plan.startMinute,
-        }).getTime(),
-      }))
-      .filter(({ eventAt }) => eventAt > now)
-      .sort((a, b) => a.fireAt - b.fireAt);
-
-    if (activeUid) {
-      try {
-        await syncWebPushReminders(buildRemoteReminders(
-          plansRef.current,
-          () => buildNotificationTitle(),
-          (plan) => buildNotificationBody(plan.title),
-          (plan) => getPlanReminderDate({
-            date: plan.date,
-            startHour: plan.startHour,
-            startMinute: plan.startMinute,
-          }).getTime()
-        ));
-      } catch (error) {
-        console.error('Failed to sync background push reminders:', error);
-        toast.error('Không thể đồng bộ lịch thông báo nền. Hãy kiểm tra kết nối mạng.');
-      }
-    }
-
-    for (const { plan, eventAt, fireAt } of pendingPlans) {
-      const notificationId = makeNotificationId(plan);
-      if (firedNotificationIdsRef.current.has(notificationId)) continue;
-
-      const payload = {
-        id: notificationId,
-        title: buildNotificationTitle(),
-        body: buildNotificationBody(plan.title),
-        fireAt,
-        expiresAt: eventAt,
-        taskDate: todayKey,
-      };
-
-      if (fireAt <= now) {
-        if (!isReminderStillRelevant((eventAt - now) / 60_000)) {
-          continue;
-        }
-        firedNotificationIdsRef.current.add(notificationId);
-        storage.addFiredNotificationId(notificationId, user?.uid);
-        await showNowNotification(payload.title, payload.body, payload.id);
-        continue;
-      }
-
-      try {
-        await scheduleTaskNotification(payload);
-      } catch (error) {
-        console.error(`Failed to schedule reminder for task "${plan.title}":`, error);
-      }
-    }
-  }, [activeUid, getEventDate, makeNotificationId, settingsState.notificationsEnabled, user]);
+  }, [makeLegacyNotificationId, makeNotificationId, user, showSpeechBubbleText, getMinutesUntilStart, settingsState]);
 
   const scanForMissedNotifications = React.useCallback(() => {
     if (!settingsState.notificationsEnabled || typeof window === 'undefined') {
@@ -1991,27 +1884,22 @@ function PlannerApp() {
         return;
       }
       const notificationId = makeNotificationId(plan);
-      if (firedNotificationIdsRef.current.has(notificationId)) {
+      if (firedNotificationIdsRef.current.has(notificationId)
+        || firedNotificationIdsRef.current.has(makeLegacyNotificationId(plan))) {
         return;
       }
 
       const eventDate = getEventDate(plan);
       const minutesUntilStart = (eventDate.getTime() - Date.now()) / 60_000;
-      if (isWithinReminderWindow(minutesUntilStart)) {
+      if (isReminderStillRelevant(minutesUntilStart)) {
         void sendReminderNotification(plan);
       }
     });
-  }, [getEventDate, makeNotificationId, sendReminderNotification, settingsState.notificationsEnabled]);
+  }, [getEventDate, makeLegacyNotificationId, makeNotificationId, sendReminderNotification, settingsState.notificationsEnabled]);
 
   const startNotifications = React.useCallback(async () => {
     if (typeof Notification === 'undefined' || Notification.permission !== 'granted') {
       toast.error('Quyền thông báo chưa được cấp. Hãy bật lại trong cài đặt.');
-      handleUpdateSettings({ notificationsEnabled: false });
-      return;
-    }
-
-    if (!activeUid) {
-      toast.error('Hãy đăng nhập để nhận thông báo khi ứng dụng đã đóng.');
       handleUpdateSettings({ notificationsEnabled: false });
       return;
     }
@@ -2022,19 +1910,13 @@ function PlannerApp() {
       handleUpdateSettings({ notificationsEnabled: false });
       return;
     }
-    try {
-      await subscribeToWebPush(registration);
-    } catch (error) {
-      console.error('Background push registration failed:', error);
-      toast.error(error instanceof Error ? error.message : 'Không thể bật thông báo nền.');
-      handleUpdateSettings({ notificationsEnabled: false });
-      return;
-    }
+    await clearAllWorkerNotifications();
     if (notificationScannerRef.current !== null) {
       window.clearInterval(notificationScannerRef.current);
     }
+    scanForMissedNotifications();
     notificationScannerRef.current = window.setInterval(scanForMissedNotifications, 30_000);
-  }, [activeUid, registerNotificationWorker, scanForMissedNotifications, handleUpdateSettings]);
+  }, [registerNotificationWorker, scanForMissedNotifications, handleUpdateSettings]);
 
   React.useEffect(() => {
     if (!settingsState.notificationsEnabled) {
@@ -2050,12 +1932,20 @@ function PlannerApp() {
   }, [settingsState.notificationsEnabled, clearAllScheduledNotifications, startNotifications]);
 
   React.useEffect(() => {
-    if (!settingsState.notificationsEnabled) {
-      return;
-    }
+    if (!settingsState.notificationsEnabled) return;
 
-    void scheduleUpcomingNotifications();
-  }, [plans, settingsState.notificationsEnabled, scheduleUpcomingNotifications]);
+    const scanWhenForegrounded = () => {
+      if (document.visibilityState === 'visible') scanForMissedNotifications();
+    };
+    document.addEventListener('visibilitychange', scanWhenForegrounded);
+    window.addEventListener('focus', scanForMissedNotifications);
+    window.addEventListener('pageshow', scanForMissedNotifications);
+    return () => {
+      document.removeEventListener('visibilitychange', scanWhenForegrounded);
+      window.removeEventListener('focus', scanForMissedNotifications);
+      window.removeEventListener('pageshow', scanForMissedNotifications);
+    };
+  }, [scanForMissedNotifications, settingsState.notificationsEnabled]);
 
   const formatSeconds = (seconds: number) => {
     const min = Math.floor(seconds / 60);
@@ -3862,7 +3752,11 @@ function PlannerApp() {
                         disabled={!settingsState.notificationsEnabled}
                         onClick={async () => {
                           try {
-                            await sendWebPushTest();
+                            await showNowNotification(
+                              buildNotificationTitle(),
+                              buildNotificationBody('thông báo thử'),
+                              'task2goal-test-notification'
+                            );
                             toast.success('Test notification sent.');
                           } catch (error) {
                             toast.error(error instanceof Error ? error.message : 'Could not send the test notification.');

@@ -263,7 +263,13 @@ self.addEventListener('message', (event) => {
       console.error('Previous notification message failed:', error);
     })
     .then(() => handleNotificationMessage(message));
-  event.waitUntil(notificationMessageQueue);
+  event.waitUntil(notificationMessageQueue.then(
+    () => event.ports[0]?.postMessage({ ok: true }),
+    (error) => {
+      event.ports[0]?.postMessage({ error: String(error) });
+      throw error;
+    }
+  ));
 });
 
 async function triggerStoredNotifications() {
