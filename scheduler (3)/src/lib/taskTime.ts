@@ -28,6 +28,12 @@ export const isWithinReminderWindow = (minutesUntilStart: number) => {
   return minutesUntilStart >= 14 && minutesUntilStart <= 15;
 };
 
+export const isReminderStillRelevant = (minutesUntilStart: number) => {
+  return Number.isFinite(minutesUntilStart)
+    && minutesUntilStart > 0
+    && minutesUntilStart <= REMINDER_LEAD_MINUTES;
+};
+
 export const getPlanEndMinutes = (plan: Pick<Plan, 'startHour' | 'startMinute' | 'duration'>) => {
   // Keep task end aligned to whole-hour boundaries even when the start minute is not 0.
   // Example: 07:15 + 1 hour = 08:00, not 08:15.

@@ -24,7 +24,7 @@ import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
 import { playNotificationSound, playCompletionMelody, playMeow, playLogoClick } from './lib/sounds';
-import { getPlanReminderDate, getPlanStartDate, isWithinReminderWindow } from './lib/taskTime';
+import { getPlanReminderDate, getPlanStartDate, isReminderStillRelevant, isWithinReminderWindow } from './lib/taskTime';
 import { calculatePomodoroRemainingSeconds, shouldStartPomodoroMusic } from './lib/pomodoro';
 import { calculateStreak, getCompletedDayKeys, getLocalDateKey, getPlanLocalDateKey } from './lib/streak';
 import { getSchedulyMessage, SchedulyStatus, getRandomPomodoroEncouragementMessage } from './lib/schedulyMessages';
@@ -1929,6 +1929,9 @@ function PlannerApp() {
       };
 
       if (fireAt <= now) {
+        if (!isReminderStillRelevant((eventAt - now) / 60_000)) {
+          continue;
+        }
         firedNotificationIdsRef.current.add(notificationId);
         storage.addFiredNotificationId(notificationId, user?.uid);
         await showNowNotification(payload.title, payload.body, payload.id);

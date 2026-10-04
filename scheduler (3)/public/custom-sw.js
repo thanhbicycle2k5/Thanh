@@ -256,7 +256,10 @@ async function triggerStoredNotifications() {
   const now = Date.now();
   await Promise.all(
     items.map(async ({ request, payload }) => {
-      if (payload.expiresAt && payload.expiresAt <= now) {
+      const expiresAt = typeof payload.expiresAt === 'number'
+        ? payload.expiresAt
+        : payload.fireAt + (15 * 60 * 1000);
+      if (typeof payload.fireAt !== 'number' || expiresAt <= now) {
         await removeScheduledPayload(request);
       } else if (payload.fireAt <= now) {
         await showNotification(payload);
