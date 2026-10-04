@@ -3913,11 +3913,12 @@ function PlannerApp() {
       </Dialog>
 
       <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
-        {isSummaryOpen && <DialogContent allowTouchScroll className="max-w-4xl max-h-[min(80vh,calc(100dvh-2rem))] overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch] bg-card dark:bg-card">
-          <DialogHeader>
+        {isSummaryOpen && <DialogContent allowTouchScroll className="max-w-4xl max-h-[min(80vh,calc(100dvh-2rem))] min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-card dark:bg-card">
+          <DialogHeader className="pr-10">
             <DialogTitle>{t('summaryYear').replace('{year}', format(new Date(), 'yyyy'))}</DialogTitle>
           </DialogHeader>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          <div className="min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
             {Array.from({ length: 52 }, (_, i) => {
               const ws = startOfWeek(addWeeks(startOfWeek(new Date(), { weekStartsOn: 1 }), i - 26), { weekStartsOn: 1 });
               const weekPlans = plans.filter(p => isSameWeek(new Date(p.date), ws, { weekStartsOn: 1 }));
@@ -3949,6 +3950,7 @@ function PlannerApp() {
                 </div>
               );
             })}
+            </div>
           </div>
         </DialogContent>}
       </Dialog>
