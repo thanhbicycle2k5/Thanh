@@ -62,7 +62,7 @@ async function closeActiveNotifications() {
 function showNotification(payload) {
   return self.registration.showNotification(payload.title, {
     body: payload.body,
-    tag: payload.id,
+    tag: payload.id || payload.tag,
     renotify: false,
     icon: '/task2goal-app-icon.png',
     badge: '/task2goal-app-icon.png',

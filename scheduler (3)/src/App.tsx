@@ -30,6 +30,7 @@ import { calculateStreak, getCompletedDayKeys, getLocalDateKey, getPlanLocalDate
 import { getSchedulyMessage, SchedulyStatus, getRandomPomodoroEncouragementMessage } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
+import { buildRemoteReminders, sendWebPushTest, subscribeToWebPush, syncWebPushReminders, unsubscribeFromWebPush } from './lib/webPush';
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
 import { SharedScheduleView } from './components/SharedScheduleView';
@@ -1794,15 +1795,25 @@ function PlannerApp() {
 
     if (!enabled) {
       handleUpdateSettings({ notificationsEnabled: false });
-      void clearAllScheduledNotifications().catch((error) => {
-        console.error('Failed to cancel scheduled notifications:', error);
-        toast.error('Không thể hủy toàn bộ thông báo đã lên lịch.');
+      const cleanup = [
+        clearAllScheduledNotifications(),
+        ...(activeUid ? [unsubscribeFromWebPush()] : []),
+      ];
+      void Promise.all(cleanup).catch((error) => {
+        console.error('Failed to disable scheduled notifications:', error);
+        toast.error('Không thể hủy toàn bộ thông báo nền. Hãy kết nối mạng rồi thử lại.');
       });
       notificationToggleInFlightRef.current = false;
       return;
     }
 
     try {
+      if (!activeUid) {
+        toast.error('Hãy đăng nhập để nhận thông báo khi ứng dụng đã đóng.');
+        handleUpdateSettings({ notificationsEnabled: false });
+        return;
+      }
+
       const permission = await getNotificationPermission();
       if (permission !== 'granted') {
         if (permission === 'denied') {
@@ -1820,6 +1831,7 @@ function PlannerApp() {
         toast.error('Could not register the notification service worker.');
         return;
       }
+      await subscribeToWebPush(registration);
       handleUpdateSettings({ notificationsEnabled: true });
     } catch (error) {
       console.error('Failed to enable notifications:', error);
@@ -1828,7 +1840,7 @@ function PlannerApp() {
     } finally {
       notificationToggleInFlightRef.current = false;
     }
-  }, [getNotificationPermission, openNotificationSettings, handleUpdateSettings, clearAllScheduledNotifications]);
+  }, [activeUid, getNotificationPermission, openNotificationSettings, handleUpdateSettings, clearAllScheduledNotifications]);
 
   const sendReminderNotification = React.useCallback(async (plan: Plan) => {
     if (!settingsState.notificationsEnabled || plan.color === 'green') {
@@ -1920,6 +1932,24 @@ function PlannerApp() {
       .filter(({ eventAt }) => eventAt > now)
       .sort((a, b) => a.fireAt - b.fireAt);
 
+    if (activeUid) {
+      try {
+        await syncWebPushReminders(buildRemoteReminders(
+          plansRef.current,
+          () => buildNotificationTitle(),
+          (plan) => buildNotificationBody(plan.title),
+          (plan) => getPlanReminderDate({
+            date: plan.date,
+            startHour: plan.startHour,
+            startMinute: plan.startMinute,
+          }).getTime()
+        ));
+      } catch (error) {
+        console.error('Failed to sync background push reminders:', error);
+        toast.error('Không thể đồng bộ lịch thông báo nền. Hãy kiểm tra kết nối mạng.');
+      }
+    }
+
     for (const { plan, eventAt, fireAt } of pendingPlans) {
       const notificationId = makeNotificationId(plan);
       if (firedNotificationIdsRef.current.has(notificationId)) continue;
@@ -1949,7 +1979,7 @@ function PlannerApp() {
         console.error(`Failed to schedule reminder for task "${plan.title}":`, error);
       }
     }
-  }, [getEventDate, makeNotificationId, settingsState.notificationsEnabled, user]);
+  }, [activeUid, getEventDate, makeNotificationId, settingsState.notificationsEnabled, user]);
 
   const scanForMissedNotifications = React.useCallback(() => {
     if (!settingsState.notificationsEnabled || typeof window === 'undefined') {
@@ -1980,9 +2010,23 @@ function PlannerApp() {
       return;
     }
 
+    if (!activeUid) {
+      toast.error('Hãy đăng nhập để nhận thông báo khi ứng dụng đã đóng.');
+      handleUpdateSettings({ notificationsEnabled: false });
+      return;
+    }
+
     const registration = await registerNotificationWorker();
     if (!registration) {
       toast.error('Could not register the notification service worker.');
+      handleUpdateSettings({ notificationsEnabled: false });
+      return;
+    }
+    try {
+      await subscribeToWebPush(registration);
+    } catch (error) {
+      console.error('Background push registration failed:', error);
+      toast.error(error instanceof Error ? error.message : 'Không thể bật thông báo nền.');
       handleUpdateSettings({ notificationsEnabled: false });
       return;
     }
@@ -1990,7 +2034,7 @@ function PlannerApp() {
       window.clearInterval(notificationScannerRef.current);
     }
     notificationScannerRef.current = window.setInterval(scanForMissedNotifications, 30_000);
-  }, [registerNotificationWorker, scanForMissedNotifications, handleUpdateSettings]);
+  }, [activeUid, registerNotificationWorker, scanForMissedNotifications, handleUpdateSettings]);
 
   React.useEffect(() => {
     if (!settingsState.notificationsEnabled) {
@@ -3818,11 +3862,7 @@ function PlannerApp() {
                         disabled={!settingsState.notificationsEnabled}
                         onClick={async () => {
                           try {
-                            await showNowNotification(
-                              buildNotificationTitle(),
-                              buildNotificationBody('thông báo thử'),
-                              'task2goal-test-notification'
-                            );
+                            await sendWebPushTest();
                             toast.success('Test notification sent.');
                           } catch (error) {
                             toast.error(error instanceof Error ? error.message : 'Could not send the test notification.');
