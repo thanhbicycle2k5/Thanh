@@ -33,6 +33,11 @@ export const getPlanLocalDateKey = (dateValue: string): string | null => {
   return Number.isNaN(date.getTime()) ? null : getLocalDateKey(date);
 };
 
+export const isPlanOnLocalDate = (dateValue: string, date: Date): boolean => {
+  const planDateKey = getPlanLocalDateKey(dateValue);
+  return planDateKey !== null && planDateKey === getLocalDateKey(date);
+};
+
 const shiftDateKey = (dateKey: string, days: number): string => {
   const [year, month, day] = dateKey.split('-').map(Number);
   const shifted = new Date(Date.UTC(year, month - 1, day + days));

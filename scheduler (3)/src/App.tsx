@@ -26,7 +26,7 @@ import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerSt
 import { playNotificationSound, playCompletionMelody, playMeow, playLogoClick } from './lib/sounds';
 import { getPlanReminderDate, getPlanStartDate, isReminderStillRelevant, isWithinReminderWindow } from './lib/taskTime';
 import { calculatePomodoroRemainingSeconds, shouldStartPomodoroMusic } from './lib/pomodoro';
-import { calculateStreak, getCompletedDayKeys, getLocalDateKey, getPlanLocalDateKey } from './lib/streak';
+import { calculateStreak, getCompletedDayKeys, getLocalDateKey, getPlanLocalDateKey, isPlanOnLocalDate } from './lib/streak';
 import { getSchedulyMessage, SchedulyStatus, getRandomPomodoroEncouragementMessage } from './lib/schedulyMessages';
 import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, scheduleTaskNotification, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
@@ -1835,8 +1835,9 @@ function PlannerApp() {
       return;
     }
 
-    const today = startOfDay(new Date());
-    if (!isSameDay(new Date(plan.date), today)) {
+    const today = new Date();
+    const todayKey = getLocalDateKey(today);
+    if (!isPlanOnLocalDate(plan.date, today)) {
       return;
     }
 
@@ -1865,6 +1866,7 @@ function PlannerApp() {
       title: buildNotificationTitle(),
       body: buildNotificationBody(taskName),
       fireAt: remindAt,
+      taskDate: todayKey,
     };
 
     if (settingsState.catEnabled !== false) {
@@ -1902,8 +1904,10 @@ function PlannerApp() {
     }
 
     const now = Date.now();
+    const today = new Date(now);
+    const todayKey = getLocalDateKey(today);
     const pendingPlans = plansRef.current
-      .filter((plan) => plan.color !== 'green')
+      .filter((plan) => plan.color !== 'green' && isPlanOnLocalDate(plan.date, today))
       .map((plan) => ({
         plan,
         eventAt: getEventDate(plan).getTime(),
@@ -1926,6 +1930,7 @@ function PlannerApp() {
         body: buildNotificationBody(plan.title),
         fireAt,
         expiresAt: eventAt,
+        taskDate: todayKey,
       };
 
       if (fireAt <= now) {

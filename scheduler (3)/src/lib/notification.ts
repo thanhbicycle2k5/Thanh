@@ -4,6 +4,7 @@ export type ScheduledNotificationPayload = {
   body: string;
   fireAt: number;
   expiresAt?: number;
+  taskDate?: string;
   delivery?: 'fallback';
 };
 

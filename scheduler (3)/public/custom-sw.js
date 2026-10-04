@@ -70,6 +70,11 @@ function showNotification(payload) {
   });
 }
 
+function getLocalDateKey(timestamp = Date.now()) {
+  const date = new Date(timestamp);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
 self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
@@ -198,6 +203,10 @@ async function handleNotificationMessage(message) {
   if (!payload || typeof payload.fireAt !== 'number') {
     return;
   }
+  if (payload.taskDate && payload.taskDate !== getLocalDateKey()) {
+    await removeScheduledPayload(new Request(`/scheduly-notification/${payload.id}`));
+    return;
+  }
 
   const existingTimeout = fallbackScheduledTimeouts.get(payload.id);
   if (existingTimeout !== undefined) {
@@ -270,7 +279,8 @@ async function triggerStoredNotifications() {
       } else if (payload.delivery !== 'fallback') {
         await removeScheduledPayload(request);
       } else if (payload.fireAt <= now) {
-        if (now - payload.fireAt <= 60_000) {
+        if ((!payload.taskDate || payload.taskDate === getLocalDateKey(now))
+          && now - payload.fireAt <= 60_000) {
           await showNotification(payload);
         }
         await removeScheduledPayload(request);

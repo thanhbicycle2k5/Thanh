@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { calculateStreak, getCompletedDayKeys, getLocalDateKey } from './streak';
+import { calculateStreak, getCompletedDayKeys, getLocalDateKey, isPlanOnLocalDate } from './streak';
 import { Plan } from '../types';
 
 const makePlan = (id: string, date: string, color: Plan['color'] = 'green'): Plan => ({
@@ -62,4 +62,13 @@ test('unchecking today removes today from current streak but preserves best hist
 
 test('local date keys use local calendar fields', () => {
   assert.equal(getLocalDateKey(new Date(2026, 9, 4, 0, 30)), '2026-10-04');
+});
+
+test('notification plans are eligible only on the user local calendar date', () => {
+  const today = new Date(2026, 9, 4, 12);
+
+  assert.equal(isPlanOnLocalDate('2026-10-04', today), true);
+  assert.equal(isPlanOnLocalDate('2026-10-03', today), false);
+  assert.equal(isPlanOnLocalDate('2026-10-05', today), false);
+  assert.equal(isPlanOnLocalDate('invalid-date', today), false);
 });
