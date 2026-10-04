@@ -1371,11 +1371,11 @@ function ScheduleGridComponent({
 
   return (
     <div
-      className="relative w-full rounded-xl border transition-colors border-border"
+      className="relative w-full rounded-none border transition-colors border-border"
       style={{ backgroundColor: 'transparent' }}
     >
       <div
-        className="sticky top-0 z-[70] isolate overflow-hidden rounded-t-xl border-b border-border bg-card shadow-sm"
+        className="sticky top-0 z-[70] isolate overflow-hidden rounded-none border-b border-border bg-card shadow-sm"
       >
         <div
           ref={scheduleHeaderScrollRef}

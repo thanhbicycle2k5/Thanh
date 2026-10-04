@@ -2950,7 +2950,7 @@ function PlannerApp() {
            <div className="mb-2 flex items-start py-1">
              {weekSummaryContent}
            </div>
-           <div className="bg-transparent dark:border-white/10 rounded-xl border shadow-xl">
+           <div className="bg-transparent dark:border-white/10 rounded-none border shadow-xl">
              <AnimatePresence mode="wait">
                <motion.div
                  key={format(selectedWeekStart, 'yyyy-MM-dd')}
