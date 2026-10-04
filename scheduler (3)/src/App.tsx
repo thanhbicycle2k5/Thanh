@@ -2907,36 +2907,38 @@ function PlannerApp() {
                    onClick={() => setIsSummaryOpen(true)}
                    aria-label={`${t('weekOf')} ${getISOWeek(selectedWeekStart)}, ${t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}`}
                  >
-                   <h2 className="text-2xl font-black">{t('weekOf')} {getISOWeek(selectedWeekStart)}</h2>
-                   <p className="text-xs font-semibold text-muted-foreground">{t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}</p>
+                   <span className="block text-2xl font-black">{t('weekOf')} {getISOWeek(selectedWeekStart)}</span>
+                   <span className="block text-xs font-semibold text-muted-foreground">{t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}</span>
                  </button>
-                 <p className="text-sm text-muted-foreground">
-                   {format(selectedWeekStart, 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })} - {format(subDays(addWeeks(selectedWeekStart, 1), 1), 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })}
-                 </p>
-                 <Popover>
-                   <PopoverTrigger asChild>
-                     <Button
-                       type="button"
-                       variant="ghost"
-                       size="sm"
-                       className="mt-1 h-7 gap-1.5 px-2 text-xs"
-                       aria-label={`${t('streakLabel')}: ${streakStats.current} ${t('streakDays')}`}
-                       title={`${t('streakLabel')}: ${streakStats.current} ${t('streakDays')}`}
-                       onClick={() => {
-                         if (!streakStats.completedToday) {
-                           showStreakSpeechBubble(t('streakRiskEncouragement'));
-                         }
-                       }}
-                     >
-                       <span className={cn("text-sm", !streakStats.completedToday && "grayscale opacity-50")}>🔥</span>
-                       <span>{t('streakLabel')}: {streakStats.current} {t('streakDays')}</span>
-                     </Button>
-                   </PopoverTrigger>
-                   <PopoverContent align="start" className="space-y-2">
-                     <p className="font-semibold">{t('streakCurrent')}: {streakStats.current} {t('streakDays')}</p>
-                     <p className="text-muted-foreground">{t('streakBest')}: {streakStats.best} {t('streakDays')}</p>
-                   </PopoverContent>
-                 </Popover>
+                 <div className="flex min-w-0 items-center justify-between gap-1">
+                   <p className="whitespace-nowrap text-sm text-muted-foreground">
+                     {format(selectedWeekStart, 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })} - {format(subDays(addWeeks(selectedWeekStart, 1), 1), 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })}
+                   </p>
+                   <Popover>
+                     <PopoverTrigger asChild>
+                       <Button
+                         type="button"
+                         variant="ghost"
+                         size="sm"
+                         className="h-7 shrink-0 gap-1 px-1 text-xs"
+                         aria-label={`${t('streakLabel')}: ${streakStats.current} ${t('streakDays')}`}
+                         title={`${t('streakLabel')}: ${streakStats.current} ${t('streakDays')}`}
+                         onClick={() => {
+                           if (!streakStats.completedToday) {
+                             showStreakSpeechBubble(t('streakRiskEncouragement'));
+                           }
+                         }}
+                       >
+                         <span className={cn("text-sm", !streakStats.completedToday && "grayscale opacity-50")}>🔥</span>
+                         <span>{t('streakLabel')}: {streakStats.current} {t('streakDays')}</span>
+                       </Button>
+                     </PopoverTrigger>
+                     <PopoverContent align="start" className="space-y-2">
+                       <p className="font-semibold">{t('streakCurrent')}: {streakStats.current} {t('streakDays')}</p>
+                       <p className="text-muted-foreground">{t('streakBest')}: {streakStats.best} {t('streakDays')}</p>
+                     </PopoverContent>
+                   </Popover>
+                 </div>
               </div>
            </div>
 
