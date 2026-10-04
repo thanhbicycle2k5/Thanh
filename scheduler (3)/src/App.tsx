@@ -2670,12 +2670,12 @@ function PlannerApp() {
     <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
       <button
         type="button"
-        className="cursor-pointer rounded-lg border border-border px-2 py-1 text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="flex cursor-pointer items-baseline gap-2 rounded-lg border border-border px-2 py-1 text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         onClick={() => setIsSummaryOpen(true)}
         aria-label={`${t('weekOf')} ${getISOWeek(selectedWeekStart)}, ${t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}`}
       >
-        <span className="block text-2xl font-black">{t('weekOf')} {getISOWeek(selectedWeekStart)}</span>
-        <span className="block text-xs font-semibold text-muted-foreground">{t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}</span>
+        <span className="whitespace-nowrap text-2xl font-black">{t('weekOf')} {getISOWeek(selectedWeekStart)}</span>
+        <span className="whitespace-nowrap text-xs font-semibold text-muted-foreground">{t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}</span>
       </button>
       <div className="flex min-w-0 items-center justify-between gap-1">
         <p className="whitespace-nowrap text-sm text-muted-foreground">
@@ -2708,14 +2708,6 @@ function PlannerApp() {
       </div>
     </div>
   );
-  const weekSummaryBackgroundStyle: React.CSSProperties = settingsState.backgroundConfig
-    ? {
-        backgroundColor: 'var(--background)',
-        ...getBackgroundStyle(),
-        backgroundAttachment: settingsState.backgroundConfig.type === 'image' ? 'fixed' : undefined,
-      }
-    : { backgroundColor: 'var(--background)' };
-
   return (
     <div 
       className={cn(
@@ -2946,8 +2938,11 @@ function PlannerApp() {
         </div>
       </header>
 
-      <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth relative z-10" id="main-scroll-container">
+      <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-1 md:px-8 md:pb-8 md:pt-2 scroll-smooth relative z-10" id="main-scroll-container">
         <div className="container mx-auto max-w-7xl">
+           <div className="mb-2 flex items-start py-1">
+             {weekSummaryContent}
+           </div>
            <div className="bg-transparent dark:border-white/10 rounded-xl border shadow-xl">
              <AnimatePresence mode="wait">
                <motion.div
@@ -2970,8 +2965,6 @@ function PlannerApp() {
                >
                  <ScheduleGrid 
                     currentWeekStart={selectedWeekStart}
-                    weekSummaryContent={weekSummaryContent}
-                    stickyHeaderBackgroundStyle={weekSummaryBackgroundStyle}
                     plans={isSearchOpen && searchQuery.trim() ? searchResults : currentWeekPlans}
                     allPlans={plans}
                     onAddPlan={handleAddPlan}
