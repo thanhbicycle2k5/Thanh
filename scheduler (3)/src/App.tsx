@@ -2938,7 +2938,7 @@ function PlannerApp() {
         </div>
       </header>
 
-      <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-1 md:px-8 md:pb-8 md:pt-2 scroll-smooth relative z-10" id="main-scroll-container">
+      <main className="min-h-0 flex-1 overflow-y-auto px-4 pb-4 pt-0 md:px-8 md:pb-8 md:pt-0 scroll-smooth relative z-10" id="main-scroll-container">
         <div className="container mx-auto max-w-7xl">
            <div className="mb-2 flex items-start py-1">
              {weekSummaryContent}
