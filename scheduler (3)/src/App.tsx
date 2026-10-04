@@ -2914,17 +2914,14 @@ function PlannerApp() {
 
       <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth relative z-10" id="main-scroll-container">
         <div className="container mx-auto max-w-7xl">
-           <div ref={weekSummaryStickyRef} className="sticky top-0 z-40 isolate mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 py-1">
+           <div ref={weekSummaryStickyRef} className="sticky top-0 z-[70] isolate mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 py-1">
               {settingsState.backgroundConfig && (
                 <div
                   aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 z-0 bg-background/40 dark:bg-background/60"
+                  className="pointer-events-none absolute inset-0 z-0 bg-background"
                   style={{
                     ...getBackgroundStyle(),
                     backgroundAttachment: settingsState.backgroundConfig.type === 'image' ? 'fixed' : undefined,
-                    opacity: Number.isFinite(settingsState.backgroundConfig.opacity)
-                      ? settingsState.backgroundConfig.opacity
-                      : 1,
                   }}
                 />
               )}
