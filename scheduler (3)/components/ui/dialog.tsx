@@ -43,9 +43,11 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  allowTouchScroll = false,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
+  allowTouchScroll?: boolean
 }) {
   const [position, setPosition] = React.useState<{ x: number; y: number } | null>(null)
   const [dragState, setDragState] = React.useState<{
@@ -102,11 +104,13 @@ function DialogContent({
                 left: `${position.x}px`,
                 top: `${position.y}px`,
                 transform: "translate(-50%, -50%)",
+                touchAction: allowTouchScroll ? "pan-y" : "none",
               }
             : {
                 left: "50%",
                 top: "50%",
                 transform: "translate(-50%, -50%)",
+                touchAction: allowTouchScroll ? "pan-y" : "none",
               }
         }
         className={cn(
