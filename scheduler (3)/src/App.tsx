@@ -3913,7 +3913,7 @@ function PlannerApp() {
       </Dialog>
 
       <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
-        {isSummaryOpen && <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto bg-card dark:bg-card">
+        {isSummaryOpen && <DialogContent className="max-w-4xl max-h-[min(80vh,calc(100dvh-2rem))] overflow-y-auto overscroll-contain [touch-action:pan-y] [-webkit-overflow-scrolling:touch] bg-card dark:bg-card">
           <DialogHeader>
             <DialogTitle>{t('summaryYear').replace('{year}', format(new Date(), 'yyyy'))}</DialogTitle>
           </DialogHeader>
