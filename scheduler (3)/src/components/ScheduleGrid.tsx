@@ -348,7 +348,8 @@ const ScheduleCell = React.memo(function ScheduleCell({
 
 interface ScheduleGridProps {
   currentWeekStart: Date;
-  stickyHeaderTop: number;
+  weekSummaryContent: React.ReactNode;
+  stickyHeaderBackgroundStyle: React.CSSProperties;
   plans: Plan[];
   onAddPlan: (plan: Plan) => void;
   onUpdatePlan: (plan: Plan) => void | Promise<void>;
@@ -368,7 +369,8 @@ interface ScheduleGridProps {
 
 function ScheduleGridComponent({ 
   currentWeekStart, 
-  stickyHeaderTop,
+  weekSummaryContent,
+  stickyHeaderBackgroundStyle,
   plans, 
   onAddPlan, 
   onUpdatePlan, 
@@ -1360,12 +1362,15 @@ function ScheduleGridComponent({
       style={{ backgroundColor: 'transparent' }}
     >
       <div
-        className="sticky z-[60] isolate overflow-hidden rounded-t-xl border-b border-border shadow-sm"
-        style={{ top: `${stickyHeaderTop}px`, backgroundColor: 'var(--card)', opacity: 1 }}
+        className="sticky top-0 z-[70] isolate overflow-hidden rounded-t-xl border-b border-border shadow-sm"
+        style={stickyHeaderBackgroundStyle}
       >
+        <div className="flex min-h-0 items-start justify-start px-1 py-1">
+          {weekSummaryContent}
+        </div>
         <div
           ref={scheduleHeaderScrollRef}
-          className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="overflow-x-auto bg-card [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           onScroll={(event) => syncScheduleHorizontalScroll(event.currentTarget, scheduleBodyScrollRef.current)}
         >
           <table className="w-full border-collapse table-fixed min-w-[600px] !bg-transparent" style={{ background: 'transparent', backgroundColor: 'transparent' }}>

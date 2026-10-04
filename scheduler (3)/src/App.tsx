@@ -327,8 +327,6 @@ const Logo = ({ className, onClick }: { className?: string; onClick?: () => void
 function PlannerApp() {
   const [plans, setPlans] = React.useState<Plan[]>(() => storage.getPlans());
   const [weekMetas, setWeekMetas] = React.useState<Record<string, any>>(() => storage.getWeekMetas());
-  const [weekSummaryStickyHeight, setWeekSummaryStickyHeight] = React.useState(100);
-  const weekSummaryStickyRef = React.useRef<HTMLDivElement>(null);
   const [isSummaryOpen, setIsSummaryOpen] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -346,19 +344,6 @@ function PlannerApp() {
   React.useEffect(() => {
     plansRef.current = plans;
   }, [plans]);
-  React.useLayoutEffect(() => {
-    const summary = weekSummaryStickyRef.current;
-    if (!summary) return;
-
-    const updateStickyHeight = () => {
-      const height = summary.offsetHeight;
-      setWeekSummaryStickyHeight((currentHeight) => currentHeight === height ? currentHeight : height);
-    };
-    updateStickyHeight();
-    const observer = new ResizeObserver(updateStickyHeight);
-    observer.observe(summary);
-    return () => observer.disconnect();
-  }, []);
 
   const captureUndoSnapshot = React.useCallback(() => {
     if (isUndoingRef.current || undoCaptureScheduledRef.current) return;
@@ -2681,6 +2666,55 @@ function PlannerApp() {
     : 1;
   const boardSurfaceColor = `color-mix(in srgb, var(--card) ${Math.max(2, visibleBoardOpacity * 100)}%, transparent)`;
   const noteSurfaceColor = settingsState.theme === 'dark' ? '#27272a' : '#f5f5f5';
+  const weekSummaryContent = (
+    <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
+      <button
+        type="button"
+        className="cursor-pointer rounded-lg border border-border px-2 py-1 text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        onClick={() => setIsSummaryOpen(true)}
+        aria-label={`${t('weekOf')} ${getISOWeek(selectedWeekStart)}, ${t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}`}
+      >
+        <span className="block text-2xl font-black">{t('weekOf')} {getISOWeek(selectedWeekStart)}</span>
+        <span className="block text-xs font-semibold text-muted-foreground">{t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}</span>
+      </button>
+      <div className="flex min-w-0 items-center justify-between gap-1">
+        <p className="whitespace-nowrap text-sm text-muted-foreground">
+          {format(selectedWeekStart, 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })} - {format(subDays(addWeeks(selectedWeekStart, 1), 1), 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })}
+        </p>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 shrink-0 gap-1 px-1 text-xs"
+              aria-label={`${t('streakLabel')}: ${streakStats.current} ${t('streakDays')}`}
+              title={`${t('streakLabel')}: ${streakStats.current} ${t('streakDays')}`}
+              onClick={() => {
+                if (!streakStats.completedToday) {
+                  showStreakSpeechBubble(t('streakRiskEncouragement'));
+                }
+              }}
+            >
+              <span className={cn("text-sm", !streakStats.completedToday && "grayscale opacity-50")}>🔥</span>
+              <span>{t('streakLabel')}: {streakStats.current} {t('streakDays')}</span>
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="space-y-2">
+            <p className="font-semibold">{t('streakCurrent')}: {streakStats.current} {t('streakDays')}</p>
+            <p className="text-muted-foreground">{t('streakBest')}: {streakStats.best} {t('streakDays')}</p>
+          </PopoverContent>
+        </Popover>
+      </div>
+    </div>
+  );
+  const weekSummaryBackgroundStyle: React.CSSProperties = settingsState.backgroundConfig
+    ? {
+        backgroundColor: 'var(--background)',
+        ...getBackgroundStyle(),
+        backgroundAttachment: settingsState.backgroundConfig.type === 'image' ? 'fixed' : undefined,
+      }
+    : { backgroundColor: 'var(--background)' };
 
   return (
     <div 
@@ -2914,64 +2948,6 @@ function PlannerApp() {
 
       <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth relative z-10" id="main-scroll-container">
         <div className="container mx-auto max-w-7xl">
-           <div ref={weekSummaryStickyRef} className="sticky top-0 z-[70] isolate mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 py-1">
-              {settingsState.backgroundConfig && (
-                <div
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-0 z-0 bg-background"
-                  style={{
-                    ...getBackgroundStyle(),
-                    backgroundAttachment: settingsState.backgroundConfig.type === 'image' ? 'fixed' : undefined,
-                  }}
-                />
-              )}
-              {!settingsState.backgroundConfig && (
-                <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 bg-background" />
-              )}
-              <div className="relative z-10 flex w-full flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-              <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
-                 <button
-                   type="button"
-                   className="cursor-pointer rounded-lg border border-border px-2 py-1 text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                   onClick={() => setIsSummaryOpen(true)}
-                   aria-label={`${t('weekOf')} ${getISOWeek(selectedWeekStart)}, ${t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}`}
-                 >
-                   <span className="block text-2xl font-black">{t('weekOf')} {getISOWeek(selectedWeekStart)}</span>
-                   <span className="block text-xs font-semibold text-muted-foreground">{t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}</span>
-                 </button>
-                 <div className="flex min-w-0 items-center justify-between gap-1">
-                   <p className="whitespace-nowrap text-sm text-muted-foreground">
-                     {format(selectedWeekStart, 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })} - {format(subDays(addWeeks(selectedWeekStart, 1), 1), 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })}
-                   </p>
-                   <Popover>
-                     <PopoverTrigger asChild>
-                       <Button
-                         type="button"
-                         variant="ghost"
-                         size="sm"
-                         className="h-7 shrink-0 gap-1 px-1 text-xs"
-                         aria-label={`${t('streakLabel')}: ${streakStats.current} ${t('streakDays')}`}
-                         title={`${t('streakLabel')}: ${streakStats.current} ${t('streakDays')}`}
-                         onClick={() => {
-                           if (!streakStats.completedToday) {
-                             showStreakSpeechBubble(t('streakRiskEncouragement'));
-                           }
-                         }}
-                       >
-                         <span className={cn("text-sm", !streakStats.completedToday && "grayscale opacity-50")}>🔥</span>
-                         <span>{t('streakLabel')}: {streakStats.current} {t('streakDays')}</span>
-                       </Button>
-                     </PopoverTrigger>
-                     <PopoverContent align="start" className="space-y-2">
-                       <p className="font-semibold">{t('streakCurrent')}: {streakStats.current} {t('streakDays')}</p>
-                       <p className="text-muted-foreground">{t('streakBest')}: {streakStats.best} {t('streakDays')}</p>
-                     </PopoverContent>
-                   </Popover>
-                 </div>
-              </div>
-              </div>
-           </div>
-
            <div className="bg-transparent dark:border-white/10 rounded-xl border shadow-xl">
              <AnimatePresence mode="wait">
                <motion.div
@@ -2994,7 +2970,8 @@ function PlannerApp() {
                >
                  <ScheduleGrid 
                     currentWeekStart={selectedWeekStart}
-                    stickyHeaderTop={weekSummaryStickyHeight}
+                    weekSummaryContent={weekSummaryContent}
+                    stickyHeaderBackgroundStyle={weekSummaryBackgroundStyle}
                     plans={isSearchOpen && searchQuery.trim() ? searchResults : currentWeekPlans}
                     allPlans={plans}
                     onAddPlan={handleAddPlan}
