@@ -3903,18 +3903,16 @@ function PlannerApp() {
                     <div 
                   key={i} 
                     className={cn(
-                      "p-2 rounded border text-center transition-all cursor-pointer hover:scale-105",
+                      "p-2 rounded border border-border bg-card text-center transition-all cursor-pointer hover:scale-105",
                       isSameWeek(ws, new Date(), { weekStartsOn: 1 }) ? "ring-2 ring-[#107C41]" : "",
-                      "border-border"
                     )}
-                    style={{ backgroundColor: boardSurfaceColor }}
                   onClick={() => { setSelectedWeekStart(ws); setIsSummaryOpen(false); }}
                 >
                   <p className="text-[10px] font-bold opacity-50 uppercase">{t('week')} {format(ws, 'w')}</p>
                   <div className="my-1 flex justify-center">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black relative overflow-hidden" 
                          style={{ background: `conic-gradient(#107C41 ${ratio * 360}deg, var(--chart-track) 0deg)` }}>
-                      <div className="w-6 h-6 rounded-full flex items-center justify-center z-10" style={{ backgroundColor: boardSurfaceColor }}>
+                      <div className="w-6 h-6 rounded-full flex items-center justify-center z-10 bg-card">
                         {Math.round(ratio * 100)}%
                       </div>
                     </div>
