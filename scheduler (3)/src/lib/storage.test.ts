@@ -1,8 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { defaultSettings, mergeSettingsForSync } from './storage';
+import { defaultSettings, mergeSettingsForSync, normalizeSettings } from './storage';
 import { mergePlans } from './sync';
+
+test('none is a valid notification sound setting', () => {
+  assert.equal(normalizeSettings({ notificationSound: 'none' }).notificationSound, 'none');
+});
 
 test('remote settings win when newer than stale local settings', () => {
   const local = { ...defaultSettings, theme: 'light' as const, updatedAt: '2024-01-01T00:00:00.000Z' };

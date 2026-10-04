@@ -37,7 +37,7 @@ export interface WeekMetadata {
 export type Language = 'en' | 'vi';
 export type Theme = 'light' | 'dark';
 export type AIProvider = 'auto' | 'local' | 'gemini';
-export type NotificationSound = 'bird' | 'wind' | 'bell' | 'chime';
+export type NotificationSound = 'none' | 'bird' | 'wind' | 'bell' | 'chime';
 export type MusicPlaybackMode = 'play_once' | 'loop_one' | 'loop_all' | 'shuffle';
 export type CatMood = 'idle' | 'work' | 'gym' | 'medical' | 'shortBreak' | 'longBreak' | 'celebrating' | 'tired' | 'happy';
 export type CatColor = 'orange' | 'pink' | 'blue' | 'green' | 'purple' | 'yellow' | 'teal' | 'red' | 'gray' | 'black' | 'white';

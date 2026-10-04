@@ -122,6 +122,8 @@ async function playChimeSound() {
 }
 
 export async function playNotificationSound(type: NotificationSound) {
+  if (type === 'none') return;
+
   try {
     switch (type) {
       case 'bird':

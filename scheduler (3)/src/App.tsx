@@ -3775,13 +3775,14 @@ function PlannerApp() {
                           <Select value={settingsState.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({ notificationSound: v })}>
                             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
                             <SelectContent>
+                              <SelectItem value="none">{t('none')}</SelectItem>
                               <SelectItem value="bird">{t('bird')}</SelectItem>
                               <SelectItem value="wind">{t('wind')}</SelectItem>
                               <SelectItem value="bell">{t('bell')}</SelectItem>
                               <SelectItem value="chime">{t('chime')}</SelectItem>
                             </SelectContent>
                           </Select>
-                          <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => playNotificationSound(settingsState.notificationSound)}>
+                          <Button variant="outline" size="icon" className="h-9 w-9" disabled={settingsState.notificationSound === 'none'} onClick={() => playNotificationSound(settingsState.notificationSound)}>
                             <Volume2 className="w-4 h-4" />
                           </Button>
                         </div>

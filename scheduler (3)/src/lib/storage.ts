@@ -68,7 +68,7 @@ export const normalizeSettings = (raw: any): AppSettings => {
     customMusicDataUrl: typeof obj.customMusicDataUrl === 'string' ? obj.customMusicDataUrl : defaultSettings.customMusicDataUrl,
     customMusicName: typeof obj.customMusicName === 'string' ? obj.customMusicName : defaultSettings.customMusicName,
     notificationsEnabled: typeof obj.notificationsEnabled === 'boolean' ? obj.notificationsEnabled : defaultSettings.notificationsEnabled,
-    notificationSound: obj.notificationSound === 'bird' || obj.notificationSound === 'wind' || obj.notificationSound === 'bell' || obj.notificationSound === 'chime' ? obj.notificationSound : defaultSettings.notificationSound,
+    notificationSound: obj.notificationSound === 'none' || obj.notificationSound === 'bird' || obj.notificationSound === 'wind' || obj.notificationSound === 'bell' || obj.notificationSound === 'chime' ? obj.notificationSound : defaultSettings.notificationSound,
     startHour: typeof obj.startHour === 'number' && Number.isInteger(obj.startHour) ? obj.startHour : defaultSettings.startHour,
     endHour: typeof obj.endHour === 'number' && Number.isInteger(obj.endHour) ? obj.endHour : defaultSettings.endHour,
     backgroundConfig: isBackgroundConfig(obj.backgroundConfig)
