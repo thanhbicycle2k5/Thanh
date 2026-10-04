@@ -348,6 +348,7 @@ const ScheduleCell = React.memo(function ScheduleCell({
 
 interface ScheduleGridProps {
   currentWeekStart: Date;
+  stickyHeaderTop: number;
   plans: Plan[];
   onAddPlan: (plan: Plan) => void;
   onUpdatePlan: (plan: Plan) => void | Promise<void>;
@@ -367,6 +368,7 @@ interface ScheduleGridProps {
 
 function ScheduleGridComponent({ 
   currentWeekStart, 
+  stickyHeaderTop,
   plans, 
   onAddPlan, 
   onUpdatePlan, 
@@ -1357,7 +1359,7 @@ function ScheduleGridComponent({
       className="relative w-full rounded-xl border transition-colors border-border"
       style={{ backgroundColor: 'transparent' }}
     >
-      <div className="sticky top-[6.5rem] z-30 overflow-hidden rounded-t-xl">
+      <div className="sticky z-30 overflow-hidden rounded-t-xl" style={{ top: `${stickyHeaderTop}px` }}>
         <div
           ref={scheduleHeaderScrollRef}
           className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"

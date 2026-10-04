@@ -327,6 +327,8 @@ const Logo = ({ className, onClick }: { className?: string; onClick?: () => void
 function PlannerApp() {
   const [plans, setPlans] = React.useState<Plan[]>(() => storage.getPlans());
   const [weekMetas, setWeekMetas] = React.useState<Record<string, any>>(() => storage.getWeekMetas());
+  const [weekSummaryStickyHeight, setWeekSummaryStickyHeight] = React.useState(100);
+  const weekSummaryStickyRef = React.useRef<HTMLDivElement>(null);
   const [isSummaryOpen, setIsSummaryOpen] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
@@ -344,6 +346,19 @@ function PlannerApp() {
   React.useEffect(() => {
     plansRef.current = plans;
   }, [plans]);
+  React.useLayoutEffect(() => {
+    const summary = weekSummaryStickyRef.current;
+    if (!summary) return;
+
+    const updateStickyHeight = () => {
+      const height = summary.offsetHeight;
+      setWeekSummaryStickyHeight((currentHeight) => currentHeight === height ? currentHeight : height);
+    };
+    updateStickyHeight();
+    const observer = new ResizeObserver(updateStickyHeight);
+    observer.observe(summary);
+    return () => observer.disconnect();
+  }, []);
 
   const captureUndoSnapshot = React.useCallback(() => {
     if (isUndoingRef.current || undoCaptureScheduledRef.current) return;
@@ -2899,7 +2914,7 @@ function PlannerApp() {
 
       <main className="min-h-0 flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth relative z-10" id="main-scroll-container">
         <div className="container mx-auto max-w-7xl">
-           <div className="sticky top-0 z-40 mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-transparent py-1">
+           <div ref={weekSummaryStickyRef} className="sticky top-0 z-40 mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-transparent py-1">
               <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
                  <button
                    type="button"
@@ -2964,6 +2979,7 @@ function PlannerApp() {
                >
                  <ScheduleGrid 
                     currentWeekStart={selectedWeekStart}
+                    stickyHeaderTop={weekSummaryStickyHeight}
                     plans={isSearchOpen && searchQuery.trim() ? searchResults : currentWeekPlans}
                     allPlans={plans}
                     onAddPlan={handleAddPlan}
