@@ -2663,7 +2663,7 @@ function PlannerApp() {
     ? Math.min(1, Math.max(0, settingsState.boardOpacity))
     : 1;
   const boardSurfaceColor = `color-mix(in srgb, var(--card) ${Math.max(2, visibleBoardOpacity * 100)}%, transparent)`;
-  const noteSurfaceColor = 'var(--muted)';
+  const noteSurfaceColor = settingsState.theme === 'dark' ? '#27272a' : '#f5f5f5';
 
   return (
     <div 
