@@ -1308,10 +1308,10 @@ function ScheduleGridComponent({
 
   return (
     <div
-      id="schedule-scroll-container"
-      className="relative w-full overflow-x-auto rounded-xl border transition-colors border-border"
+      className="relative w-full rounded-xl border transition-colors border-border"
       style={{ backgroundColor: 'transparent' }}
     >
+      <div id="schedule-scroll-container" className="overflow-x-auto rounded-t-xl">
       <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px] !bg-transparent" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
         <thead className="sticky top-0 z-30">
           <tr className="backdrop-blur" style={{ backgroundColor: translucentCard }}>
@@ -1379,8 +1379,9 @@ function ScheduleGridComponent({
           ))}
         </tbody>
       </table>
+      </div>
       {onCreateShare && <div
-        className="flex justify-end border-t border-border p-1.5"
+        className="sticky bottom-0 z-30 flex justify-end border-t border-border p-1.5"
         style={{ backgroundColor: theme === 'dark' ? '#27272a' : '#f5f5f5' }}
       >
         <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-primary/10 hover:text-primary" aria-label="Chia sẻ lịch" title="Chia sẻ lịch" onClick={() => { setShareEndWeek(format(currentWeekStart, 'yyyy-MM-dd')); setShareLink(''); setShareId(''); setShareDialogOpen(true); }}>

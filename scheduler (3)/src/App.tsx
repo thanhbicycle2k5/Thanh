@@ -2960,7 +2960,7 @@ function PlannerApp() {
                      : { opacity: 1, x: 0 }
                  }
                  transition={{ type: 'spring', stiffness: 260, damping: 28 }}
-                 className="overflow-hidden"
+                 className="overflow-x-clip"
                >
                  <ScheduleGrid 
                     currentWeekStart={selectedWeekStart}
