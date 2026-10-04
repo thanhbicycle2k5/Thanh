@@ -431,6 +431,17 @@ function ScheduleGridComponent({
   const [allowTextInput, setAllowTextInput] = React.useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = React.useState(false);
   const scheduleTableRef = React.useRef<HTMLTableElement>(null);
+  const scheduleHeaderScrollRef = React.useRef<HTMLDivElement>(null);
+  const scheduleBodyScrollRef = React.useRef<HTMLDivElement>(null);
+  const withScheduleExportHeader = React.useCallback(async <T,>(capture: () => Promise<T>): Promise<T> => {
+    const header = scheduleTableRef.current?.querySelector('thead');
+    header?.classList.remove('hidden');
+    try {
+      return await capture();
+    } finally {
+      header?.classList.add('hidden');
+    }
+  }, []);
   const [isExporting, setIsExporting] = React.useState(false);
   const [exportPreview, setExportPreview] = React.useState<ExportPreview | null>(null);
   const [shareDialogOpen, setShareDialogOpen] = React.useState(false);
@@ -615,7 +626,8 @@ function ScheduleGridComponent({
       } else if (clientX > rect.right - edgeSize) {
         scheduleContainer.scrollLeft += scrollStep;
       }
-      if (clientY >= rect.top && clientY <= rect.bottom) {
+      const canScrollScheduleVertically = scheduleContainer.scrollHeight > scheduleContainer.clientHeight + 1;
+      if (canScrollScheduleVertically && clientY >= rect.top && clientY <= rect.bottom) {
         if (clientY < rect.top + edgeSize) {
           scheduleContainer.scrollTop -= scrollStep;
         } else if (clientY > rect.bottom - edgeSize) {
@@ -625,11 +637,11 @@ function ScheduleGridComponent({
     }
 
     if (mainScrollContainer && scheduleContainer) {
-      const scheduleRect = scheduleContainer.getBoundingClientRect();
+      const canScrollScheduleVertically = scheduleContainer.scrollHeight > scheduleContainer.clientHeight + 1;
       const rect = mainScrollContainer.getBoundingClientRect();
-      if (clientY < rect.top + edgeSize && clientY < scheduleRect.top) {
+      if (!canScrollScheduleVertically && clientY < rect.top + edgeSize) {
         mainScrollContainer.scrollTop -= scrollStep;
-      } else if (clientY > rect.bottom - edgeSize && clientY > scheduleRect.bottom) {
+      } else if (!canScrollScheduleVertically && clientY > rect.bottom - edgeSize) {
         mainScrollContainer.scrollTop += scrollStep;
       }
     }
@@ -1234,8 +1246,8 @@ function ScheduleGridComponent({
         ...(imageFormat === 'jpg' ? { quality: 0.95 } : {}),
       };
       const dataUrl = imageFormat === 'png'
-        ? await toPng(table, imageOptions)
-        : await toJpeg(table, imageOptions);
+        ? await withScheduleExportHeader(() => toPng(table, imageOptions))
+        : await withScheduleExportHeader(() => toJpeg(table, imageOptions));
       const blob = await (await fetch(dataUrl)).blob();
 
       const filename = `task2goal-week-${format(currentWeekStart, 'yyyy-MM-dd')}.${imageFormat}`;
@@ -1247,7 +1259,7 @@ function ScheduleGridComponent({
     } finally {
       setIsExporting(false);
     }
-  }, [currentWeekStart, isExporting]);
+  }, [currentWeekStart, isExporting, withScheduleExportHeader]);
 
   const shareWeekOptions = React.useMemo(
     () => Array.from({ length: 12 }, (_, index) => addDays(currentWeekStart, index * 7)),
@@ -1276,11 +1288,11 @@ function ScheduleGridComponent({
 
     setIsExporting(true);
     try {
-      const dataUrl = await toPng(table, {
-        pixelRatio: 2,
-        cacheBust: true,
-        backgroundColor: '#ffffff',
-      });
+      const dataUrl = await withScheduleExportHeader(() => toPng(table, {
+          pixelRatio: 2,
+          cacheBust: true,
+          backgroundColor: '#ffffff',
+        }));
       const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
       const pageWidth = 297;
       const pageHeight = 210;
@@ -1305,7 +1317,7 @@ function ScheduleGridComponent({
     } finally {
       setIsExporting(false);
     }
-  }, [currentWeekStart, isExporting]);
+  }, [currentWeekStart, isExporting, withScheduleExportHeader]);
 
   const maxDuration = (hour: number) => Math.min(12, endHour - hour + 1);
   const visibleBoardOpacity = Number.isFinite(boardOpacity)
@@ -1313,36 +1325,65 @@ function ScheduleGridComponent({
     : 1;
   const effectiveBoardOpacity = visibleBoardOpacity === 0 ? 0.12 : visibleBoardOpacity;
   const translucentCard = `color-mix(in srgb, var(--card) ${Math.max(2, effectiveBoardOpacity * 100)}%, transparent)`;
+  const syncScheduleHorizontalScroll = (source: HTMLDivElement | null, target: HTMLDivElement | null) => {
+    if (!source || !target || target.scrollLeft === source.scrollLeft) return;
+    target.scrollLeft = source.scrollLeft;
+  };
+  const scheduleHeaderRow = (
+    <tr className="backdrop-blur" style={{ backgroundColor: translucentCard }}>
+      <th className="relative w-14 md:w-20 border p-2 text-[10px] font-black uppercase tracking-wider sticky left-0 z-30 border-border text-muted-foreground after:absolute after:inset-y-0 after:right-[-1px] after:w-px after:bg-foreground/45 after:content-['']" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
+        <div className="flex items-center justify-center gap-1">
+          <Clock3 className="h-4 w-4" aria-label="Thời gian" />
+        </div>
+      </th>
+      {daysOfCurrentWeek.map((day, i) => (
+        <th key={i} className={cn(
+          "border p-2 text-[10px] md:text-xs font-black uppercase tracking-tight border-border text-foreground",
+          isSameDay(day, new Date()) && "bg-primary/10 text-primary border-primary/50 shadow-[inset_0_-2px_0_var(--primary)]"
+        )} style={{ backgroundColor: isSameDay(day, new Date()) ? 'color-mix(in srgb, var(--primary) 10%, var(--card))' : 'var(--card)', borderColor: 'var(--border)' }}>
+          <span className="hidden md:inline">{dayLabels[i]}</span>
+          <span className="md:hidden">{dayShortLabels[i]}</span>
+          <div className="text-[10px] opacity-50">{format(day, 'd/M')}</div>
+          {showLunarCalendar && (
+            <div className="text-[10px] text-slate-400 dark:text-slate-400 opacity-80">{getLunarLabel(day)}</div>
+          )}
+        </th>
+      ))}
+    </tr>
+  );
 
   return (
     <div
       className="relative w-full rounded-xl border transition-colors border-border"
       style={{ backgroundColor: 'transparent' }}
     >
-      <div id="schedule-scroll-container" className="max-h-[calc(100dvh-16rem)] overflow-auto overscroll-contain rounded-t-xl md:max-h-none">
+      <div className="sticky top-[6.5rem] z-30 overflow-hidden rounded-t-xl">
+        <div
+          ref={scheduleHeaderScrollRef}
+          className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          onScroll={(event) => syncScheduleHorizontalScroll(event.currentTarget, scheduleBodyScrollRef.current)}
+        >
+          <table className="w-full border-collapse table-fixed min-w-[600px] !bg-transparent" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
+            <colgroup>
+              <col className="w-14 md:w-20" />
+              <col span={7} />
+            </colgroup>
+            <thead>{scheduleHeaderRow}</thead>
+          </table>
+        </div>
+      </div>
+      <div
+        id="schedule-scroll-container"
+        ref={scheduleBodyScrollRef}
+        className="overflow-x-auto"
+        onScroll={(event) => syncScheduleHorizontalScroll(event.currentTarget, scheduleHeaderScrollRef.current)}
+      >
       <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px] !bg-transparent" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
-        <thead className="sticky top-0 z-30">
-          <tr className="backdrop-blur" style={{ backgroundColor: translucentCard }}>
-            <th className="relative w-14 md:w-20 border p-2 text-[10px] font-black uppercase tracking-wider sticky left-0 z-30 border-border text-muted-foreground after:absolute after:inset-y-0 after:right-[-1px] after:w-px after:bg-foreground/45 after:content-['']" style={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)' }}>
-              <div className="flex items-center justify-center gap-1">
-                <Clock3 className="h-4 w-4" aria-label="Thời gian" />
-              </div>
-            </th>
-            {daysOfCurrentWeek.map((day, i) => (
-              <th key={i} className={cn(
-                "border p-2 text-[10px] md:text-xs font-black uppercase tracking-tight border-border text-foreground",
-                isSameDay(day, new Date()) && "bg-primary/10 text-primary border-primary/50 shadow-[inset_0_-2px_0_var(--primary)]"
-              )} style={{ backgroundColor: isSameDay(day, new Date()) ? 'color-mix(in srgb, var(--primary) 10%, var(--card))' : 'var(--card)', borderColor: 'var(--border)' }}>
-                <span className="hidden md:inline">{dayLabels[i]}</span>
-                <span className="md:hidden">{dayShortLabels[i]}</span>
-                <div className="text-[10px] opacity-50">{format(day, 'd/M')}</div>
-                {showLunarCalendar && (
-                  <div className="text-[10px] text-slate-400 dark:text-slate-400 opacity-80">{getLunarLabel(day)}</div>
-                )}
-              </th>
-            ))}
-          </tr>
-        </thead>
+        <colgroup>
+          <col className="w-14 md:w-20" />
+          <col span={7} />
+        </colgroup>
+        <thead className="hidden">{scheduleHeaderRow}</thead>
         <tbody style={{ background: 'transparent', backgroundColor: 'transparent' }}>
           {HOURS.map(hour => (
             <tr key={hour} data-schedule-hour={hour} className="h-10 md:h-12" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
@@ -1389,7 +1430,7 @@ function ScheduleGridComponent({
       </table>
       </div>
       {onCreateShare && <div
-        className="sticky bottom-0 z-30 flex justify-end border-t border-border p-1.5"
+        className="flex justify-end border-t border-border p-1.5"
         style={{ backgroundColor: theme === 'dark' ? '#27272a' : '#f5f5f5' }}
       >
         <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-primary/10 hover:text-primary" aria-label="Chia sẻ lịch" title="Chia sẻ lịch" onClick={() => { setShareEndWeek(format(currentWeekStart, 'yyyy-MM-dd')); setShareLink(''); setShareId(''); setShareDialogOpen(true); }}>
