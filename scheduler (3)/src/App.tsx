@@ -2899,7 +2899,7 @@ function PlannerApp() {
 
       <main className="flex-1 overflow-y-auto p-4 md:p-8 scroll-smooth relative z-10" id="main-scroll-container">
         <div className="container mx-auto max-w-7xl">
-           <div className="mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+           <div className="sticky top-0 z-40 mb-2 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-background/95 py-1 backdrop-blur supports-[backdrop-filter]:bg-background/80">
               <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
                  <button
                    type="button"

@@ -615,13 +615,21 @@ function ScheduleGridComponent({
       } else if (clientX > rect.right - edgeSize) {
         scheduleContainer.scrollLeft += scrollStep;
       }
+      if (clientY >= rect.top && clientY <= rect.bottom) {
+        if (clientY < rect.top + edgeSize) {
+          scheduleContainer.scrollTop -= scrollStep;
+        } else if (clientY > rect.bottom - edgeSize) {
+          scheduleContainer.scrollTop += scrollStep;
+        }
+      }
     }
 
-    if (mainScrollContainer) {
+    if (mainScrollContainer && scheduleContainer) {
+      const scheduleRect = scheduleContainer.getBoundingClientRect();
       const rect = mainScrollContainer.getBoundingClientRect();
-      if (clientY < rect.top + edgeSize) {
+      if (clientY < rect.top + edgeSize && clientY < scheduleRect.top) {
         mainScrollContainer.scrollTop -= scrollStep;
-      } else if (clientY > rect.bottom - edgeSize) {
+      } else if (clientY > rect.bottom - edgeSize && clientY > scheduleRect.bottom) {
         mainScrollContainer.scrollTop += scrollStep;
       }
     }
@@ -1311,7 +1319,7 @@ function ScheduleGridComponent({
       className="relative w-full rounded-xl border transition-colors border-border"
       style={{ backgroundColor: 'transparent' }}
     >
-      <div id="schedule-scroll-container" className="overflow-x-auto rounded-t-xl">
+      <div id="schedule-scroll-container" className="max-h-[calc(100dvh-16rem)] overflow-auto overscroll-contain rounded-t-xl md:max-h-none">
       <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px] !bg-transparent" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
         <thead className="sticky top-0 z-30">
           <tr className="backdrop-blur" style={{ backgroundColor: translucentCard }}>
