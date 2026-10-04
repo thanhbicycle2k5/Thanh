@@ -1379,7 +1379,7 @@ function ScheduleGridComponent({
       >
         <div
           ref={scheduleHeaderScrollRef}
-          className="touch-pan-x overflow-x-auto [scroll-behavior:auto] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="overflow-x-auto [scroll-behavior:auto] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           onScroll={(event) => syncScheduleHorizontalScroll(event.currentTarget, scheduleBodyScrollRef.current)}
         >
           <table className="w-full border-collapse table-fixed min-w-[600px] !bg-transparent" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
@@ -1394,7 +1394,7 @@ function ScheduleGridComponent({
       <div
         id="schedule-scroll-container"
         ref={scheduleBodyScrollRef}
-        className="touch-pan-x overflow-x-auto [scroll-behavior:auto]"
+        className="overflow-x-auto [scroll-behavior:auto]"
         onScroll={(event) => syncScheduleHorizontalScroll(event.currentTarget, scheduleHeaderScrollRef.current)}
       >
       <table ref={scheduleTableRef} className="w-full border-collapse table-fixed min-w-[600px] !bg-transparent" style={{ background: 'transparent', backgroundColor: 'transparent' }}>
