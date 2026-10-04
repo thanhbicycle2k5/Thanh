@@ -2903,7 +2903,7 @@ function PlannerApp() {
               <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
                  <button
                    type="button"
-                   className="text-left rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                   className="cursor-pointer rounded-lg border border-border px-2 py-1 text-left shadow-sm transition-shadow hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                    onClick={() => setIsSummaryOpen(true)}
                    aria-label={`${t('weekOf')} ${getISOWeek(selectedWeekStart)}, ${t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}`}
                  >
