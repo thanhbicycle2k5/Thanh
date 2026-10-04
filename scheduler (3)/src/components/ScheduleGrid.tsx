@@ -1359,7 +1359,10 @@ function ScheduleGridComponent({
       className="relative w-full rounded-xl border transition-colors border-border"
       style={{ backgroundColor: 'transparent' }}
     >
-      <div className="sticky z-30 overflow-hidden rounded-t-xl" style={{ top: `${stickyHeaderTop}px` }}>
+      <div
+        className="sticky z-[60] isolate overflow-hidden rounded-t-xl border-b border-border shadow-sm"
+        style={{ top: `${stickyHeaderTop}px`, backgroundColor: 'var(--card)', opacity: 1 }}
+      >
         <div
           ref={scheduleHeaderScrollRef}
           className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
