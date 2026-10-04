@@ -3909,7 +3909,7 @@ function PlannerApp() {
       <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
         {isSummaryOpen && <DialogContent allowTouchScroll className="max-w-4xl max-h-[min(80vh,calc(100dvh-2rem))] min-h-0 grid-rows-[auto_minmax(0,1fr)] overflow-hidden bg-card dark:bg-card">
           <DialogHeader className="pr-10">
-            <DialogTitle>{t('summaryYear').replace('{year}', format(new Date(), 'yyyy'))}</DialogTitle>
+            <DialogTitle>{t('summaryYear')}</DialogTitle>
           </DialogHeader>
           <div className="min-h-0 overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]">
             {summaryWeekGroups.map(({ year, weeks }) => (
