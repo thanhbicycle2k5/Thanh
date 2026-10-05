@@ -1,6 +1,7 @@
 import type { ChatTurn, TaskContextItem } from '../lib/aiRequest';
 
 export const ON_DEVICE_AI_MODEL = 'Qwen3-0.6B-q4f16_1-MLC';
+const ON_DEVICE_AI_CONTEXT_SIZE = 2048;
 
 const SYSTEM_PROMPT = `You are Scheduly AI, a friendly English-Vietnamese assistant.
 Answer directly and concisely, usually in one or two sentences.
@@ -48,12 +49,16 @@ async function loadEngine(onProgress?: ProgressCallback): Promise<WebLLMEngine> 
   }
   if (!enginePromise) {
     enginePromise = import('@mlc-ai/web-llm')
-      .then(({ CreateMLCEngine }) => CreateMLCEngine(ON_DEVICE_AI_MODEL, {
-        initProgressCallback: (report) => onProgress?.({
-          progress: Math.max(0, Math.min(1, report.progress)),
-          text: report.text,
-        }),
-      }))
+      .then(({ CreateMLCEngine }) => CreateMLCEngine(
+        ON_DEVICE_AI_MODEL,
+        {
+          initProgressCallback: (report) => onProgress?.({
+            progress: Math.max(0, Math.min(1, report.progress)),
+            text: report.text,
+          }),
+        },
+        { context_window_size: ON_DEVICE_AI_CONTEXT_SIZE },
+      ))
       .catch((error: unknown) => {
         enginePromise = null;
         throw new OnDeviceAIError(
@@ -114,9 +119,20 @@ export async function requestOnDeviceAI(request: {
   } catch (error) {
     if (request.signal?.aborted) throw new OnDeviceAIError('ABORTED', 'Generation stopped.');
     if (error instanceof OnDeviceAIError) throw error;
+    enginePromise = null;
+    void engine.unload().catch((unloadError: unknown) => {
+      console.warn('Failed to release on-device AI after a generation error:', unloadError);
+    });
+    const message = error instanceof Error ? error.message : String(error ?? '');
+    if (/mapasync|buffer was unmapped|device lost/i.test(message)) {
+      throw new OnDeviceAIError(
+        'UNAVAILABLE',
+        'WebGPU stopped while running the model. Close other apps and browser tabs, reload Scheduly, and try again. If it keeps happening, this phone/browser may not have enough compatible GPU memory for on-device AI.',
+      );
+    }
     throw new OnDeviceAIError(
       'UNAVAILABLE',
-      error instanceof Error ? error.message : 'The on-device model could not generate a reply.',
+      message || 'The on-device model could not generate a reply.',
     );
   } finally {
     request.signal?.removeEventListener('abort', interrupt);
