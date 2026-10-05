@@ -2,8 +2,11 @@
   "expo": {
     "name": "Scheduly AI",
     "slug": "scheduly-ai",
+    "owner": "thanhbicycle",
     "version": "1.0.0",
-    "platforms": ["android"],
+    "platforms": [
+      "android"
+    ],
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "android": {
@@ -29,6 +32,11 @@
           "forceCxx20": true
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "2f97c4cb-5e6d-4785-95e3-bb3f5e5cc2c6"
+      }
+    }
   }
 }
