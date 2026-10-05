@@ -312,19 +312,24 @@ const ScheduleCell = React.memo(function ScheduleCell({
           {plan.notes && (
             <span className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-current opacity-40" title={plan.notes} />
           )}
-          {quickEditEnabled && (
-            <button
-              type="button"
-              onPointerDown={(e) => e.stopPropagation()}
-              onClick={(e) => {
-                handleOpenEdit(plan, e);
-              }}
-              className="absolute bottom-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-muted/40 p-1 rounded hover:bg-muted/60"
-              aria-label="Chỉnh sửa task"
-            >
-              <Edit2 className="w-2 md:w-3 h-2 md:h-3" />
-            </button>
-          )}
+          <button
+            type="button"
+            onPointerDown={(e) => e.stopPropagation()}
+            onClick={(e) => {
+              if (!quickEditEnabled) {
+                e.stopPropagation();
+                return;
+              }
+              handleOpenEdit(plan, e);
+            }}
+            className={cn(
+              "absolute bottom-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-muted/40 p-1 rounded hover:bg-muted/60",
+              !quickEditEnabled && "pointer-events-none"
+            )}
+            aria-label="Chỉnh sửa task"
+          >
+            <Edit2 className="w-2 md:w-3 h-2 md:h-3" />
+          </button>
         </div>
       ) : (
         <div className="w-full h-full flex items-center justify-center opacity-10 group-hover:opacity-20 transition-opacity">
