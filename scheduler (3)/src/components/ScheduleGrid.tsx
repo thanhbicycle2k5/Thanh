@@ -1686,7 +1686,7 @@ function ScheduleGridComponent({
             {editingPlan && (
               <>
                 <div className="grid grid-cols-4 items-center gap-3">
-                  <Label className="text-right text-xs font-bold text-muted-foreground">
+                  <Label className="w-full text-left text-xs font-bold leading-4 text-muted-foreground">
                     {language === 'vi' ? <>Chế độ<br />áp dụng</> : t('applyMode')}
                   </Label>
                   <div className="col-span-3 flex gap-2">
