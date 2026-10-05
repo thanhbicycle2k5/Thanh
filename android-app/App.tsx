@@ -5,6 +5,19 @@ import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 import { handleNativeAIRequest } from './nativeAI';
 
 const SCHEDULY_URL = process.env.EXPO_PUBLIC_SCHEDULY_URL ?? 'https://task2goal.vercel.app';
+const SCHEDULY_ORIGIN = new URL(SCHEDULY_URL).origin;
+
+if (!SCHEDULY_URL.startsWith('https://')) {
+  throw new Error('The Android app must load Scheduly from a secure HTTPS URL.');
+}
+
+function isAllowedSchedulyUrl(candidate: string): boolean {
+  try {
+    return new URL(candidate).origin === SCHEDULY_ORIGIN;
+  } catch {
+    return false;
+  }
+}
 
 const bridgeScript = `
 (function () {
@@ -70,6 +83,11 @@ export default function App() {
   };
 
   const onMessage = async (event: WebViewMessageEvent) => {
+    if (!isAllowedSchedulyUrl(event.nativeEvent.url)) {
+      console.warn('Ignored native AI bridge message from an untrusted origin.');
+      return;
+    }
+
     let request: BridgeRequest;
     try {
       request = JSON.parse(event.nativeEvent.data) as BridgeRequest;
@@ -113,7 +131,7 @@ export default function App() {
         injectedJavaScriptBeforeContentLoaded={bridgeScript}
         onLoadEnd={() => webViewRef.current?.injectJavaScript(bridgeScript)}
         onMessage={onMessage}
-        onShouldStartLoadWithRequest={(request) => request.url === SCHEDULY_URL || request.url.startsWith(`${SCHEDULY_URL}/`)}
+        onShouldStartLoadWithRequest={(request) => isAllowedSchedulyUrl(request.url)}
         allowsBackForwardNavigationGestures={Platform.OS === 'ios'}
       />
     </View>
