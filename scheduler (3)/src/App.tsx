@@ -16,7 +16,7 @@ import {
   getISOWeekYear,
 } from 'date-fns';
 import { enUS, vi } from 'date-fns/locale';
-import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack, AIProvider } from './types';
+import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack, AIProvider, LocalAIModel } from './types';
 import { storage, normalizeSettings, defaultSettings, mergeSettingsForSync } from './lib/storage';
 import { mergePlans, markPlanForSync, getDeviceId, enqueueSyncOperation, clearQueuedOperation, flushSyncQueue, hasQueuedOperations } from './lib/sync';
 import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, subscribeWeekMetas, subscribeSharedScheduleLinks, updateSharedScheduleOwnerLabel, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule, deleteExpiredSharedSchedules, SharedScheduleLink } from './lib/firebase';
@@ -504,7 +504,7 @@ function PlannerApp() {
   const lastCatQuoteIdRef = React.useRef<number | undefined>(undefined);
   const [catPosition, setCatPosition] = React.useState<{ left: number; top: number } | null>(null);
   const [isSchedulyChatOpen, setIsSchedulyChatOpen] = React.useState(false);
-  const [localAIStatus, setLocalAIStatus] = React.useState<'LOCAL_AI_AVAILABLE' | 'LOCAL_AI_UNAVAILABLE' | 'CHECKING'>('CHECKING');
+  const [localAIStatus, setLocalAIStatus] = React.useState<'LOCAL_AI_AVAILABLE' | 'LOCAL_AI_MODEL_NOT_INSTALLED' | 'LOCAL_AI_UNAVAILABLE' | 'CHECKING'>('CHECKING');
 
   React.useEffect(() => {
     if (!pomodoroRunning || typeof navigator === 'undefined') return;
@@ -1751,11 +1751,11 @@ function PlannerApp() {
   const handleCheckLocalAI = React.useCallback(async () => {
     setLocalAIStatus('CHECKING');
     try {
-      setLocalAIStatus(await checkLocalAI());
+      setLocalAIStatus(await checkLocalAI(settingsState.localAIModel ?? LOCAL_AI_MODEL));
     } catch {
       setLocalAIStatus('LOCAL_AI_UNAVAILABLE');
     }
-  }, []);
+  }, [settingsState.localAIModel]);
 
   React.useEffect(() => {
     if (isSettingsOpen && localAIStatus === 'CHECKING') {
@@ -3501,6 +3501,7 @@ function PlannerApp() {
         catColor={settingsState.catColor ?? 'yellow'}
         plans={plans}
         aiProvider={settingsState.aiProvider ?? 'auto'}
+        localAIModel={settingsState.localAIModel ?? LOCAL_AI_MODEL}
       />
 
       {!isMobile && <CelebrationEffect trigger={showCelebration} count={25} />}
@@ -3694,7 +3695,7 @@ function PlannerApp() {
                             <div>
                               <p className="text-sm font-semibold text-foreground">{t('aiProvider')}</p>
                               {settingsState.aiProvider === 'local' && (
-                                <p className="text-xs text-muted-foreground">{t('localAIModel')}: {LOCAL_AI_MODEL}</p>
+                                <p className="text-xs text-muted-foreground">{t('localAIModel')}: {settingsState.localAIModel ?? LOCAL_AI_MODEL}</p>
                               )}
                             </div>
                             <Select value={settingsState.aiProvider ?? 'auto'} onValueChange={(value: AIProvider) => handleUpdateSettings({ aiProvider: value })}>
@@ -3708,10 +3709,34 @@ function PlannerApp() {
                           </div>
                           {settingsState.aiProvider === 'local' && (
                             <>
+                              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div>
+                                  <p className="text-sm font-semibold text-foreground">{t('localAIModel')}</p>
+                                  <p className="text-xs text-muted-foreground">{t('localAIModelHelp')}</p>
+                                </div>
+                                <Select
+                                  value={settingsState.localAIModel ?? LOCAL_AI_MODEL}
+                                  onValueChange={(value: LocalAIModel) => handleUpdateSettings({ localAIModel: value })}
+                                >
+                                  <SelectTrigger className="w-full sm:w-52"><SelectValue /></SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="qwen3:1.7b">{t('localAIModelFast')}</SelectItem>
+                                    <SelectItem value="qwen3:4b">{t('localAIModelBalanced')}</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
                               <div className="flex flex-col gap-3 rounded-xl border border-border bg-background/70 p-3 sm:flex-row sm:items-center sm:justify-between">
                                 <div className="flex items-center gap-2 text-xs">
-                                  <span className={cn('h-2.5 w-2.5 rounded-full', localAIStatus === 'LOCAL_AI_AVAILABLE' ? 'bg-emerald-500' : localAIStatus === 'CHECKING' ? 'animate-pulse bg-amber-500' : 'bg-red-500')} />
-                                  <span>{localAIStatus === 'LOCAL_AI_AVAILABLE' ? t('localAIAvailable') : localAIStatus === 'CHECKING' ? t('checkingLocalAI') : t('localAIUnavailable')}</span>
+                                  <span className={cn('h-2.5 w-2.5 rounded-full', localAIStatus === 'LOCAL_AI_AVAILABLE' ? 'bg-emerald-500' : localAIStatus === 'CHECKING' || localAIStatus === 'LOCAL_AI_MODEL_NOT_INSTALLED' ? 'animate-pulse bg-amber-500' : 'bg-red-500')} />
+                                  <span>
+                                    {localAIStatus === 'LOCAL_AI_AVAILABLE'
+                                      ? t('localAIAvailable')
+                                      : localAIStatus === 'CHECKING'
+                                        ? t('checkingLocalAI')
+                                        : localAIStatus === 'LOCAL_AI_MODEL_NOT_INSTALLED'
+                                          ? t('localAIModelNotInstalled')
+                                          : t('localAIUnavailable')}
+                                  </span>
                                 </div>
                                 <Button type="button" variant="outline" size="sm" onClick={() => void handleCheckLocalAI()} disabled={localAIStatus === 'CHECKING'}>{t('checkLocalAI')}</Button>
                               </div>
@@ -3731,7 +3756,7 @@ function PlannerApp() {
                                 <p className="text-muted-foreground">{t('localAISetupStep2')}</p>
                                 <p className="text-muted-foreground">{t('localAISetupStep3')}</p>
                                 <code className="block select-all rounded-md bg-muted px-3 py-2 font-mono text-foreground">
-                                  ollama pull {LOCAL_AI_MODEL}
+                                  ollama pull {settingsState.localAIModel ?? LOCAL_AI_MODEL}
                                 </code>
                                 <p className="text-muted-foreground">{t('localAISetupStep4')}</p>
                                 <p className="text-muted-foreground">{t('localAISetupFreeNote')}</p>

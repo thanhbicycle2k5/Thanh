@@ -6,11 +6,11 @@ import { DynamicCat } from './DynamicCat';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { AIProvider, CatColor, CatMood, Plan, Theme } from '../types';
+import { AIProvider, CatColor, CatMood, LocalAIModel, Plan, Theme } from '../types';
 import { formatAIUserError, isDictionaryLookupQuery, isShortVocabularyQuery, normalizeHistory, type ChatTurn } from '../lib/aiRequest';
 import { lookupLocalDictionary } from '../lib/localDictionary';
 import { lookupOpenDictionary } from '../lib/openDictionary';
-import { checkLocalAI, LocalAIError, requestLocalAI } from '../services/localAI';
+import { LocalAIError, requestLocalAI } from '../services/localAI';
 
 interface SchedulyChatProps {
   open: boolean;
@@ -19,6 +19,7 @@ interface SchedulyChatProps {
   catColor: CatColor;
   plans: Plan[];
   aiProvider: AIProvider;
+  localAIModel: LocalAIModel;
 }
 
 interface ChatMessage extends ChatTurn {
@@ -113,7 +114,20 @@ function getLocalTaskAnswer(question: string, plans: Plan[]) {
   return null;
 }
 
-export function SchedulyChat({ open, onClose, theme, catColor, plans, aiProvider }: SchedulyChatProps) {
+function getLocalSmallTalkAnswer(question: string) {
+  const normalized = question.trim().toLocaleLowerCase().replace(/[.!?]+$/g, '');
+  if (/^(hi|hello|hey|xin chào|chào|chào bạn)$/.test(normalized)) {
+    return /^(xin chào|chào|chào bạn)$/.test(normalized)
+      ? 'Xin chào! Mình là Scheduly AI. Mình có thể giúp gì cho bạn?'
+      : "Hi! I'm Scheduly AI. How can I help you?";
+  }
+  if (/^(what is your name|what's your name|who are you)$/.test(normalized)) {
+    return "I'm Scheduly AI, your personal assistant. I can help with planning, English, and Vietnamese.";
+  }
+  return null;
+}
+
+export function SchedulyChat({ open, onClose, theme, catColor, plans, aiProvider, localAIModel }: SchedulyChatProps) {
   const [question, setQuestion] = React.useState('');
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -173,6 +187,13 @@ export function SchedulyChat({ open, onClose, theme, catColor, plans, aiProvider
     abortControllerRef.current = new AbortController();
 
     try {
+      const smallTalkAnswer = getLocalSmallTalkAnswer(trimmedQuestion);
+      if (smallTalkAnswer) {
+        updateAssistant(assistantMessage.id, { text: smallTalkAnswer, source: 'Local AI' });
+        cacheAnswer(trimmedQuestion, { text: smallTalkAnswer, source: 'Local AI' });
+        return;
+      }
+
       const cachedAnswer = isShortVocabularyQuery(trimmedQuestion)
         ? readAnswerCache()[trimmedQuestion.toLowerCase()]
         : undefined;
@@ -198,6 +219,7 @@ export function SchedulyChat({ open, onClose, theme, catColor, plans, aiProvider
         try {
           let streamedAnswer = '';
           const answer = await requestLocalAI({
+            model: localAIModel,
             question: trimmedQuestion,
             history: priorHistory,
             signal: abortControllerRef.current.signal,

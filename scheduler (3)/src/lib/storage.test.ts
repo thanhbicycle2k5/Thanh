@@ -8,6 +8,11 @@ test('none is a valid notification sound setting', () => {
   assert.equal(normalizeSettings({ notificationSound: 'none' }).notificationSound, 'none');
 });
 
+test('selected Local AI model is persisted and invalid models use the default', () => {
+  assert.equal(normalizeSettings({ localAIModel: 'qwen3:1.7b' }).localAIModel, 'qwen3:1.7b');
+  assert.equal(normalizeSettings({ localAIModel: 'unknown' }).localAIModel, 'qwen3:4b');
+});
+
 test('streak history is normalized for local and cloud settings', () => {
   const settings = normalizeSettings({
     streakBest: 7,

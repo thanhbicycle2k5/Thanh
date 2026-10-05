@@ -1,5 +1,7 @@
+import type { LocalAIModel } from '../types';
+
 export const LOCAL_AI_BASE_URL = import.meta.env.DEV ? '/ollama' : 'http://localhost:11434';
-export const LOCAL_AI_MODEL = 'qwen3:4b';
+export const LOCAL_AI_MODEL: LocalAIModel = 'qwen3:4b';
 export const LOCAL_AI_SYSTEM_PROMPT = `You are Scheduly AI, an expert English-Vietnamese translator, interpreter, language professor and communication assistant.
 
 You specialize in:
@@ -32,9 +34,11 @@ For translation:
 - Preserve the original meaning and context.
 
 Answer clearly and naturally.
+For greetings and simple questions, answer briefly and directly.
+Do not show private reasoning; provide only the answer.
 Do not mention that you are a local model unless the user asks.`;
 
-export type LocalAIStatus = 'LOCAL_AI_AVAILABLE' | 'LOCAL_AI_UNAVAILABLE';
+export type LocalAIStatus = 'LOCAL_AI_AVAILABLE' | 'LOCAL_AI_MODEL_NOT_INSTALLED' | 'LOCAL_AI_UNAVAILABLE';
 
 export class LocalAIError extends Error {
   readonly code: 'UNAVAILABLE' | 'MODEL_NOT_INSTALLED' | 'ABORTED';
@@ -49,6 +53,7 @@ export class LocalAIError extends Error {
 type OllamaModel = { name?: string; model?: string };
 type OllamaTagsResponse = { models?: OllamaModel[] };
 type LocalAIRequest = {
+  model: LocalAIModel;
   question: string;
   history?: Array<{ role: 'user' | 'assistant'; text: string }>;
   onToken?: (token: string) => void;
@@ -59,10 +64,10 @@ function modelName(model: OllamaModel): string {
   return String(model.name ?? model.model ?? '').trim();
 }
 
-function hasConfiguredModel(payload: OllamaTagsResponse): boolean {
-  return Array.isArray(payload.models) && payload.models.some((model) => {
-    const name = modelName(model);
-    return name === LOCAL_AI_MODEL || name.startsWith(`${LOCAL_AI_MODEL}:`);
+function hasConfiguredModel(payload: OllamaTagsResponse, requestedModel: LocalAIModel): boolean {
+  return Array.isArray(payload.models) && payload.models.some((installedModel) => {
+    const name = modelName(installedModel);
+    return name === requestedModel || name.startsWith(`${requestedModel}:`);
   });
 }
 
@@ -82,10 +87,10 @@ async function getTags(signal?: AbortSignal): Promise<OllamaTagsResponse> {
   return await response.json() as OllamaTagsResponse;
 }
 
-export async function checkLocalAI(signal?: AbortSignal): Promise<LocalAIStatus> {
+export async function checkLocalAI(model: LocalAIModel, signal?: AbortSignal): Promise<LocalAIStatus> {
   try {
-    await getTags(signal);
-    return 'LOCAL_AI_AVAILABLE';
+    const tags = await getTags(signal);
+    return hasConfiguredModel(tags, model) ? 'LOCAL_AI_AVAILABLE' : 'LOCAL_AI_MODEL_NOT_INSTALLED';
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') throw error;
     return 'LOCAL_AI_UNAVAILABLE';
@@ -102,8 +107,8 @@ function toOllamaMessages(request: LocalAIRequest) {
 
 export async function requestLocalAI(request: LocalAIRequest): Promise<string> {
   const tags = await getTags(request.signal);
-  if (!hasConfiguredModel(tags)) {
-    throw new LocalAIError('MODEL_NOT_INSTALLED', `Model Local AI chưa được cài đặt. Hãy cài Ollama và model ${LOCAL_AI_MODEL}.`);
+  if (!hasConfiguredModel(tags, request.model)) {
+    throw new LocalAIError('MODEL_NOT_INSTALLED', `Model Local AI chưa được cài đặt. Hãy cài Ollama và model ${request.model}.`);
   }
 
   let response: Response;
@@ -112,11 +117,12 @@ export async function requestLocalAI(request: LocalAIRequest): Promise<string> {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: LOCAL_AI_MODEL,
+        model: request.model,
         messages: toOllamaMessages(request),
+        think: false,
         stream: true,
         keep_alive: '10m',
-        options: { temperature: 0.35 },
+        options: { temperature: 0.35, num_predict: 384 },
       }),
       signal: request.signal,
     });
@@ -173,11 +179,12 @@ export async function requestLocalAI(request: LocalAIRequest): Promise<string> {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: LOCAL_AI_MODEL,
+          model: request.model,
           messages: toOllamaMessages(request),
+          think: false,
           stream: false,
           keep_alive: '10m',
-          options: { temperature: 0.35 },
+          options: { temperature: 0.35, num_predict: 384 },
         }),
         signal: request.signal,
       });

@@ -37,6 +37,7 @@ export interface WeekMetadata {
 export type Language = 'en' | 'vi';
 export type Theme = 'light' | 'dark';
 export type AIProvider = 'auto' | 'local' | 'gemini';
+export type LocalAIModel = 'qwen3:1.7b' | 'qwen3:4b';
 export type NotificationSound = 'none' | 'bird' | 'wind' | 'bell' | 'chime';
 export type MusicPlaybackMode = 'play_once' | 'loop_one' | 'loop_all' | 'shuffle';
 export type CatMood = 'idle' | 'work' | 'gym' | 'medical' | 'shortBreak' | 'longBreak' | 'celebrating' | 'tired' | 'happy';
@@ -87,6 +88,7 @@ export interface AppSettings {
   catColor?: CatColor;
   weekTransitionEffect?: WeekTransitionEffect;
   aiProvider?: AIProvider;
+  localAIModel?: LocalAIModel;
   streakBest: number;
   streakDays: string[];
   updatedAt?: string;
