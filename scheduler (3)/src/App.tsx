@@ -3729,10 +3729,11 @@ function PlannerApp() {
                                   </a>
                                 </p>
                                 <p className="text-muted-foreground">{t('localAISetupStep2')}</p>
+                                <p className="text-muted-foreground">{t('localAISetupStep3')}</p>
                                 <code className="block select-all rounded-md bg-muted px-3 py-2 font-mono text-foreground">
                                   ollama pull {LOCAL_AI_MODEL}
                                 </code>
-                                <p className="text-muted-foreground">{t('localAISetupStep3')}</p>
+                                <p className="text-muted-foreground">{t('localAISetupStep4')}</p>
                                 <p className="text-muted-foreground">{t('localAISetupFreeNote')}</p>
                               </div>
                             </>
