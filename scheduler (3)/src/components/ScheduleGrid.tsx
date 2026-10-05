@@ -366,6 +366,7 @@ interface ScheduleGridProps {
   boardOpacity?: number;
   showLunarCalendar: boolean;
   allPlans?: Plan[];
+  quickEditEnabled?: boolean;
   sharedLinks?: SharedScheduleLink[];
   onCreateShare?: (startWeek: Date, endWeek: Date, plans: Plan[]) => Promise<SharedScheduleResult>;
   onCancelShare?: (shareId: string) => Promise<void>;
@@ -385,6 +386,7 @@ function ScheduleGridComponent({
   boardOpacity = 1,
   showLunarCalendar,
   allPlans = plans,
+  quickEditEnabled = false,
   sharedLinks = [],
   onCreateShare,
   onCancelShare,
@@ -933,6 +935,28 @@ function ScheduleGridComponent({
 
     const existing = existingPlan ?? plans.find(p => isSameDay(new Date(p.date), date) && p.startHour === hour);
 
+    if (quickEditEnabled && existing) {
+      if (clickTimer.current) {
+        clearTimeout(clickTimer.current);
+        clickTimer.current = null;
+      }
+      clickCount.current = 0;
+
+      setEditingPlan(existing);
+      setNewTitle(existing.title);
+      setNewColor(existing.color);
+      setNewStartMinute(existing.startMinute ?? 0);
+      setNewDuration(existing.duration);
+      setNewApplyMode(existing.applyMode || 'none');
+      setNewApplyDays(existing.applyDays || []);
+      setNewApplyWeekInterval(existing.applyWeekInterval ?? 0);
+      setNewApplyWeekDays(existing.applyWeekDays || []);
+      setNewApplyUntil(existing.applyUntil || format(new Date(existing.date), 'yyyy-MM-dd'));
+      setNewNotes(existing.notes || '');
+      setIsDialogOpen(true);
+      return;
+    }
+
     if (!existing || existing.title === '') {
       if (clickTimer.current) {
         clearTimeout(clickTimer.current);
@@ -1008,7 +1032,7 @@ function ScheduleGridComponent({
       clickCount.current = 0;
       clickTimer.current = null;
     }, 300);
-  }, [onPlanTurnGreen, onUpdatePlan, plans]);
+  }, [onPlanTurnGreen, onUpdatePlan, plans, quickEditEnabled]);
 
   const isLegacyAppliedOccurrence = (source: Plan, candidate: Plan, allowTitleMismatch = false) => {
     if (candidate.id === source.id

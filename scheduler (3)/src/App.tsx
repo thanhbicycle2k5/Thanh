@@ -70,6 +70,7 @@ import {
   Search,
   Facebook,
   Mail,
+  Pencil,
 } from 'lucide-react';
 import { Calendar as CalendarUI } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -330,6 +331,7 @@ function PlannerApp() {
   const [weekMetas, setWeekMetas] = React.useState<Record<string, any>>(() => storage.getWeekMetas());
   const [isSummaryOpen, setIsSummaryOpen] = React.useState(false);
   const [isSearchOpen, setIsSearchOpen] = React.useState(false);
+  const [quickTaskEditEnabled, setQuickTaskEditEnabled] = React.useState(false);
   const [searchQuery, setSearchQuery] = React.useState('');
   const searchInputRef = React.useRef<HTMLInputElement>(null);
   const plansRef = React.useRef<Plan[]>(plans);
@@ -476,6 +478,12 @@ function PlannerApp() {
       motionQuery.removeEventListener('change', motionChange);
     };
   }, []);
+
+  React.useEffect(() => {
+    if (!isMobile) {
+      setQuickTaskEditEnabled(false);
+    }
+  }, [isMobile]);
 
   React.useEffect(() => {
     if (!gymRestRunning) {
@@ -3061,9 +3069,10 @@ function PlannerApp() {
                     endHour={settingsState.endHour}
                     boardOpacity={Number.isFinite(settingsState.boardOpacity) ? settingsState.boardOpacity : 1}
                     showLunarCalendar={settingsState.showLunarCalendar ?? true}
-                      sharedLinks={sharedLinks}
-                      onCreateShare={handleCreateShare}
-                      onCancelShare={handleCancelShare}
+                    quickEditEnabled={isMobile && quickTaskEditEnabled}
+                    sharedLinks={sharedLinks}
+                    onCreateShare={handleCreateShare}
+                    onCancelShare={handleCancelShare}
                  />
                  <div className="p-4 border-t" style={{ backgroundColor: noteSurfaceColor }}>
                <Label className="text-[10px] font-bold uppercase mb-2 block opacity-50">{t('weekNote')}</Label>
@@ -3243,6 +3252,22 @@ function PlannerApp() {
       {/* Floating UI Group */}
       <div className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
         <div className="fixed bottom-20 right-4 z-[9999] flex flex-col items-end gap-3 pointer-events-auto">
+          {isMobile && (
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={() => setQuickTaskEditEnabled((value) => !value)}
+              className={cn(
+                "w-12 h-12 rounded-full shadow-2xl flex items-center justify-center border transition-all hover:scale-110 active:scale-95",
+                quickTaskEditEnabled ? "bg-[#107C41] text-white border-[#107C41] shadow-[0_0_18px_rgba(16,124,65,0.45)]" : "bg-background text-foreground border-border"
+              )}
+              title={quickTaskEditEnabled ? 'Khóa chỉnh sửa task' : 'Bật chỉnh sửa nhanh task'}
+              aria-label={quickTaskEditEnabled ? 'Khóa chỉnh sửa task' : 'Bật chỉnh sửa nhanh task'}
+            >
+              <Pencil className={cn("w-5 h-5 transition-transform", quickTaskEditEnabled && "scale-110 rotate-[-8deg]")} />
+            </button>
+          )}
+
           <HealthTipPanel theme={settingsState.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settingsState.language} onActivate={(m) => { setCatMoodOverride(m); setTimeout(() => setCatMoodOverride(null), 4000); }} />
 
           {/* Pomodoro button grouped with other floating controls */}
