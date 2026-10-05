@@ -2605,13 +2605,36 @@ function PlannerApp() {
         return;
       }
 
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        const target = e.target as HTMLElement | null;
+        const isInteractiveTarget = target?.closest(
+          'input, textarea, select, button, [contenteditable="true"], [role="dialog"], [data-slot="dialog-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"], [data-slot="select-content"]'
+        );
+        const hasMountedPopup = Boolean(document.querySelector(
+          '[data-slot="dialog-content"], [data-slot="popover-content"], [data-slot="dropdown-menu-content"], [data-slot="select-content"]'
+        ));
+        const mainScrollContainer = document.getElementById('main-scroll-container');
+        if (isInteractiveTarget || hasOpenPopup || hasMountedPopup || !mainScrollContainer) return;
+
+        const scheduleRow = document.querySelector<HTMLElement>(
+          '#schedule-scroll-container tbody tr[data-schedule-hour]'
+        );
+        const rowHeight = scheduleRow?.getBoundingClientRect().height || 48;
+        e.preventDefault();
+        mainScrollContainer.scrollBy({
+          top: (e.key === 'ArrowDown' ? 1 : -1) * rowHeight,
+          behavior: 'smooth',
+        });
+        return;
+      }
+
       // Left arrow = previous week, Right arrow = next week
       if (e.key === 'ArrowLeft') {
         e.preventDefault();
-        setSelectedWeekStart(subWeeks(selectedWeekStart, 1));
+        setSelectedWeekStart((weekStart) => subWeeks(weekStart, 1));
       } else if (e.key === 'ArrowRight') {
         e.preventDefault();
-        setSelectedWeekStart(addWeeks(selectedWeekStart, 1));
+        setSelectedWeekStart((weekStart) => addWeeks(weekStart, 1));
       }
     };
 
@@ -2663,12 +2686,12 @@ function PlannerApp() {
       if (diff > 0) {
         // Swipe left = next week; only when already at the right edge of the table
         if (atRightEdge) {
-          setSelectedWeekStart(addWeeks(selectedWeekStart, 1));
+          setSelectedWeekStart((weekStart) => addWeeks(weekStart, 1));
         }
       } else {
         // Swipe right = previous week; only when already at the left edge of the table
         if (atLeftEdge) {
-          setSelectedWeekStart(subWeeks(selectedWeekStart, 1));
+          setSelectedWeekStart((weekStart) => subWeeks(weekStart, 1));
         }
       }
     };
@@ -2969,7 +2992,7 @@ function PlannerApp() {
              {weekSummaryContent}
            </div>
            <div className="bg-transparent dark:border-white/10 rounded-none border shadow-xl">
-             <AnimatePresence mode="wait">
+             <AnimatePresence mode="sync">
                <motion.div
                  key={format(selectedWeekStart, 'yyyy-MM-dd')}
                  initial={actualWeekTransitionEffect === 'slide'
@@ -3046,7 +3069,7 @@ function PlannerApp() {
 
       <footer className="p-2 border-t sticky bottom-0 z-50 bg-background/95 border-border backdrop-blur relative">
          <div className="container mx-auto flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={() => setSelectedWeekStart(subWeeks(selectedWeekStart, 1))}><ChevronLeft className="w-4 h-4"/></Button>
+            <Button variant="ghost" size="icon" onClick={() => setSelectedWeekStart((weekStart) => subWeeks(weekStart, 1))}><ChevronLeft className="w-4 h-4"/></Button>
             <div className="flex-1 overflow-x-auto flex gap-1 scroll-smooth" id="week-tabs-container">
               {weekTabs.map((ws, i) => {
                 const isActive = isSameWeek(ws, selectedWeekStart, { weekStartsOn: 1 });
@@ -3142,7 +3165,7 @@ function PlannerApp() {
                 );
               })}
             </div>
-            <Button variant="ghost" size="icon" onClick={() => setSelectedWeekStart(addWeeks(selectedWeekStart, 1))}><ChevronRight className="w-4 h-4"/></Button>
+            <Button variant="ghost" size="icon" onClick={() => setSelectedWeekStart((weekStart) => addWeeks(weekStart, 1))}><ChevronRight className="w-4 h-4"/></Button>
             
             <Popover>
               <PopoverTrigger asChild>
