@@ -6,6 +6,7 @@ import { getColorForClickCount, shouldSkipGeneratedDate } from './taskColor';
 test('a single click does not change a task color automatically', () => {
   assert.equal(getColorForClickCount('blue', 1), 'blue');
   assert.equal(getColorForClickCount('red', 1), 'red');
+  assert.equal(getColorForClickCount('default', 1), 'default');
 });
 
 test('a single click does not undo a completed task', () => {
