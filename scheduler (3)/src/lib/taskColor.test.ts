@@ -16,7 +16,12 @@ test('a double-click completes a task by turning it green', () => {
   assert.equal(getColorForClickCount('blue', 2), 'green');
   assert.equal(getColorForClickCount('red', 2), 'green');
   assert.equal(getColorForClickCount('yellow', 2), 'green');
-  assert.equal(getColorForClickCount('gray', 2), 'green');
+});
+
+test('expired gray tasks stay locked and do not change color when clicked again', () => {
+  assert.equal(getColorForClickCount('gray', 1), 'gray');
+  assert.equal(getColorForClickCount('gray', 2), 'gray');
+  assert.equal(getColorForClickCount('gray', 3), 'gray');
 });
 
 test('third click resets task to default color', () => {

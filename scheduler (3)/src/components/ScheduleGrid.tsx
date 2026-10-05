@@ -984,6 +984,12 @@ function ScheduleGridComponent({
     }
 
     clickTimer.current = setTimeout(() => {
+      if (existing.color === 'gray') {
+        clickCount.current = 0;
+        clickTimer.current = null;
+        return;
+      }
+
       const nextColor = getColorForClickCount(existing.color, clickCount.current);
       const updated = { ...existing, color: nextColor };
 
