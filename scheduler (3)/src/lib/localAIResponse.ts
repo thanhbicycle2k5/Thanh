@@ -58,3 +58,12 @@ export function stripThinkTags(text: string) {
   const filter = createThinkTagFilter();
   return `${filter.push(text)}${filter.finish()}`.trim();
 }
+
+export function parseFinalAnswer(content: string) {
+  try {
+    const parsed = JSON.parse(content) as { answer?: unknown };
+    return typeof parsed.answer === 'string' ? parsed.answer.trim() : '';
+  } catch {
+    return '';
+  }
+}
