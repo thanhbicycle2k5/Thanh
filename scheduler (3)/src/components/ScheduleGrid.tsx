@@ -988,9 +988,14 @@ function ScheduleGridComponent({
       const updated = { ...existing, color: nextColor };
 
       if (clickCount.current === 1) {
-        onUpdatePlan(updated);
-      } else if (clickCount.current === 2) {
         if (nextColor !== existing.color) onUpdatePlan(updated);
+      } else if (clickCount.current === 2) {
+        if (nextColor !== existing.color) {
+          onUpdatePlan(updated, { suppressCompletionToast: true });
+          if (existing.color !== 'green') {
+            onPlanTurnGreen?.(updated);
+          }
+        }
       } else if (clickCount.current >= 3) {
         onUpdatePlan(updated);
       }

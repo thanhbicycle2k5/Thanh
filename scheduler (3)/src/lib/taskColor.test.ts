@@ -3,11 +3,20 @@ import assert from 'node:assert/strict';
 
 import { getColorForClickCount, shouldSkipGeneratedDate } from './taskColor';
 
-test('double-clicking does not complete or recolor a task', () => {
-  assert.equal(getColorForClickCount('blue', 2), 'blue');
-  assert.equal(getColorForClickCount('red', 2), 'red');
-  assert.equal(getColorForClickCount('yellow', 2), 'yellow');
-  assert.equal(getColorForClickCount('gray', 2), 'gray');
+test('a single click does not complete a task', () => {
+  assert.equal(getColorForClickCount('blue', 1), 'yellow');
+  assert.equal(getColorForClickCount('red', 1), 'yellow');
+});
+
+test('a single click does not undo a completed task', () => {
+  assert.equal(getColorForClickCount('green', 1), 'green');
+});
+
+test('a double-click completes a task by turning it green', () => {
+  assert.equal(getColorForClickCount('blue', 2), 'green');
+  assert.equal(getColorForClickCount('red', 2), 'green');
+  assert.equal(getColorForClickCount('yellow', 2), 'green');
+  assert.equal(getColorForClickCount('gray', 2), 'green');
 });
 
 test('third click resets task to default color', () => {
