@@ -90,17 +90,14 @@ export async function requestOnDeviceAI(request: {
 
   try {
     const taskContext = request.taskContext?.slice(0, 6) ?? [];
+    const systemPrompt = taskContext.length > 0
+      ? `${SYSTEM_PROMPT}\n\nRelevant Scheduly tasks:\n${taskContext.map((task) =>
+          `- ${task.title} | ${task.date} | ${String(task.startHour).padStart(2, '0')}:${String(task.startMinute ?? 0).padStart(2, '0')} | ${task.duration} min | ${task.completed ? 'completed' : 'unfinished'}`
+        ).join('\n')}`
+      : SYSTEM_PROMPT;
     const result = await engine.chat.completions.create({
       messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...(taskContext.length > 0
-          ? [{
-              role: 'system' as const,
-              content: `Relevant Scheduly tasks:\n${taskContext.map((task) =>
-                `- ${task.title} | ${task.date} | ${String(task.startHour).padStart(2, '0')}:${String(task.startMinute ?? 0).padStart(2, '0')} | ${task.duration} min | ${task.completed ? 'completed' : 'unfinished'}`
-              ).join('\n')}`,
-            }]
-          : []),
+        { role: 'system', content: systemPrompt },
         ...(request.history ?? []).slice(-4).map((turn) => ({ role: turn.role, content: turn.text.slice(0, 1_200) })),
         { role: 'user', content: request.question.slice(0, 4_000) },
       ],
