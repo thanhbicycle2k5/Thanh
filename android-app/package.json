@@ -22,7 +22,7 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "prebuild:android": "expo prebuild --platform android",
-    "build:android": "expo run:android"
+    "build:android": "cd android && ./gradlew assembleRelease"
   },
   "private": true
 }
