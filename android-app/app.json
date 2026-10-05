@@ -1,0 +1,34 @@
+{
+  "expo": {
+    "name": "Scheduly AI",
+    "slug": "scheduly-ai",
+    "version": "1.0.0",
+    "platforms": ["android"],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "android": {
+      "package": "com.scheduly.localai",
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      [
+        "llama.rn",
+        {
+          "enableOpenCLAndHexagon": true,
+          "enableEntitlements": false,
+          "forceCxx20": true
+        }
+      ]
+    ]
+  }
+}

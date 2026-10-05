@@ -86,7 +86,7 @@ import { CelebrationEffect } from './components/CelebrationEffect';
 import { SchedulyChat } from './components/SchedulyChat';
 import { getRandomCatQuote } from './data/catQuotes';
 import { checkLocalAI, LOCAL_AI_MODEL } from './services/localAI';
-import { getOnDeviceAIUnavailableReason, isOnDeviceAIModelCached, ON_DEVICE_AI_MODEL, prepareOnDeviceAI } from './services/onDeviceAI';
+import { getOnDeviceAIModelName, getOnDeviceAIUnavailableReason, isOnDeviceAIModelCached, prepareOnDeviceAI } from './services/onDeviceAI';
 
 import { 
   Dialog,
@@ -3805,7 +3805,7 @@ function PlannerApp() {
                             <div className="space-y-3 rounded-xl border border-border bg-background/70 p-3 text-xs">
                               <div>
                                 <p className="font-semibold text-foreground">
-                                  {t('onDeviceAIModel')}: {ON_DEVICE_AI_MODEL}
+                                  {t('onDeviceAIModel')}: {getOnDeviceAIModelName()}
                                 </p>
                               </div>
                               <p className="text-muted-foreground">{t('onDeviceAIAndroidOnly')}</p>

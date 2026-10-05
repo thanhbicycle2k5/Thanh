@@ -1,6 +1,7 @@
 import type { ChatTurn, TaskContextItem } from '../lib/aiRequest';
 
 export const ON_DEVICE_AI_MODEL = 'Qwen3-0.6B-q4f16_1-MLC';
+export const ANDROID_NATIVE_AI_MODEL = 'SmolLM3-3B-Q4_K_M.gguf';
 const ON_DEVICE_AI_CONTEXT_SIZE = 2048;
 
 const SYSTEM_PROMPT = `You are Scheduly AI, a friendly English-Vietnamese assistant.
@@ -30,19 +31,47 @@ type WebLLMEngine = import('@mlc-ai/web-llm').MLCEngine;
 
 let enginePromise: Promise<WebLLMEngine> | null = null;
 
+declare global {
+  interface Window {
+    schedulyNativeAI?: {
+      call<T>(
+        action: 'status' | 'prepare' | 'chat',
+        payload?: Record<string, unknown>,
+        onProgress?: ProgressCallback,
+        signal?: AbortSignal,
+      ): Promise<T>;
+    };
+  }
+}
+
+function getNativeBridge() {
+  return typeof window === 'undefined' ? undefined : window.schedulyNativeAI;
+}
+
+export function getOnDeviceAIModelName(): string {
+  return getNativeBridge() ? ANDROID_NATIVE_AI_MODEL : ON_DEVICE_AI_MODEL;
+}
+
 export function getOnDeviceAIUnavailableReason(): OnDeviceAIUnavailableReason | null {
   if (typeof window === 'undefined') return 'browser';
+  if (getNativeBridge()) return null;
   if (!window.isSecureContext) return 'https';
   if (!('gpu' in navigator)) return 'webgpu';
   return null;
 }
 
 export async function isOnDeviceAIModelCached(): Promise<boolean> {
+  const native = getNativeBridge();
+  if (native) {
+    const status = await native.call<{ cached: boolean }>('status');
+    return status.cached;
+  }
   const { hasModelInCache } = await import('@mlc-ai/web-llm');
   return hasModelInCache(ON_DEVICE_AI_MODEL);
 }
 
 async function loadEngine(onProgress?: ProgressCallback): Promise<WebLLMEngine> {
+  if (getNativeBridge()) throw new OnDeviceAIError('UNAVAILABLE', 'The Android native AI bridge is active.');
   const unavailableReason = getOnDeviceAIUnavailableReason();
   if (unavailableReason) {
     const messages: Record<OnDeviceAIUnavailableReason, string> = {
@@ -78,6 +107,11 @@ async function loadEngine(onProgress?: ProgressCallback): Promise<WebLLMEngine> 
 }
 
 export async function prepareOnDeviceAI(onProgress?: ProgressCallback): Promise<void> {
+  const native = getNativeBridge();
+  if (native) {
+    await native.call('prepare', {}, onProgress);
+    return;
+  }
   await loadEngine(onProgress);
 }
 
@@ -88,6 +122,28 @@ export async function requestOnDeviceAI(request: {
   signal?: AbortSignal;
   onProgress?: ProgressCallback;
 }): Promise<string> {
+  const native = getNativeBridge();
+  if (native) {
+    const taskContext = request.taskContext?.slice(0, 6) ?? [];
+    const systemPrompt = taskContext.length > 0
+      ? `${SYSTEM_PROMPT}\n\nRelevant Scheduly tasks:\n${taskContext.map((task) =>
+          `- ${task.title} | ${task.date} | ${String(task.startHour).padStart(2, '0')}:${String(task.startMinute ?? 0).padStart(2, '0')} | ${task.duration} min | ${task.completed ? 'completed' : 'unfinished'}`
+        ).join('\n')}`
+      : SYSTEM_PROMPT;
+    try {
+      const result = await native.call<{ answer: string }>('chat', {
+        messages: [
+          { role: 'system', content: systemPrompt },
+          ...(request.history ?? []).slice(-4).map((turn) => ({ role: turn.role, content: turn.text.slice(0, 1_200) })),
+          { role: 'user', content: request.question.slice(0, 4_000) },
+        ],
+      }, request.onProgress, request.signal);
+      return result.answer;
+    } catch (error) {
+      if (request.signal?.aborted) throw new OnDeviceAIError('ABORTED', 'Generation stopped.');
+      throw new OnDeviceAIError('UNAVAILABLE', error instanceof Error ? error.message : 'Native AI failed.');
+    }
+  }
   const engine = await loadEngine(request.onProgress);
   if (request.signal?.aborted) throw new OnDeviceAIError('ABORTED', 'Generation stopped.');
 

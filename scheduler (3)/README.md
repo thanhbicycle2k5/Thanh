@@ -36,8 +36,8 @@ Set these Vercel Environment Variables for the deployed API:
 
 When the free model pool or quota is unavailable, Scheduly shows a friendly unavailable message and the rest of the app continues to work. Task context is reduced to a small set of relevant task titles, dates, times, durations, and completion state.
 
-### On-device AI in Android Chrome
+### Android native AI app
 
-Choose **On-device AI (experimental)** under Settings → AI Provider, then tap **Download model**. Scheduly downloads the Qwen3 0.6B WebLLM model the first time and stores its files in browser storage. On later launches, the app checks that cache and offers **Load saved model**; it must initialize the model into WebGPU again for each browser session, but should reuse cached files instead of downloading them again. Browser storage may be evicted or cleared, in which case the model must be downloaded again. It uses a 2,048-token context to reduce GPU memory use on phones. The initial download needs internet; later prompts are processed in the browser and are not sent to the Scheduly AI endpoint.
+The browser-based WebGPU provider is experimental. For native on-device inference, use the companion app in `../android-app`, which wraps the deployed Scheduly site and serves chat requests through `llama.rn`/llama.cpp. The app downloads the Apache-2.0 SmolLM3 3B Q4_K_M GGUF (about 1.9 GB) into its private storage on first use, then reuses it on later launches. Build a custom Android development/release binary; Expo Go cannot load llama.cpp native code.
 
-This option requires a current browser with WebGPU and a secure HTTPS origin. Use the deployed Scheduly site in Chrome on Android; a plain `http://<computer-ip>` development URL does not meet the secure-context requirement. Model loading and inference need substantial device memory, can be slow or unsupported on some devices, and browser storage may be cleared by Android. If WebGPU reports a lost device or unmapped buffer, close other apps/tabs, reload Scheduly, and try again; the graphics driver may not support inference reliably. Ollama and the existing cloud AI options remain available.
+Set `EXPO_PUBLIC_SCHEDULY_URL` at build time if the app should open a different deployed Scheduly origin. Native chat runs locally and is not sent to the cloud AI endpoint.
