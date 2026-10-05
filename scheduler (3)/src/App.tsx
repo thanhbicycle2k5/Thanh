@@ -3693,7 +3693,9 @@ function PlannerApp() {
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                               <p className="text-sm font-semibold text-foreground">{t('aiProvider')}</p>
-                              <p className="text-xs text-muted-foreground">{t('localAIModel')}: {LOCAL_AI_MODEL}</p>
+                              {settingsState.aiProvider === 'local' && (
+                                <p className="text-xs text-muted-foreground">{t('localAIModel')}: {LOCAL_AI_MODEL}</p>
+                              )}
                             </div>
                             <Select value={settingsState.aiProvider ?? 'auto'} onValueChange={(value: AIProvider) => handleUpdateSettings({ aiProvider: value })}>
                               <SelectTrigger className="w-full sm:w-52"><SelectValue /></SelectTrigger>
@@ -3704,13 +3706,37 @@ function PlannerApp() {
                               </SelectContent>
                             </Select>
                           </div>
-                          <div className="flex flex-col gap-3 rounded-xl border border-border bg-background/70 p-3 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="flex items-center gap-2 text-xs">
-                              <span className={cn('h-2.5 w-2.5 rounded-full', localAIStatus === 'LOCAL_AI_AVAILABLE' ? 'bg-emerald-500' : localAIStatus === 'CHECKING' ? 'animate-pulse bg-amber-500' : 'bg-red-500')} />
-                              <span>{localAIStatus === 'LOCAL_AI_AVAILABLE' ? t('localAIAvailable') : localAIStatus === 'CHECKING' ? t('checkingLocalAI') : t('localAIUnavailable')}</span>
-                            </div>
-                            <Button type="button" variant="outline" size="sm" onClick={() => void handleCheckLocalAI()} disabled={localAIStatus === 'CHECKING'}>{t('checkLocalAI')}</Button>
-                          </div>
+                          {settingsState.aiProvider === 'local' && (
+                            <>
+                              <div className="flex flex-col gap-3 rounded-xl border border-border bg-background/70 p-3 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="flex items-center gap-2 text-xs">
+                                  <span className={cn('h-2.5 w-2.5 rounded-full', localAIStatus === 'LOCAL_AI_AVAILABLE' ? 'bg-emerald-500' : localAIStatus === 'CHECKING' ? 'animate-pulse bg-amber-500' : 'bg-red-500')} />
+                                  <span>{localAIStatus === 'LOCAL_AI_AVAILABLE' ? t('localAIAvailable') : localAIStatus === 'CHECKING' ? t('checkingLocalAI') : t('localAIUnavailable')}</span>
+                                </div>
+                                <Button type="button" variant="outline" size="sm" onClick={() => void handleCheckLocalAI()} disabled={localAIStatus === 'CHECKING'}>{t('checkLocalAI')}</Button>
+                              </div>
+                              <div className="space-y-2 rounded-xl border border-border bg-background/70 p-3 text-xs">
+                                <p className="font-semibold text-foreground">{t('localAISetupTitle')}</p>
+                                <p className="text-muted-foreground">
+                                  {t('localAISetupStep1')}{' '}
+                                  <a
+                                    href="https://ollama.com/download"
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="font-medium text-primary underline underline-offset-2"
+                                  >
+                                    {t('downloadOllama')}
+                                  </a>
+                                </p>
+                                <p className="text-muted-foreground">{t('localAISetupStep2')}</p>
+                                <code className="block select-all rounded-md bg-muted px-3 py-2 font-mono text-foreground">
+                                  ollama pull {LOCAL_AI_MODEL}
+                                </code>
+                                <p className="text-muted-foreground">{t('localAISetupStep3')}</p>
+                                <p className="text-muted-foreground">{t('localAISetupFreeNote')}</p>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
 
