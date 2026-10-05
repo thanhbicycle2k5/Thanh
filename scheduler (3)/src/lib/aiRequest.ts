@@ -15,6 +15,16 @@ export type TaskContextItem = {
   completed?: boolean;
 };
 
+export function getWordClarificationAnswer(query: string, language: 'en' | 'vi'): string | null {
+  const normalized = String(query ?? '').trim().toLocaleLowerCase().replace(/[.!?]+$/g, '');
+  const isVagueWordRequest = /^(?:(?:please\s+)?(?:explain|define)\s+(?:a|one|the)?\s*word|what\s+does\s+(?:a|the)?\s*word\s+mean|giải thích\s+(?:(?:cho tôi|giúp tôi)\s+)?(?:một\s+)?từ|giải nghĩa\s+(?:một\s+)?từ)$/.test(normalized);
+
+  if (!isVagueWordRequest) return null;
+  return language === 'vi'
+    ? 'Bạn muốn mình giải thích từ nào?'
+    : 'Sure! Which word would you like me to explain?';
+}
+
 export function normalizeHistory(history: ChatTurn[] = []): ChatTurn[] {
   return (Array.isArray(history) ? history : [])
     .slice(-MAX_HISTORY_TURNS)

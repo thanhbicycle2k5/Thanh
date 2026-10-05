@@ -3498,6 +3498,7 @@ function PlannerApp() {
         open={isSchedulyChatOpen}
         onClose={() => setIsSchedulyChatOpen(false)}
         theme={settingsState.theme}
+        language={settingsState.language}
         catColor={settingsState.catColor ?? 'yellow'}
         plans={plans}
         aiProvider={settingsState.aiProvider ?? 'auto'}

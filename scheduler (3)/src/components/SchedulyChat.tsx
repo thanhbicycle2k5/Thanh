@@ -6,8 +6,8 @@ import { DynamicCat } from './DynamicCat';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { AIProvider, CatColor, CatMood, LocalAIModel, Plan, Theme } from '../types';
-import { formatAIUserError, isDictionaryLookupQuery, isShortVocabularyQuery, normalizeHistory, type ChatTurn } from '../lib/aiRequest';
+import { AIProvider, CatColor, CatMood, Language, LocalAIModel, Plan, Theme } from '../types';
+import { formatAIUserError, getWordClarificationAnswer, isDictionaryLookupQuery, isShortVocabularyQuery, normalizeHistory, type ChatTurn } from '../lib/aiRequest';
 import { lookupLocalDictionary } from '../lib/localDictionary';
 import { lookupOpenDictionary } from '../lib/openDictionary';
 import { LocalAIError, requestLocalAI } from '../services/localAI';
@@ -16,6 +16,7 @@ interface SchedulyChatProps {
   open: boolean;
   onClose: () => void;
   theme: Theme;
+  language: Language;
   catColor: CatColor;
   plans: Plan[];
   aiProvider: AIProvider;
@@ -127,7 +128,7 @@ function getLocalSmallTalkAnswer(question: string) {
   return null;
 }
 
-export function SchedulyChat({ open, onClose, theme, catColor, plans, aiProvider, localAIModel }: SchedulyChatProps) {
+export function SchedulyChat({ open, onClose, theme, language, catColor, plans, aiProvider, localAIModel }: SchedulyChatProps) {
   const [question, setQuestion] = React.useState('');
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -191,6 +192,12 @@ export function SchedulyChat({ open, onClose, theme, catColor, plans, aiProvider
       if (smallTalkAnswer) {
         updateAssistant(assistantMessage.id, { text: smallTalkAnswer, source: 'Local AI' });
         cacheAnswer(trimmedQuestion, { text: smallTalkAnswer, source: 'Local AI' });
+        return;
+      }
+
+      const wordClarificationAnswer = getWordClarificationAnswer(trimmedQuestion, language);
+      if (wordClarificationAnswer) {
+        updateAssistant(assistantMessage.id, { text: wordClarificationAnswer, source: 'Local AI' });
         return;
       }
 
