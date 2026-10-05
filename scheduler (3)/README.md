@@ -27,7 +27,7 @@ This contains everything you need to run your app locally.
 
 ## Scheduly AI
 
-The Scheduly AI popup uses OpenRouter's `openrouter/free` router through the server-side `/api/scheduly-ai` function. It never configures a paid model or paid fallback.
+The Scheduly AI popup uses OpenRouter's `openrouter/free` router through the server-side `/api/scheduly-ai` function. The settings label is "Free online AI" ("AI trực tuyến miễn phí"); it is not Gemini and it never configures a paid model or paid fallback.
 
 Set these Vercel Environment Variables for the deployed API:
 
