@@ -1,42 +1,14 @@
 import type { LocalAIModel } from '../types';
+import { createThinkTagFilter, stripThinkTags } from '../lib/localAIResponse';
 
 export const LOCAL_AI_BASE_URL = import.meta.env.DEV ? '/ollama' : 'http://localhost:11434';
 export const LOCAL_AI_MODEL: LocalAIModel = 'qwen3:4b';
-export const LOCAL_AI_SYSTEM_PROMPT = `You are Scheduly AI, an expert English-Vietnamese translator, interpreter, language professor and communication assistant.
-
-You specialize in:
-- English-Vietnamese translation
-- Vietnamese-English translation
-- IPA pronunciation
-- vocabulary
-- collocations
-- grammar
-- CEFR levels
-- natural expressions
-- formal/informal register
-- pragmatics
-- cultural context
-- interpreting and translation strategies
-
-For vocabulary:
-1. Word
-2. IPA
-3. Part of speech
-4. Vietnamese meanings
-5. CEFR level
-6. Common collocations
-7. Three natural examples
-8. Usage/context notes
-
-For translation:
-- Give a natural translation first.
-- Explain important vocabulary or expressions when useful.
-- Preserve the original meaning and context.
-
-Answer clearly and naturally.
-For greetings and simple questions, answer briefly and directly.
-Do not show private reasoning; provide only the answer.
-Do not mention that you are a local model unless the user asks.`;
+export const LOCAL_AI_SYSTEM_PROMPT = `You are Scheduly AI, a friendly English-Vietnamese assistant.
+Answer directly and concisely, usually in one or two sentences.
+Never reveal or narrate your reasoning. For greetings and compliments, reply naturally.
+For translations, preserve the meaning and give the natural translation first.
+For vocabulary questions, include the word, IPA, part of speech, Vietnamese meaning, and one short example.
+Do not mention that you are a local model unless asked.`;
 
 export type LocalAIStatus = 'LOCAL_AI_AVAILABLE' | 'LOCAL_AI_MODEL_NOT_INSTALLED' | 'LOCAL_AI_UNAVAILABLE';
 
@@ -101,7 +73,7 @@ function toOllamaMessages(request: LocalAIRequest) {
   return [
     { role: 'system', content: LOCAL_AI_SYSTEM_PROMPT },
     ...(request.history ?? []).map((turn) => ({ role: turn.role, content: turn.text })),
-    { role: 'user', content: request.question },
+    { role: 'user', content: `/no_think\n${request.question}` },
   ];
 }
 
@@ -141,6 +113,13 @@ export async function requestLocalAI(request: LocalAIRequest): Promise<string> {
   const decoder = new TextDecoder();
   let answer = '';
   let buffer = '';
+  const thinkFilter = createThinkTagFilter();
+  const appendVisibleContent = (content: string) => {
+    const visible = thinkFilter.push(content);
+    if (!visible) return;
+    answer += visible;
+    request.onToken?.(visible);
+  };
 
   try {
     while (true) {
@@ -152,23 +131,22 @@ export async function requestLocalAI(request: LocalAIRequest): Promise<string> {
 
       for (const line of lines) {
         if (!line.trim()) continue;
-        const chunk = JSON.parse(line) as { message?: { content?: string }; done?: boolean };
+        const chunk = JSON.parse(line) as { message?: { content?: string; thinking?: string }; done?: boolean };
         const token = chunk.message?.content ?? '';
-        if (token) {
-          answer += token;
-          request.onToken?.(token);
-        }
+        if (token) appendVisibleContent(token);
       }
     }
 
     buffer += decoder.decode();
     if (buffer.trim()) {
-      const chunk = JSON.parse(buffer) as { message?: { content?: string } };
+      const chunk = JSON.parse(buffer) as { message?: { content?: string; thinking?: string } };
       const token = chunk.message?.content ?? '';
-      if (token) {
-        answer += token;
-        request.onToken?.(token);
-      }
+      if (token) appendVisibleContent(token);
+    }
+    const trailingContent = thinkFilter.finish();
+    if (trailingContent) {
+      answer += trailingContent;
+      request.onToken?.(trailingContent);
     }
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') {
@@ -188,8 +166,8 @@ export async function requestLocalAI(request: LocalAIRequest): Promise<string> {
         }),
         signal: request.signal,
       });
-      const retryPayload = await retryResponse.json().catch(() => null) as { message?: { content?: string } } | null;
-      const retryAnswer = retryPayload?.message?.content ?? '';
+      const retryPayload = await retryResponse.json().catch(() => null) as { message?: { content?: string; thinking?: string } } | null;
+      const retryAnswer = stripThinkTags(retryPayload?.message?.content ?? '');
       if (retryResponse.ok && retryAnswer.trim()) {
         request.onToken?.(retryAnswer);
         return retryAnswer;

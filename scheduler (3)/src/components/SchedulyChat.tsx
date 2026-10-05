@@ -27,7 +27,7 @@ interface ChatMessage extends ChatTurn {
   source?: 'Local Dictionary' | 'Local AI' | 'Gemini';
 }
 
-const CHAT_CACHE_KEY = 'scheduly-ai-cache';
+const CHAT_CACHE_KEY = 'scheduly-ai-cache-v2';
 const MAX_CACHE_ITEMS = 30;
 
 function readAnswerCache(): Record<string, { text: string; source: ChatMessage['source'] }> {
