@@ -1,4 +1,4 @@
-export type PlanColor = 'default' | 'green' | 'yellow' | 'gray' | 'red' | 'blue' | 'pink';
+export type PlanColor = 'default' | 'green' | 'yellow' | 'gray' | 'red' | 'blue' | 'pink' | 'purple' | 'orange';
 export type TaskApplyMode = 'none' | 'day' | 'week';
 
 export interface Plan {

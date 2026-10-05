@@ -63,6 +63,8 @@ const COLOR_MAP: Record<PlanColor, string> = {
   red: 'text-[#fff]',
   blue: 'text-[#fff]',
   pink: 'text-[#000]',
+  purple: 'text-[#fff]',
+  orange: 'text-[#000]',
 };
 
 const PLAN_BACKGROUND_COLORS: Record<PlanColor, string> = {
@@ -73,7 +75,11 @@ const PLAN_BACKGROUND_COLORS: Record<PlanColor, string> = {
   red: '#FF0000',
   blue: '#0070C0',
   pink: '#FF69B4',
+  purple: '#A855F7',
+  orange: '#F97316',
 };
+
+const TASK_COLOR_OPTIONS: PlanColor[] = ['default', 'yellow', 'orange', 'red', 'pink', 'purple', 'blue'];
 
 const hexToRgba = (hex: string, alpha: number) => {
   const safeHex = hex.replace('#', '');
@@ -1653,7 +1659,7 @@ function ScheduleGridComponent({
                 {t('color')}
               </Label>
               <div className="col-span-3 flex gap-2 flex-wrap">
-                {(Object.keys(COLOR_MAP) as PlanColor[]).map(color => (
+                {TASK_COLOR_OPTIONS.map(color => (
                   <button
                     key={color}
                     type="button"

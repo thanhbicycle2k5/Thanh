@@ -9,7 +9,7 @@ import { subscribeSharedSchedule, SharedScheduleSnapshot } from '../lib/firebase
 
 const COLORS: Record<PlanColor, string> = {
   default: '#f8fafc', green: '#92D050', yellow: '#FFFF00', gray: '#7F7F7F',
-  red: '#FF0000', blue: '#0070C0', pink: '#FF69B4',
+  red: '#FF0000', blue: '#0070C0', pink: '#FF69B4', purple: '#A855F7', orange: '#F97316',
 };
 
 const weekStartFromQuery = (value: string) => {
