@@ -73,7 +73,7 @@ function toOllamaMessages(request: LocalAIRequest) {
   return [
     { role: 'system', content: LOCAL_AI_SYSTEM_PROMPT },
     ...(request.history ?? []).map((turn) => ({ role: turn.role, content: turn.text })),
-    { role: 'user', content: `/no_think\n${request.question}` },
+    { role: 'user', content: `${request.question}\n/no_think` },
   ];
 }
 
