@@ -984,10 +984,7 @@ function ScheduleGridComponent({
       if (clickCount.current === 1) {
         onUpdatePlan(updated);
       } else if (clickCount.current === 2) {
-        onUpdatePlan(updated, { suppressCompletionToast: true });
-        if (existing.color !== 'green') {
-          onPlanTurnGreen?.(updated);
-        }
+        if (nextColor !== existing.color) onUpdatePlan(updated);
       } else if (clickCount.current >= 3) {
         onUpdatePlan(updated);
       }

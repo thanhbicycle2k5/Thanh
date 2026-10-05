@@ -39,3 +39,15 @@ export const getPlanEndMinutes = (plan: Pick<Plan, 'startHour' | 'startMinute' |
   // Example: 07:15 + 1 hour = 08:00, not 08:15.
   return (plan.startHour + plan.duration) * 60;
 };
+
+export const getPlanEndDate = (plan: Pick<Plan, 'date' | 'startHour' | 'startMinute' | 'duration'>) => {
+  const end = getPlanStartDate(plan);
+  end.setHours(0, 0, 0, 0);
+  end.setMinutes(getPlanEndMinutes(plan));
+  return end;
+};
+
+export const isPlanPastEndGracePeriod = (
+  plan: Pick<Plan, 'date' | 'startHour' | 'startMinute' | 'duration'>,
+  now: Date = new Date()
+) => now.getTime() >= getPlanEndDate(plan).getTime() + 60 * 60 * 1000;

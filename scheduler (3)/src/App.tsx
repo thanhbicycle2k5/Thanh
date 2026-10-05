@@ -24,7 +24,7 @@ import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
 import { playNotificationSound, playCompletionMelody, playMeow, playLogoClick } from './lib/sounds';
-import { getPlanStartDate, isReminderStillRelevant } from './lib/taskTime';
+import { getPlanStartDate, isPlanPastEndGracePeriod, isReminderStillRelevant } from './lib/taskTime';
 import { calculatePomodoroRemainingSeconds, shouldStartPomodoroMusic } from './lib/pomodoro';
 import { calculateStreak, getCompletedDayKeys, getLocalDateKey, getPlanLocalDateKey, isPlanOnLocalDate } from './lib/streak';
 import { getSchedulyMessage, SchedulyStatus, getRandomPomodoroEncouragementMessage } from './lib/schedulyMessages';
@@ -2231,9 +2231,9 @@ function PlannerApp() {
 
   const handleUpdatePlan = React.useCallback(async (
     p: Plan,
-    options?: { suppressCompletionToast?: boolean }
+    options?: { suppressCompletionToast?: boolean; skipUndo?: boolean }
   ) => {
-    captureUndoSnapshot();
+    if (!options?.skipUndo) captureUndoSnapshot();
     const oldPlan = plansRef.current.find(x => x.id === p.id);
     const isNewCompletion = Boolean(oldPlan && oldPlan.color !== 'green' && p.color === 'green');
     let streakEncouragement: string | null = null;
@@ -2329,6 +2329,24 @@ function PlannerApp() {
       }
     }
   }, [activeUid, captureUndoSnapshot, isOnline, settingsState.notificationSound, t, showSpeechBubbleText, showStreakSpeechBubble]);
+
+  React.useEffect(() => {
+    if (authLoading || syncing) return;
+
+    const grayExpiredPlans = () => {
+      const now = new Date();
+      plansRef.current.forEach((plan) => {
+        if (plan.title.trim() && plan.color !== 'green' && plan.color !== 'gray'
+          && isPlanPastEndGracePeriod(plan, now)) {
+          void handleUpdatePlan({ ...plan, color: 'gray' }, { skipUndo: true });
+        }
+      });
+    };
+
+    grayExpiredPlans();
+    const timer = window.setInterval(grayExpiredPlans, 60 * 1000);
+    return () => window.clearInterval(timer);
+  }, [authLoading, handleUpdatePlan, syncing]);
 
   const handleAddPlan = React.useCallback(async (p: Plan) => {
     captureUndoSnapshot();

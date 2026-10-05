@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getPlanReminderDate, getPlanStartDate, getPlanEndMinutes, START_MINUTE_OPTIONS, isReminderStillRelevant, isWithinReminderWindow } from './taskTime';
+import { getPlanReminderDate, getPlanStartDate, getPlanEndDate, getPlanEndMinutes, START_MINUTE_OPTIONS, isPlanPastEndGracePeriod, isReminderStillRelevant, isWithinReminderWindow } from './taskTime';
 
 test('supports start minutes in 15-minute increments', () => {
   const date = getPlanStartDate({
@@ -47,6 +47,21 @@ test('keeps the end time on a whole hour when start minute is not zero', () => {
   assert.equal(endOfFirstTask, 8 * 60);
   assert.equal(startOfNextTask, endOfFirstTask);
   assert.ok(startOfNextTask >= endOfFirstTask);
+});
+
+test('grays a task only after one hour has passed since its scheduled end', () => {
+  const plan = {
+    date: '2026-09-01',
+    startHour: 9,
+    startMinute: 15,
+    duration: 1,
+  };
+  const taskEnd = getPlanEndDate(plan);
+
+  assert.equal(taskEnd.getHours(), 10);
+  assert.equal(taskEnd.getMinutes(), 0);
+  assert.equal(isPlanPastEndGracePeriod(plan, new Date(taskEnd.getTime() + 59 * 60 * 1000)), false);
+  assert.equal(isPlanPastEndGracePeriod(plan, new Date(taskEnd.getTime() + 60 * 60 * 1000)), true);
 });
 
 test('treats only the 14–15 minute reminder window as due, not any outside offset', () => {
