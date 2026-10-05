@@ -1,6 +1,6 @@
 import { Plan } from '../types';
 
-export const START_MINUTE_OPTIONS = [0, 15, 30, 45] as const;
+export const START_MINUTE_OPTIONS = Array.from({ length: 12 }, (_, index) => index * 5);
 export const REMINDER_LEAD_MINUTES = 15;
 
 export const formatPlanTime = (hour: number, minute: number = 0) => {

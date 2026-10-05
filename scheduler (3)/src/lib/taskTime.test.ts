@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { getPlanReminderDate, getPlanStartDate, getPlanEndDate, getPlanEndMinutes, START_MINUTE_OPTIONS, isPlanPastEndGracePeriod, isReminderStillRelevant, isWithinReminderWindow } from './taskTime';
 
-test('supports start minutes in 15-minute increments', () => {
+test('supports start minutes in 5-minute increments', () => {
   const date = getPlanStartDate({
     date: '2026-09-01',
     startHour: 9,
@@ -28,7 +28,7 @@ test('supports start minutes in 15-minute increments', () => {
     startMinute: 15,
   });
 
-  assert.deepEqual(START_MINUTE_OPTIONS, [0, 15, 30, 45]);
+  assert.deepEqual(START_MINUTE_OPTIONS, [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55]);
   assert.equal(date.getHours(), 9);
   assert.equal(date.getMinutes(), 15);
   assert.equal(reminder.getHours(), 9);

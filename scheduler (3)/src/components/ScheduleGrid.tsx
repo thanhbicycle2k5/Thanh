@@ -1621,7 +1621,7 @@ function ScheduleGridComponent({
             <div className="grid grid-cols-2 items-end gap-3">
               <div className="space-y-2">
                 <Label className="text-xs font-bold text-muted-foreground">
-                  {t('startHour')}
+                  {t('startMinute')}
                 </Label>
                 <Select
                   value={String(newStartMinute)}
@@ -1632,7 +1632,7 @@ function ScheduleGridComponent({
                   </SelectTrigger>
                   <SelectContent>
                     {START_MINUTE_OPTIONS.map((minute) => (
-                      <SelectItem key={minute} value={String(minute)}>{String(minute).padStart(2, '0')} phút</SelectItem>
+                      <SelectItem key={minute} value={String(minute)}>{minute} phút</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -1687,7 +1687,7 @@ function ScheduleGridComponent({
               <>
                 <div className="grid grid-cols-4 items-center gap-3">
                   <Label className="text-right text-xs font-bold text-muted-foreground">
-                    {t('applyMode')}
+                    {language === 'vi' ? <>Chế độ<br />áp dụng</> : t('applyMode')}
                   </Label>
                   <div className="col-span-3 flex gap-2">
                     <Button
@@ -1743,7 +1743,16 @@ function ScheduleGridComponent({
                     {t('applyWeeklyEvery')}
                   </Label>
                   <div className="col-span-3 flex items-center gap-2">
-                    <Input type="number" min={0} step={1} value={newApplyWeekInterval} onChange={(e) => setNewApplyWeekInterval(Math.max(0, Math.floor(Number(e.target.value) || 0)))} className="w-20 bg-muted/50 border-border" />
+                    <Input
+                      type="text"
+                      inputMode="numeric"
+                      value={String(newApplyWeekInterval)}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '');
+                        setNewApplyWeekInterval(digits ? Number(digits) : 0);
+                      }}
+                      className="w-20 bg-muted/50 border-border"
+                    />
                     <span className="text-xs text-muted-foreground">{t('weeks')}</span>
                     <span className="ml-auto text-xs font-medium text-muted-foreground">{t('week')} {displayWeekTarget}</span>
                   </div>
