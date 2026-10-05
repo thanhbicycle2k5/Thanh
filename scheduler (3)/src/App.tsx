@@ -208,13 +208,16 @@ function HealthTipPanel({ theme, isSettingsOpen, t, lang, onActivate }: { theme:
         onClick={() => {
           setOpen((v) => { const next = !v; if (next && onActivate) onActivate('medical'); return next; });
         }}
-        className="h-12 w-12 rounded-full shadow-2xl flex items-center justify-center border transition-all hover:scale-110 active:scale-95 group bg-background text-foreground border-border"
+        className={cn(
+          "h-12 w-12 rounded-full shadow-2xl flex items-center justify-center border transition-all hover:scale-110 active:scale-95 group",
+          open ? "bg-[#107C41] text-white border-[#107C41] shadow-[0_0_18px_rgba(16,124,65,0.45)]" : "bg-background text-foreground border-border"
+        )}
         title={t('healthTips')}
       >
         <div className="relative flex items-center justify-center">
-          <BookOpen className="w-6 h-6" />
+          <BookOpen className={cn("w-6 h-6 transition-transform", open && "scale-110")} />
           <div className="absolute inset-0 flex items-center justify-center pt-0.5">
-             <Plus className="w-2.5 h-2.5 text-red-600 font-black" strokeWidth={5} />
+             <Plus className={cn("w-2.5 h-2.5 font-black", open ? "text-white" : "text-red-600")} strokeWidth={5} />
           </div>
         </div>
       </button>

@@ -212,6 +212,7 @@ interface ScheduleCellProps {
   dropTargetHour: number | null;
   t: (key: keyof typeof translations.en) => string;
   boardOpacity: number;
+  quickEditEnabled?: boolean;
 }
 
 const ScheduleCell = React.memo(function ScheduleCell({
@@ -238,6 +239,7 @@ const ScheduleCell = React.memo(function ScheduleCell({
   dropTargetHour,
   t,
   boardOpacity,
+  quickEditEnabled = false,
 }: ScheduleCellProps) {
   const longPressTimer = React.useRef<number | null>(null);
 
@@ -310,15 +312,19 @@ const ScheduleCell = React.memo(function ScheduleCell({
           {plan.notes && (
             <span className="absolute top-0.5 left-0.5 w-1.5 h-1.5 rounded-full bg-current opacity-40" title={plan.notes} />
           )}
-          <button
-            onPointerDown={(e) => e.stopPropagation()}
-            onClick={(e) => {
-              handleOpenEdit(plan, e);
-            }}
-            className="absolute bottom-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-muted/40 p-1 rounded hover:bg-muted/60"
-          >
-            <Edit2 className="w-2 md:w-3 h-2 md:h-3" />
-          </button>
+          {quickEditEnabled && (
+            <button
+              type="button"
+              onPointerDown={(e) => e.stopPropagation()}
+              onClick={(e) => {
+                handleOpenEdit(plan, e);
+              }}
+              className="absolute bottom-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-muted/40 p-1 rounded hover:bg-muted/60"
+              aria-label="Chỉnh sửa task"
+            >
+              <Edit2 className="w-2 md:w-3 h-2 md:h-3" />
+            </button>
+          )}
         </div>
       ) : (
         <div className="w-full h-full flex items-center justify-center opacity-10 group-hover:opacity-20 transition-opacity">
@@ -1118,9 +1124,10 @@ function ScheduleGridComponent({
   };
 
   const handleOpenEdit = React.useCallback((plan: Plan, e: React.MouseEvent) => {
+    if (!quickEditEnabled) return;
     e.stopPropagation();
     loadPlanForEdit(plan);
-  }, [allPlans]);
+  }, [allPlans, quickEditEnabled]);
 
   const handleSave = async () => {
     if (!editingPlan) return;
@@ -1478,6 +1485,7 @@ function ScheduleGridComponent({
                     dropTargetHour={dragTarget?.day === dayKey ? dragTarget.hour : null}
                     t={t}
                     boardOpacity={visibleBoardOpacity}
+                    quickEditEnabled={quickEditEnabled}
                   />
                 );
               })}
