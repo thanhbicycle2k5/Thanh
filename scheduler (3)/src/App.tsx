@@ -407,6 +407,7 @@ function PlannerApp() {
   const [authLoading, setAuthLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+  const [isTodayPopoverOpen, setIsTodayPopoverOpen] = React.useState(false);
   const [openWeekPopoverKey, setOpenWeekPopoverKey] = React.useState<string | null>(null);
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const [streakTodayKey, setStreakTodayKey] = React.useState(() => getLocalDateKey(new Date()));
@@ -3142,7 +3143,10 @@ function PlannerApp() {
                               ? "shadow-lg scale-105 border-2 border-[#107C41]"
                               : "text-muted-foreground border-border hover:border-primary/30"
                           )}
-                          onClick={() => setSelectedWeekStart(ws)}
+                          onClick={() => {
+                            setSelectedWeekStart(ws);
+                            setOpenWeekPopoverKey((current) => current === key ? null : key);
+                          }}
                         >
                           {t('week')} {getISOWeek(ws)}
                           {meta.note && <span className="ml-1 opacity-50">✎</span>}
@@ -3215,9 +3219,9 @@ function PlannerApp() {
             </div>
             <Button variant="ghost" size="icon" onClick={() => setSelectedWeekStart((weekStart) => addWeeks(weekStart, 1))}><ChevronRight className="w-4 h-4"/></Button>
             
-            <Popover>
+            <Popover open={isTodayPopoverOpen} onOpenChange={setIsTodayPopoverOpen}>
               <PopoverTrigger asChild>
-                <Button variant="link" size="sm">
+                <Button variant="link" size="sm" onClick={() => setIsTodayPopoverOpen((open) => !open)}>
                   <CalendarIcon className="w-4 h-4 mr-2 sm:inline hidden" />
                   {t('today')}
                 </Button>
@@ -3229,6 +3233,7 @@ function PlannerApp() {
                   onSelect={(date) => {
                     if (date) {
                       setSelectedWeekStart(startOfWeek(date, { weekStartsOn: 1 }));
+                      setIsTodayPopoverOpen(false);
                     }
                   }}
                   initialFocus
@@ -3241,7 +3246,7 @@ function PlannerApp() {
                     onClick={() => {
                       const now = new Date();
                       setSelectedWeekStart(startOfWeek(now, { weekStartsOn: 1 }));
-                      setIsCalendarOpen(false);
+                      setIsTodayPopoverOpen(false);
                     }}
                   >
                     {t('currentDay')}
