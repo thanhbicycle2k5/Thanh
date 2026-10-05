@@ -3804,10 +3804,11 @@ function PlannerApp() {
                           {settingsState.aiProvider === 'device' && (
                             <div className="space-y-3 rounded-xl border border-border bg-background/70 p-3 text-xs">
                               <div>
-                                <p className="font-semibold text-foreground">{t('onDeviceAIModel')}</p>
-                                <p className="text-muted-foreground">{t('onDeviceAIHelp')}</p>
+                                <p className="font-semibold text-foreground">
+                                  {t('onDeviceAIModel')}: {ON_DEVICE_AI_MODEL}
+                                </p>
                               </div>
-                              <p className="text-muted-foreground">{t('onDeviceAIRequirements')}</p>
+                              <p className="text-muted-foreground">{t('onDeviceAIAndroidOnly')}</p>
                               {onDeviceAIModelCached && !onDeviceAIReady && (
                                 <p className="font-medium text-emerald-600">{t('onDeviceAIModelCached')}</p>
                               )}
@@ -3847,8 +3848,6 @@ function PlannerApp() {
                                       : t('onDeviceAIUnavailable')}
                                 </p>
                               )}
-                              <p className="text-muted-foreground">{t('onDeviceAIPrivacy')}</p>
-                              <p className="break-all font-mono text-[10px] text-muted-foreground">{ON_DEVICE_AI_MODEL}</p>
                             </div>
                           )}
                         </div>
