@@ -316,8 +316,8 @@ const ScheduleCell = React.memo(function ScheduleCell({
             type="button"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
-              const isMobileQuickEditOff = !quickEditEnabled && window.matchMedia('(max-width: 768px)').matches;
-              if (isMobileQuickEditOff) {
+              const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+              if (isMobile && !quickEditEnabled) {
                 e.stopPropagation();
                 return;
               }
@@ -1131,7 +1131,8 @@ function ScheduleGridComponent({
   };
 
   const handleOpenEdit = React.useCallback((plan: Plan, e: React.MouseEvent) => {
-    if (!quickEditEnabled) return;
+    const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
+    if (isMobile && !quickEditEnabled) return;
     e.stopPropagation();
     loadPlanForEdit(plan);
   }, [allPlans, quickEditEnabled]);
