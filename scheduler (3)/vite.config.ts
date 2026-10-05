@@ -31,11 +31,22 @@ export default defineConfig(({ mode }) => {
         },
         workbox: {
           globPatterns: ['**/*.{js,css,html,ico,png,jpg,jpeg,svg,woff,woff2}'],
+          globIgnores: ['**/web-llm-runtime-*.js'],
           maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
           cleanupOutdatedCaches: true,
           skipWaiting: true,
           clientsClaim: true,
           navigateFallback: '/index.html',
+          runtimeCaching: [
+            {
+              urlPattern: /\/assets\/web-llm-runtime-[^/]+\.js$/,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'scheduly-web-llm-runtime',
+                expiration: { maxEntries: 1, maxAgeSeconds: 31_536_000 },
+              },
+            },
+          ],
         },
         devOptions: {
           enabled: false,
@@ -56,6 +67,16 @@ export default defineConfig(({ mode }) => {
         '/ollama': {
           target: 'http://127.0.0.1:11434',
           rewrite: (path) => path.replace(/^\/ollama/, ''),
+        },
+      },
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('/node_modules/@mlc-ai/web-llm/')) return 'web-llm-runtime';
+            return undefined;
+          },
         },
       },
     },

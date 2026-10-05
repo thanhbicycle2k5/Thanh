@@ -35,3 +35,9 @@ Set these Vercel Environment Variables for the deployed API:
 - AI does not require Scheduly Google sign-in and never receives Google credentials or tokens. The API allows up to 20 routed AI requests per client IP per UTC day per warm server instance; dictionary lookups and simple task counts do not consume this limit. Vercel serverless memory is best-effort, so a shared persistent rate-limit store would be needed for a strict global quota.
 
 When the free model pool or quota is unavailable, Scheduly shows a friendly unavailable message and the rest of the app continues to work. Task context is reduced to a small set of relevant task titles, dates, times, durations, and completion state.
+
+### On-device AI in Android Chrome
+
+Choose **On-device AI (experimental)** under Settings → AI Provider, then tap **Download model**. Scheduly downloads the Qwen3 0.6B WebLLM model the first time and stores its files in browser storage. The initial download needs internet; later prompts are processed in the browser and are not sent to the Scheduly AI endpoint.
+
+This option requires a current browser with WebGPU and a secure HTTPS origin. Use the deployed Scheduly site in Chrome on Android; a plain `http://<computer-ip>` development URL does not meet the secure-context requirement. Model loading and inference need substantial device memory, can be slow or unsupported on some devices, and browser storage may be cleared by Android. If initialization fails, try closing other apps and retrying; Ollama and the existing cloud AI options remain available.

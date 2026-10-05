@@ -11,6 +11,7 @@ import { formatAIUserError, getWordClarificationAnswer, isDictionaryLookupQuery,
 import { lookupLocalDictionary } from '../lib/localDictionary';
 import { lookupOpenDictionary } from '../lib/openDictionary';
 import { LocalAIError, requestLocalAI } from '../services/localAI';
+import { OnDeviceAIError, requestOnDeviceAI, type OnDeviceAIProgress } from '../services/onDeviceAI';
 
 interface SchedulyChatProps {
   open: boolean;
@@ -132,6 +133,7 @@ export function SchedulyChat({ open, onClose, theme, language, catColor, plans, 
   const [question, setQuestion] = React.useState('');
   const [messages, setMessages] = React.useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [onDeviceAIProgress, setOnDeviceAIProgress] = React.useState<OnDeviceAIProgress | null>(null);
   const [error, setError] = React.useState('');
   const [copiedMessageId, setCopiedMessageId] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLTextAreaElement>(null);
@@ -210,7 +212,7 @@ export function SchedulyChat({ open, onClose, theme, language, catColor, plans, 
       }
 
       const localDictionaryAnswer = lookupLocalDictionary(trimmedQuestion);
-      const openDictionaryAnswer = !localDictionaryAnswer && isDictionaryLookupQuery(trimmedQuestion)
+      const openDictionaryAnswer = aiProvider !== 'device' && !localDictionaryAnswer && isDictionaryLookupQuery(trimmedQuestion)
         ? await lookupOpenDictionary(trimmedQuestion)
         : null;
       const localTaskAnswer = getLocalTaskAnswer(trimmedQuestion, plans);
@@ -219,6 +221,20 @@ export function SchedulyChat({ open, onClose, theme, language, catColor, plans, 
         const answer = localDictionaryAnswer || openDictionaryAnswer || localTaskAnswer || '';
         updateAssistant(assistantMessage.id, { text: answer, source: 'Local Dictionary' });
         cacheAnswer(trimmedQuestion, { text: answer, source: 'Local Dictionary' });
+        return;
+      }
+
+      if (aiProvider === 'device') {
+        setOnDeviceAIProgress(null);
+        const answer = await requestOnDeviceAI({
+          question: trimmedQuestion,
+          history: priorHistory,
+          taskContext: getRelevantTaskContext(trimmedQuestion, plans),
+          signal: abortControllerRef.current.signal,
+          onProgress: setOnDeviceAIProgress,
+        });
+        updateAssistant(assistantMessage.id, { text: answer, source: 'Local AI' });
+        cacheAnswer(trimmedQuestion, { text: answer, source: 'Local AI' });
         return;
       }
 
@@ -246,13 +262,17 @@ export function SchedulyChat({ open, onClose, theme, language, catColor, plans, 
 
       await fallbackToGemini(trimmedQuestion, priorHistory, assistantMessage.id);
     } catch (requestError) {
-      if (requestError instanceof LocalAIError && requestError.code === 'ABORTED') {
+      if (
+        (requestError instanceof LocalAIError && requestError.code === 'ABORTED')
+        || (requestError instanceof OnDeviceAIError && requestError.code === 'ABORTED')
+      ) {
         updateAssistant(assistantMessage.id, { text: 'Generation stopped.', source: 'Local AI' });
       } else {
         setMessages((current) => current.filter((message) => message.id !== assistantMessage.id));
       }
-      setError(formatAIUserError(requestError));
+      setError(requestError instanceof OnDeviceAIError ? requestError.message : formatAIUserError(requestError));
     } finally {
+      setOnDeviceAIProgress(null);
       setIsLoading(false);
       abortControllerRef.current = null;
     }
@@ -321,7 +341,9 @@ export function SchedulyChat({ open, onClose, theme, language, catColor, plans, 
               </div>
             </div>
           ))}
-          {isLoading && <div className="flex items-center gap-2 pl-10 text-sm opacity-65"><Loader2 className="h-4 w-4 animate-spin" /> Scheduly AI is thinking...</div>}
+          {isLoading && <div className="flex items-center gap-2 pl-10 text-sm opacity-65"><Loader2 className="h-4 w-4 animate-spin" />{aiProvider === 'device' && onDeviceAIProgress
+            ? `${language === 'vi' ? 'Đang tải model AI trên thiết bị' : 'Loading on-device AI model'} ${Math.round(onDeviceAIProgress.progress * 100)}%`
+            : 'Scheduly AI is thinking...'}</div>}
           {error && <p role="alert" className="rounded-xl border border-red-300/50 bg-red-50 px-3 py-2 text-sm text-red-700 dark:bg-red-950/30 dark:text-red-200">{error}</p>}
         </div>
 

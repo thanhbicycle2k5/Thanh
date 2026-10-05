@@ -96,7 +96,7 @@ export const normalizeSettings = (raw: any): AppSettings => {
     desktopKeyboardShortcutsEnabled: typeof obj.desktopKeyboardShortcutsEnabled === 'boolean' ? obj.desktopKeyboardShortcutsEnabled : defaultSettings.desktopKeyboardShortcutsEnabled,
     catColor: obj.catColor === 'orange' || obj.catColor === 'pink' || obj.catColor === 'blue' || obj.catColor === 'green' || obj.catColor === 'purple' || obj.catColor === 'yellow' || obj.catColor === 'teal' || obj.catColor === 'red' || obj.catColor === 'gray' || obj.catColor === 'black' || obj.catColor === 'white' ? obj.catColor : defaultSettings.catColor,
     weekTransitionEffect: obj.weekTransitionEffect === 'none' || obj.weekTransitionEffect === 'fade' || obj.weekTransitionEffect === 'slide' ? obj.weekTransitionEffect : defaultSettings.weekTransitionEffect,
-    aiProvider: obj.aiProvider === 'local' || obj.aiProvider === 'gemini' || obj.aiProvider === 'auto' ? obj.aiProvider : defaultSettings.aiProvider,
+    aiProvider: obj.aiProvider === 'local' || obj.aiProvider === 'device' || obj.aiProvider === 'gemini' || obj.aiProvider === 'auto' ? obj.aiProvider : defaultSettings.aiProvider,
     localAIModel: obj.localAIModel === 'qwen3:1.7b' || obj.localAIModel === 'qwen3:4b' ? obj.localAIModel : defaultSettings.localAIModel,
     streakBest: typeof obj.streakBest === 'number' && Number.isInteger(obj.streakBest) && obj.streakBest >= 0
       ? obj.streakBest

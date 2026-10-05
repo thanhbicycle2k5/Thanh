@@ -86,6 +86,7 @@ import { CelebrationEffect } from './components/CelebrationEffect';
 import { SchedulyChat } from './components/SchedulyChat';
 import { getRandomCatQuote } from './data/catQuotes';
 import { checkLocalAI, LOCAL_AI_MODEL } from './services/localAI';
+import { getOnDeviceAIUnavailableReason, ON_DEVICE_AI_MODEL, prepareOnDeviceAI } from './services/onDeviceAI';
 
 import { 
   Dialog,
@@ -505,6 +506,9 @@ function PlannerApp() {
   const [catPosition, setCatPosition] = React.useState<{ left: number; top: number } | null>(null);
   const [isSchedulyChatOpen, setIsSchedulyChatOpen] = React.useState(false);
   const [localAIStatus, setLocalAIStatus] = React.useState<'LOCAL_AI_AVAILABLE' | 'LOCAL_AI_MODEL_NOT_INSTALLED' | 'LOCAL_AI_UNAVAILABLE' | 'CHECKING'>('CHECKING');
+  const [onDeviceAIProgress, setOnDeviceAIProgress] = React.useState<{ progress: number; text: string } | null>(null);
+  const [onDeviceAIReady, setOnDeviceAIReady] = React.useState(false);
+  const [onDeviceAIError, setOnDeviceAIError] = React.useState('');
 
   React.useEffect(() => {
     if (!pomodoroRunning || typeof navigator === 'undefined') return;
@@ -1756,6 +1760,19 @@ function PlannerApp() {
       setLocalAIStatus('LOCAL_AI_UNAVAILABLE');
     }
   }, [settingsState.localAIModel]);
+
+  const handlePrepareOnDeviceAI = React.useCallback(async () => {
+    setOnDeviceAIError('');
+    setOnDeviceAIProgress({ progress: 0, text: '' });
+    try {
+      await prepareOnDeviceAI(setOnDeviceAIProgress);
+      setOnDeviceAIReady(true);
+      setOnDeviceAIProgress({ progress: 1, text: '' });
+    } catch (error) {
+      setOnDeviceAIError(error instanceof Error ? error.message : 'Unable to load the on-device model.');
+      setOnDeviceAIProgress(null);
+    }
+  }, []);
 
   React.useEffect(() => {
     if (isSettingsOpen && localAIStatus === 'CHECKING') {
@@ -3704,6 +3721,7 @@ function PlannerApp() {
                               <SelectContent>
                                 <SelectItem value="auto">{t('aiProviderAuto')}</SelectItem>
                                 <SelectItem value="local">{t('aiProviderLocal')}</SelectItem>
+                                <SelectItem value="device">{t('aiProviderDevice')}</SelectItem>
                                 <SelectItem value="gemini">{t('aiProviderGemini')}</SelectItem>
                               </SelectContent>
                             </Select>
@@ -3763,6 +3781,52 @@ function PlannerApp() {
                                 <p className="text-muted-foreground">{t('localAISetupFreeNote')}</p>
                               </div>
                             </>
+                          )}
+                          {settingsState.aiProvider === 'device' && (
+                            <div className="space-y-3 rounded-xl border border-border bg-background/70 p-3 text-xs">
+                              <div>
+                                <p className="font-semibold text-foreground">{t('onDeviceAIModel')}</p>
+                                <p className="text-muted-foreground">{t('onDeviceAIHelp')}</p>
+                              </div>
+                              <p className="text-muted-foreground">{t('onDeviceAIRequirements')}</p>
+                              {onDeviceAIProgress && (
+                                <div className="space-y-1.5" aria-live="polite">
+                                  <div className="h-2 overflow-hidden rounded-full bg-muted">
+                                    <div className="h-full bg-primary transition-[width]" style={{ width: `${Math.round(onDeviceAIProgress.progress * 100)}%` }} />
+                                  </div>
+                                  <p className="text-muted-foreground">
+                                    {onDeviceAIReady
+                                      ? t('onDeviceAIReady')
+                                      : `${t('onDeviceAILoading')} ${Math.round(onDeviceAIProgress.progress * 100)}%`}
+                                    {onDeviceAIProgress.text ? ` — ${onDeviceAIProgress.text}` : ''}
+                                  </p>
+                                </div>
+                              )}
+                              {onDeviceAIError && <p role="alert" className="text-destructive">{t('onDeviceAILoadError')} {onDeviceAIError}</p>}
+                              {!onDeviceAIReady && (
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => void handlePrepareOnDeviceAI()}
+                                  disabled={onDeviceAIProgress !== null || getOnDeviceAIUnavailableReason() !== null}
+                                >
+                                  {t('onDeviceAIDownload')}
+                                </Button>
+                              )}
+                              {onDeviceAIReady && <p className="font-medium text-emerald-600">{t('onDeviceAIReady')}</p>}
+                              {getOnDeviceAIUnavailableReason() && !onDeviceAIError && (
+                                <p className="text-amber-600">
+                                  {getOnDeviceAIUnavailableReason() === 'https'
+                                    ? t('onDeviceAIInsecure')
+                                    : getOnDeviceAIUnavailableReason() === 'webgpu'
+                                      ? t('onDeviceAINoWebGPU')
+                                      : t('onDeviceAIUnavailable')}
+                                </p>
+                              )}
+                              <p className="text-muted-foreground">{t('onDeviceAIPrivacy')}</p>
+                              <p className="break-all font-mono text-[10px] text-muted-foreground">{ON_DEVICE_AI_MODEL}</p>
+                            </div>
                           )}
                         </div>
                       </div>
