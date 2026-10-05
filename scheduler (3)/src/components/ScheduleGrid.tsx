@@ -316,16 +316,14 @@ const ScheduleCell = React.memo(function ScheduleCell({
             type="button"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
-              if (!quickEditEnabled) {
+              const isMobileQuickEditOff = !quickEditEnabled && window.matchMedia('(max-width: 768px)').matches;
+              if (isMobileQuickEditOff) {
                 e.stopPropagation();
                 return;
               }
               handleOpenEdit(plan, e);
             }}
-            className={cn(
-              "absolute bottom-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-muted/40 p-1 rounded hover:bg-muted/60",
-              !quickEditEnabled && "pointer-events-none"
-            )}
+            className="absolute bottom-0.5 right-0.5 opacity-0 group-hover:opacity-100 transition-opacity duration-150 bg-muted/40 p-1 rounded hover:bg-muted/60"
             aria-label="Chỉnh sửa task"
           >
             <Edit2 className="w-2 md:w-3 h-2 md:h-3" />
