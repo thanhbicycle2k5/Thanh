@@ -6,7 +6,7 @@ export const getColorForClickCount = (currentColor: PlanColor, clickCount: numbe
     return 'gray';
   }
 
-  if (clickCount === 1) return currentColor === 'green' ? 'green' : 'yellow';
+  if (clickCount === 1) return currentColor;
   if (clickCount === 2) return 'green';
   if (clickCount >= 3) return 'default';
   return currentColor;
