@@ -86,7 +86,7 @@ import { CelebrationEffect } from './components/CelebrationEffect';
 import { SchedulyChat } from './components/SchedulyChat';
 import { getRandomCatQuote } from './data/catQuotes';
 import { checkLocalAI, LOCAL_AI_MODEL } from './services/localAI';
-import { getOnDeviceAIUnavailableReason, ON_DEVICE_AI_MODEL, prepareOnDeviceAI } from './services/onDeviceAI';
+import { getOnDeviceAIUnavailableReason, isOnDeviceAIModelCached, ON_DEVICE_AI_MODEL, prepareOnDeviceAI } from './services/onDeviceAI';
 
 import { 
   Dialog,
@@ -508,6 +508,8 @@ function PlannerApp() {
   const [localAIStatus, setLocalAIStatus] = React.useState<'LOCAL_AI_AVAILABLE' | 'LOCAL_AI_MODEL_NOT_INSTALLED' | 'LOCAL_AI_UNAVAILABLE' | 'CHECKING'>('CHECKING');
   const [onDeviceAIProgress, setOnDeviceAIProgress] = React.useState<{ progress: number; text: string } | null>(null);
   const [onDeviceAIReady, setOnDeviceAIReady] = React.useState(false);
+  const [onDeviceAIModelCached, setOnDeviceAIModelCached] = React.useState<boolean | null>(null);
+  const [onDeviceAICacheError, setOnDeviceAICacheError] = React.useState('');
   const [onDeviceAIError, setOnDeviceAIError] = React.useState('');
 
   React.useEffect(() => {
@@ -1773,6 +1775,23 @@ function PlannerApp() {
       setOnDeviceAIProgress(null);
     }
   }, []);
+
+  React.useEffect(() => {
+    if (settingsState.aiProvider !== 'device' || getOnDeviceAIUnavailableReason()) return;
+    let cancelled = false;
+    setOnDeviceAIModelCached(null);
+    void isOnDeviceAIModelCached().then((cached) => {
+      if (!cancelled) setOnDeviceAIModelCached(cached);
+    }).catch((error: unknown) => {
+      if (cancelled) return;
+      console.warn('Unable to inspect the on-device AI model cache:', error);
+      setOnDeviceAIModelCached(false);
+      setOnDeviceAICacheError(t('onDeviceAICacheCheckFailed'));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [settingsState.aiProvider, t]);
 
   React.useEffect(() => {
     if (isSettingsOpen && localAIStatus === 'CHECKING') {
@@ -3789,6 +3808,10 @@ function PlannerApp() {
                                 <p className="text-muted-foreground">{t('onDeviceAIHelp')}</p>
                               </div>
                               <p className="text-muted-foreground">{t('onDeviceAIRequirements')}</p>
+                              {onDeviceAIModelCached && !onDeviceAIReady && (
+                                <p className="font-medium text-emerald-600">{t('onDeviceAIModelCached')}</p>
+                              )}
+                              {onDeviceAICacheError && <p role="alert" className="text-destructive">{onDeviceAICacheError}</p>}
                               {onDeviceAIProgress && (
                                 <div className="space-y-1.5" aria-live="polite">
                                   <div className="h-2 overflow-hidden rounded-full bg-muted">
@@ -3809,9 +3832,9 @@ function PlannerApp() {
                                   variant="outline"
                                   size="sm"
                                   onClick={() => void handlePrepareOnDeviceAI()}
-                                  disabled={onDeviceAIProgress !== null || getOnDeviceAIUnavailableReason() !== null}
+                                  disabled={onDeviceAIProgress !== null || onDeviceAIModelCached === null || getOnDeviceAIUnavailableReason() !== null}
                                 >
-                                  {t('onDeviceAIDownload')}
+                                  {onDeviceAIModelCached ? t('onDeviceAILoadCached') : t('onDeviceAIDownload')}
                                 </Button>
                               )}
                               {onDeviceAIReady && <p className="font-medium text-emerald-600">{t('onDeviceAIReady')}</p>}

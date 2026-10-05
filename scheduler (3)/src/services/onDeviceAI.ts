@@ -37,6 +37,11 @@ export function getOnDeviceAIUnavailableReason(): OnDeviceAIUnavailableReason | 
   return null;
 }
 
+export async function isOnDeviceAIModelCached(): Promise<boolean> {
+  const { hasModelInCache } = await import('@mlc-ai/web-llm');
+  return hasModelInCache(ON_DEVICE_AI_MODEL);
+}
+
 async function loadEngine(onProgress?: ProgressCallback): Promise<WebLLMEngine> {
   const unavailableReason = getOnDeviceAIUnavailableReason();
   if (unavailableReason) {
