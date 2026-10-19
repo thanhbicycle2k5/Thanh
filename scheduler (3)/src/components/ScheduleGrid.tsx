@@ -619,6 +619,14 @@ function ScheduleGridComponent({
     }
   }, []);
 
+  const handleTitlePointerDown = React.useCallback((event: React.PointerEvent<HTMLInputElement>) => {
+    if (typeof window === 'undefined' || !window.matchMedia('(max-width: 767px)').matches) return;
+
+    setAllowTextInput(true);
+    const input = event.currentTarget;
+    window.requestAnimationFrame(() => input.focus());
+  }, []);
+
   const getScheduleTarget = React.useCallback((clientX: number, clientY: number) => {
     const element = document.elementFromPoint(clientX, clientY);
     const cell = element?.closest('td[data-schedule-cell="true"]') as HTMLTableCellElement | null;
@@ -943,14 +951,8 @@ function ScheduleGridComponent({
     }
 
     const existing = existingPlan ?? plans.find(p => isSameDay(new Date(p.date), date) && p.startHour === hour);
-
-    if (quickEditEnabled && existing) {
-      if (clickTimer.current) {
-        clearTimeout(clickTimer.current);
-        clickTimer.current = null;
-      }
-      clickCount.current = 0;
-
+    const openExistingPlan = () => {
+      if (!existing) return;
       setEditingPlan(existing);
       setNewTitle(existing.title);
       setNewColor(existing.color);
@@ -963,6 +965,16 @@ function ScheduleGridComponent({
       setNewApplyUntil(existing.applyUntil || format(new Date(existing.date), 'yyyy-MM-dd'));
       setNewNotes(existing.notes || '');
       setIsDialogOpen(true);
+    };
+
+    if (quickEditEnabled && existing) {
+      if (clickTimer.current) {
+        clearTimeout(clickTimer.current);
+        clickTimer.current = null;
+      }
+      clickCount.current = 0;
+
+      openExistingPlan();
       return;
     }
 
@@ -974,17 +986,7 @@ function ScheduleGridComponent({
       }
 
       if (existing) {
-        setEditingPlan(existing);
-        setNewTitle(existing.title);
-        setNewColor(existing.color);
-        setNewStartMinute(existing.startMinute ?? 0);
-        setNewDuration(existing.duration);
-        setNewApplyMode(existing.applyMode || 'none');
-        setNewApplyDays(existing.applyDays || []);
-        setNewApplyWeekInterval(existing.applyWeekInterval ?? 0);
-        setNewApplyWeekDays(existing.applyWeekDays || []);
-        setNewApplyUntil(existing.applyUntil || format(new Date(existing.date), 'yyyy-MM-dd'));
-        setNewNotes(existing.notes || '');
+        openExistingPlan();
       } else {
         setEditingPlan({
           id: crypto.randomUUID(),
@@ -1029,6 +1031,7 @@ function ScheduleGridComponent({
       if (clickCount.current === 1) {
         clickCount.current = 0;
         clickTimer.current = null;
+        openExistingPlan();
         return;
       }
 
@@ -1647,7 +1650,7 @@ function ScheduleGridComponent({
                 className="col-span-3 font-semibold bg-muted/50 border-border"
                 placeholder={t('enterTask')}
                 readOnly={typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches && !allowTextInput}
-                onPointerDown={handleTextFieldInteraction}
+                onPointerDown={handleTitlePointerDown}
                 onFocus={handleTextFieldInteraction}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleSave(); }}
               />
