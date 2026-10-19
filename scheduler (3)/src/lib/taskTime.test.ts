@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { getPlanReminderDate, getPlanStartDate, getPlanEndDate, getPlanEndMinutes, START_MINUTE_OPTIONS, isPlanPastEndGracePeriod, isReminderStillRelevant, isWithinReminderWindow } from './taskTime';
+import { doPlanTimesOverlap, getPlanReminderDate, getPlanStartDate, getPlanEndDate, getPlanEndMinutes, START_MINUTE_OPTIONS, isPlanPastEndGracePeriod, isReminderStillRelevant, isWithinReminderWindow } from './taskTime';
 
 test('supports start minutes in 5-minute increments', () => {
   const date = getPlanStartDate({
@@ -47,6 +47,29 @@ test('keeps the end time on a whole hour when start minute is not zero', () => {
   assert.equal(endOfFirstTask, 8 * 60);
   assert.equal(startOfNextTask, endOfFirstTask);
   assert.ok(startOfNextTask >= endOfFirstTask);
+});
+
+test('detects overlapping task times when task dates are ISO timestamps', () => {
+  const firstPlan = {
+    date: new Date(2026, 9, 19, 12).toISOString(),
+    startHour: 9,
+    startMinute: 0,
+    duration: 2,
+  };
+
+  assert.equal(doPlanTimesOverlap(firstPlan, {
+    ...firstPlan,
+    startHour: 10,
+  }), true);
+  assert.equal(doPlanTimesOverlap(firstPlan, {
+    ...firstPlan,
+    startHour: 11,
+  }), false);
+  assert.equal(doPlanTimesOverlap(firstPlan, {
+    ...firstPlan,
+    date: new Date(2026, 9, 20, 12).toISOString(),
+    startHour: 10,
+  }), false);
 });
 
 test('grays a task only after one hour has passed since its scheduled end', () => {

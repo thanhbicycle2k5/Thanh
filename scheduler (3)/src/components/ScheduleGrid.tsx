@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { START_MINUTE_OPTIONS, formatPlanTime, getPlanEndMinutes } from '../lib/taskTime';
+import { START_MINUTE_OPTIONS, doPlanTimesOverlap, formatPlanTime, getPlanEndMinutes } from '../lib/taskTime';
 import { getColorForClickCount } from '../lib/taskColor';
 import { getAppliedOccurrenceDateKeys, toPlanDateTimestamp } from '../lib/taskRecurrence';
 import { getTaskClipboardText, parsePlainTask, type CopiedTask } from '../lib/taskClipboard';
@@ -1178,18 +1178,14 @@ function ScheduleGridComponent({
       : [];
 
     const overlaps = (dateIso: string, startHour: number, startMinute: number, duration: number) => {
-      return allPlans.some(p => {
-        if (generatedPlanIdsToRemove.has(p.id)) return false;
-        if (!isSameDay(new Date(p.date), new Date(`${dateIso}T00:00:00`))) return false;
-
-        const pStart = (p.startHour * 60) + (p.startMinute ?? 0);
-        const pEnd = getPlanEndMinutes({ startHour: p.startHour, startMinute: p.startMinute ?? 0, duration: p.duration });
-        const bStart = (startHour * 60) + startMinute;
-        const bEnd = getPlanEndMinutes({ startHour, startMinute, duration });
-
-        return (pStart < bEnd && bStart < pEnd);
-      });
+      const candidate = { date: dateIso, startHour, startMinute, duration };
+      return allPlans.some((plan) => !generatedPlanIdsToRemove.has(plan.id) && doPlanTimesOverlap(plan, candidate));
     };
+
+    if (isNew && overlaps(basePlan.date, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
+      toast.error('Ô này hoặc thời lượng task đã có task khác');
+      return;
+    }
 
     setIsDialogOpen(false);
 
@@ -1214,10 +1210,7 @@ function ScheduleGridComponent({
       };
 
       if (isNew) {
-        // Always add the base plan for the selected date if no overlap
-        if (!overlaps(basePlan.date, basePlan.startHour, basePlan.startMinute ?? 0, basePlan.duration)) {
-          await onAddPlan(basePlan);
-        }
+        await onAddPlan(basePlan);
       } else {
         await onUpdatePlan(basePlan);
         await Promise.all(generatedPlansToUpdate.map((plan) => onUpdatePlan({

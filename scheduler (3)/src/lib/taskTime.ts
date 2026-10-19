@@ -1,4 +1,5 @@
 import { Plan } from '../types';
+import { getPlanLocalDateKey } from './streak';
 
 export const START_MINUTE_OPTIONS = Array.from({ length: 12 }, (_, index) => index * 5);
 export const REMINDER_LEAD_MINUTES = 15;
@@ -38,6 +39,18 @@ export const getPlanEndMinutes = (plan: Pick<Plan, 'startHour' | 'startMinute' |
   // Keep task end aligned to whole-hour boundaries even when the start minute is not 0.
   // Example: 07:15 + 1 hour = 08:00, not 08:15.
   return (plan.startHour + plan.duration) * 60;
+};
+
+export const doPlanTimesOverlap = (
+  first: Pick<Plan, 'date' | 'startHour' | 'startMinute' | 'duration'>,
+  second: Pick<Plan, 'date' | 'startHour' | 'startMinute' | 'duration'>,
+) => {
+  const firstDateKey = getPlanLocalDateKey(first.date);
+  if (!firstDateKey || firstDateKey !== getPlanLocalDateKey(second.date)) return false;
+
+  const firstStart = first.startHour * 60 + (first.startMinute ?? 0);
+  const secondStart = second.startHour * 60 + (second.startMinute ?? 0);
+  return firstStart < getPlanEndMinutes(second) && secondStart < getPlanEndMinutes(first);
 };
 
 export const getPlanEndDate = (plan: Pick<Plan, 'date' | 'startHour' | 'startMinute' | 'duration'>) => {
