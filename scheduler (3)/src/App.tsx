@@ -70,6 +70,7 @@ import {
   Search,
   Facebook,
   Mail,
+  Phone,
   Pencil,
 } from 'lucide-react';
 import { Calendar as CalendarUI } from '@/components/ui/calendar';
@@ -4064,6 +4065,7 @@ function PlannerApp() {
 
                   {activeSettingsTab === 'contact' && (
                     <div className="rounded-2xl border border-border bg-muted/60 p-4 md:p-6 dark:bg-muted/30">
+                      <p className="mb-3 text-sm font-semibold text-foreground">Thành (ThànhBicycle)</p>
                       <div className="space-y-3">
                         <a
                           href="https://www.facebook.com/ThanhBicycle2406"
@@ -4082,6 +4084,13 @@ function PlannerApp() {
                         >
                           <Mail className="h-5 w-5 text-[#EA4335]" aria-hidden="true" />
                           <span className="truncate text-sm font-medium text-foreground">thanhbicycle2k5@gmail.com</span>
+                        </a>
+                        <a
+                          href="tel:0818657551"
+                          className="flex items-center gap-3 rounded-xl border border-border bg-background p-3 transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        >
+                          <Phone className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+                          <span className="text-sm font-medium text-foreground">0818657551</span>
                         </a>
                       </div>
                     </div>
