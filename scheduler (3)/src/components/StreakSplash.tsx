@@ -126,8 +126,7 @@ export function StreakSplash({ open, previousStreak, currentStreak, t, onClose }
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
       <DialogContent className="max-w-md overflow-hidden border-0 bg-[#111832] p-0 text-white shadow-2xl">
         <div className="relative overflow-hidden px-6 pb-6 pt-8 text-center">
-          <div className="pointer-events-none absolute -left-16 -top-20 h-56 w-56 rounded-full bg-amber-400/20 blur-3xl" />
-          <div className="pointer-events-none absolute -bottom-20 -right-12 h-56 w-56 rounded-full bg-sky-400/15 blur-3xl" />
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_25%_0%,rgba(251,191,36,0.12),transparent_45%),radial-gradient(ellipse_at_100%_100%,rgba(56,189,248,0.1),transparent_45%)]" />
           <div className="relative">
             <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-amber-300/15 text-amber-300">
               <Flame className="h-5 w-5" aria-hidden="true" />
@@ -137,7 +136,7 @@ export function StreakSplash({ open, previousStreak, currentStreak, t, onClose }
 
             <div className="relative mx-auto my-5 flex h-44 max-w-xs items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,rgba(255,190,70,0.2),transparent_50%)]" />
-              <svg viewBox="0 0 180 210" className="relative h-40 w-36 drop-shadow-[0_0_18px_rgba(255,190,70,0.65)]" role="img" aria-label="A glowing flame above a pencil">
+              <svg viewBox="0 0 180 210" className="relative h-40 w-36" role="img" aria-label="A glowing flame above a pencil">
                 <defs>
                   <linearGradient id="splash-pencil" x1="0" x2="1">
                     <stop stopColor="#e88732" />

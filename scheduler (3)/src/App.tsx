@@ -3581,7 +3581,7 @@ function PlannerApp() {
         localAIModel={settingsState.localAIModel ?? LOCAL_AI_MODEL}
       />
 
-      <CelebrationEffect trigger={showCelebration} count={36} />
+      <CelebrationEffect trigger={showCelebration} count={20} />
       <Toaster position="top-center" className="stationary-toaster" />
       {streakSplash && (
         <StreakSplash
