@@ -204,3 +204,7 @@
   background-color: rgba(16, 124, 65, 0.4);
   border-radius: 3px;
 }
+
+.stationary-toaster [data-sonner-toast] {
+  transition: none !important;
+}

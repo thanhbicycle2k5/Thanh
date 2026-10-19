@@ -3582,7 +3582,7 @@ function PlannerApp() {
       />
 
       <CelebrationEffect trigger={showCelebration} count={36} />
-      <Toaster />
+      <Toaster position="top-center" className="stationary-toaster" />
       {streakSplash && (
         <StreakSplash
           open
