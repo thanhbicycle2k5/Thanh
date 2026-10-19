@@ -509,7 +509,7 @@ function PlannerApp() {
   const [pomodoroSoundEnabled, setPomodoroSoundEnabled] = React.useState(true);
   const [pomodoroDeadline, setPomodoroDeadline] = React.useState<number | null>(null);
   const [pomodoroSessions, setPomodoroSessions] = React.useState(0);
-  const [showCelebration, setShowCelebration] = React.useState(false);
+  const [showCelebration, setShowCelebration] = React.useState(0);
   const [catMoodOverride, setCatMoodOverride] = React.useState<CatMood | null>(null);
   const [speechBubble, setSpeechBubble] = React.useState<{ id: string; text: string; status: SchedulyStatus } | null>(null);
   const speechBubbleTimeoutRef = React.useRef<number | null>(null);
@@ -1329,7 +1329,7 @@ function PlannerApp() {
     setPomodoroSecondsLeft(POMODORO_DURATIONS.work);
     setPomodoroRunning(false);
     setPomodoroSessions(0);
-    setShowCelebration(false);
+    setShowCelebration(0);
     setCatMoodOverride(null);
     setSpeechBubble(null);
     if (speechBubbleTimeoutRef.current !== null) {
@@ -2297,7 +2297,7 @@ function PlannerApp() {
           duration: 3000
         });
       }
-      setShowCelebration(true);
+      setShowCelebration((trigger) => trigger + 1);
 
       const today = new Date();
       const todayKey = getLocalDateKey(today);
@@ -2503,7 +2503,7 @@ function PlannerApp() {
     if (settingsState.catEnabled !== false) {
       playMeow();
     }
-    setShowCelebration(true);
+    setShowCelebration((trigger) => trigger + 1);
     window.setTimeout(() => setCatMoodOverride(null), 3000);
   }, [settingsState.catEnabled, settingsState.notificationSound]);
 
@@ -3575,7 +3575,7 @@ function PlannerApp() {
         localAIModel={settingsState.localAIModel ?? LOCAL_AI_MODEL}
       />
 
-      {!isMobile && <CelebrationEffect trigger={showCelebration} count={25} />}
+      <CelebrationEffect trigger={showCelebration} count={36} />
       <Toaster />
 
       <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>

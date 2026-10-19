@@ -1035,9 +1035,6 @@ function ScheduleGridComponent({
       if (clickCount.current === 2) {
         if (nextColor !== existing.color) {
           onUpdatePlan(updated, { suppressCompletionToast: true });
-          if (existing.color !== 'green') {
-            onPlanTurnGreen?.(updated);
-          }
         }
       } else if (clickCount.current >= 3) {
         onUpdatePlan(updated);
@@ -1045,7 +1042,7 @@ function ScheduleGridComponent({
       clickCount.current = 0;
       clickTimer.current = null;
     }, 300);
-  }, [onPlanTurnGreen, onUpdatePlan, plans, quickEditEnabled]);
+  }, [onUpdatePlan, plans, quickEditEnabled]);
 
   const isLegacyAppliedOccurrence = (source: Plan, candidate: Plan, allowTitleMismatch = false) => {
     if (candidate.id === source.id
@@ -1238,9 +1235,7 @@ function ScheduleGridComponent({
         }
       }
 
-      if (!isNew && !wasGreen && newColor === 'green') {
-        onPlanTurnGreen?.(basePlan);
-      } else if (isNew && newColor === 'green') {
+      if (isNew && newColor === 'green') {
         onPlanTurnGreen?.(basePlan);
       }
 
