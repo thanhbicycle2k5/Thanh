@@ -403,7 +403,6 @@ function PlannerApp() {
   const [gymRestMessage, setGymRestMessage] = React.useState('');
   const [gymRestCustomOpen, setGymRestCustomOpen] = React.useState(false);
   const [activeSettingsTab, setActiveSettingsTab] = React.useState('general');
-  const [mobileExpanded, setMobileExpanded] = React.useState<string | null>(null);
   const [user, setUser] = React.useState<User | null>(null);
   const activeUid = user?.uid ?? auth.currentUser?.uid ?? null;
   const [authLoading, setAuthLoading] = React.useState(true);
@@ -416,6 +415,21 @@ function PlannerApp() {
   const previousStreakSnapshotRef = React.useRef<{ dateKey: string; current: number } | null>(null);
   const notificationToggleInFlightRef = React.useRef(false);
   const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(storage.getSettings()));
+  const [scheduleDraft, setScheduleDraft] = React.useState<Pick<
+    AppSettings,
+    'startHour' | 'endHour' | 'showLunarCalendar' | 'weekTransitionEffect' | 'backgroundConfig' | 'boardOpacity'
+  >>(() => {
+    const settings = normalizeSettings(storage.getSettings());
+    return {
+      startHour: settings.startHour,
+      endHour: settings.endHour,
+      showLunarCalendar: settings.showLunarCalendar,
+      weekTransitionEffect: settings.weekTransitionEffect,
+      backgroundConfig: settings.backgroundConfig,
+      boardOpacity: settings.boardOpacity,
+    };
+  });
+  const [isAISettingsExpanded, setIsAISettingsExpanded] = React.useState(false);
   const [settingsError, setSettingsError] = React.useState<string | null>(null);
   const [sharedLinks, setSharedLinks] = React.useState<SharedScheduleLink[]>([]);
   const weekMetaSaveTimersRef = React.useRef<Record<string, number>>({});
@@ -712,6 +726,21 @@ function PlannerApp() {
       queueSettingsCloudSave(activeUid, updated);
     }
   }, [activeUid, clearAllScheduledNotifications, queueSettingsCloudSave]);
+
+  const handleSettingsOpenChange = React.useCallback((open: boolean) => {
+    if (open) {
+      const current = settingsRef.current;
+      setScheduleDraft({
+        startHour: current.startHour,
+        endHour: current.endHour,
+        showLunarCalendar: current.showLunarCalendar,
+        weekTransitionEffect: current.weekTransitionEffect,
+        backgroundConfig: current.backgroundConfig,
+        boardOpacity: current.boardOpacity,
+      });
+    }
+    setIsSettingsOpen(open);
+  }, []);
 
   const [playlistTracks, setPlaylistTracks] = React.useState<MusicTrack[]>(PRESET_TRACKS);
   const [selectedMusicId, setSelectedMusicId] = React.useState<string | null>(null);
@@ -1322,7 +1351,6 @@ function PlannerApp() {
     setGymRestMessage('');
     setGymRestCustomOpen(false);
     setActiveSettingsTab('general');
-    setMobileExpanded(null);
     setIsCalendarOpen(false);
     setSelectedWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }));
     previousWeekStartRef.current = startOfWeek(new Date(), { weekStartsOn: 1 });
@@ -2011,7 +2039,6 @@ function PlannerApp() {
     { value: 'general', label: t('general'), icon: <Settings className="w-4 h-4" /> },
     { value: 'schedule', label: t('schedule'), icon: <CalendarIcon className="w-4 h-4" /> },
     { value: 'sound', label: t('sound'), icon: <Volume2 className="w-4 h-4" /> },
-    { value: 'appearance', label: t('appearance'), icon: <Sun className="w-4 h-4" /> },
     { value: 'contact', label: t('contact'), icon: <Mail className="w-4 h-4" /> },
     { value: 'account', label: t('account'), icon: <CloudIcon className="w-4 h-4" /> },
   ], [t]);
@@ -2604,7 +2631,7 @@ function PlannerApp() {
     try {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore
-      if (typeof window !== 'undefined') window.__openSettings = () => setIsSettingsOpen(true);
+      if (typeof window !== 'undefined') window.__openSettings = () => handleSettingsOpenChange(true);
     } catch (e) {
       // ignore
     }
@@ -2615,7 +2642,7 @@ function PlannerApp() {
         if (typeof window !== 'undefined' && window.__openSettings) delete window.__openSettings;
       } catch (e) {}
     };
-  }, []);
+  }, [handleSettingsOpenChange]);
 
   // Keep background opacity on its own layer so it does not fade app content.
   const getBackgroundStyle = React.useCallback((): React.CSSProperties => {
@@ -3033,7 +3060,7 @@ function PlannerApp() {
                 <Dumbbell className={cn("w-4 h-4 transition-colors", gymRestOpen && "text-[#FF6B00]")} />
              </Button>
              <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
-                setIsSettingsOpen(true);
+                handleSettingsOpenChange(true);
               }}>
                 <Settings className="w-4 h-4" />
              </Button>
@@ -3667,7 +3694,7 @@ function PlannerApp() {
         </DialogContent>}
       </Dialog>
 
-      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen} disablePointerDismissal={false}>
+      <Dialog open={isSettingsOpen} onOpenChange={handleSettingsOpenChange} disablePointerDismissal={false}>
         {isSettingsOpen && <DialogContent className={cn(
             "w-full max-w-[calc(100vw-64px)] md:max-w-6xl h-[90vh] sm:rounded-2xl bg-card dark:bg-card p-0 flex flex-col",
            desktopFontClass
@@ -3693,52 +3720,65 @@ function PlannerApp() {
                 </div>
               }
             >
-              <div className="flex h-[90vh] min-h-0 flex-col rounded-2xl bg-card shadow-xl sm:flex-row">
-                <aside className="w-full sm:w-[180px] md:w-[220px] max-h-[25vh] sm:max-h-none p-3 sm:p-4 md:p-5 sm:border-r bg-muted/50 dark:bg-muted/20 overflow-y-auto flex-shrink-0">
+              <div className="flex h-[90vh] min-h-0 flex-col rounded-2xl bg-card shadow-xl">
+                <aside className="shrink-0 border-b bg-muted/30 p-3 sm:p-4">
                   <DialogHeader className="p-0">
                     <DialogTitle className="text-sm md:text-base text-foreground">{t('settings')}</DialogTitle>
                   </DialogHeader>
-                  <p className="mt-1 text-[11px] text-muted-foreground line-clamp-2">{t('appDescription')}</p>
-
-                  <div className="mt-3 grid gap-1.5">
+                  <div className="mt-3 grid grid-cols-5 gap-1" role="tablist" aria-label={t('settings')}>
                     {settingsTabs.map((tab, tabIndex) => (
                       <button
                         key={tab.value}
+                        id={`settings-tab-${tab.value}`}
                         type="button"
+                        role="tab"
+                        aria-label={tab.label}
+                        aria-controls="settings-panel"
+                        aria-selected={activeSettingsTab === tab.value}
+                        title={tab.label}
                         onKeyDown={(event) => {
-                          if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+                          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
                           event.preventDefault();
-                          const direction = event.key === 'ArrowDown' ? 1 : -1;
+                          const direction = event.key === 'ArrowRight' ? 1 : -1;
                           const nextIndex = (tabIndex + direction + settingsTabs.length) % settingsTabs.length;
                           const nextTab = settingsTabs[nextIndex];
                           setActiveSettingsTab(nextTab.value);
-                          setMobileExpanded(null);
-                          const currentTabButton = event.currentTarget;
                           window.requestAnimationFrame(() => {
-                            const tabButtons = currentTabButton.parentElement?.querySelectorAll('button');
-                            (tabButtons?.[nextIndex] as HTMLButtonElement | undefined)?.focus();
+                            document.getElementById(`settings-tab-${nextTab.value}`)?.focus();
                           });
                         }}
-                        onClick={() => { setActiveSettingsTab(tab.value); setMobileExpanded(null); }}
+                        onClick={() => setActiveSettingsTab(tab.value)}
                         className={cn(
-                          "group flex items-center justify-between rounded-xl border border-transparent bg-background dark:bg-muted/30 px-2.5 py-2 text-xs font-medium text-foreground transition hover:border-border hover:bg-muted dark:hover:bg-muted/50 gap-1.5",
-                          activeSettingsTab === tab.value && "border-2 border-[#107C41] text-foreground shadow-sm"
+                          "flex h-10 items-center justify-center rounded-xl border border-transparent bg-background text-foreground transition hover:border-border hover:bg-muted",
+                          activeSettingsTab === tab.value && "border-2 border-[#107C41] text-[#107C41] shadow-sm"
                         )}
                       >
-                        <span className="flex items-center gap-2 min-w-0">
-                          <span className="w-4 h-4 flex-shrink-0">{tab.icon}</span>
-                          <span className="truncate text-[11px] md:text-xs">{tab.label}</span>
-                        </span>
-                        <ChevronRight className={cn(
-                          "w-3 h-3 text-muted-foreground dark:text-muted-foreground/70 flex-shrink-0 transition-transform duration-200",
-                          activeSettingsTab === tab.value ? "rotate-90 dark:text-white" : ""
-                        )} />
+                        {tab.icon}
                       </button>
+                    ))}
+                  </div>
+                  <div className="mt-1 grid grid-cols-5 gap-1 text-center">
+                    {settingsTabs.map((tab) => (
+                      <span
+                        key={tab.value}
+                        className={cn(
+                          "truncate px-0.5 text-[10px] font-medium text-muted-foreground sm:text-xs",
+                          activeSettingsTab === tab.value && "font-semibold text-[#107C41]"
+                        )}
+                      >
+                        {tab.label}
+                      </span>
                     ))}
                   </div>
                 </aside>
 
-                <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 min-h-0 flex justify-center">
+                <main
+                  id="settings-panel"
+                  role="tabpanel"
+                  aria-labelledby={`settings-tab-${activeSettingsTab}`}
+                  tabIndex={0}
+                  className="flex min-h-0 flex-1 justify-center overflow-y-auto p-3 sm:p-4 md:p-6"
+                >
                   <div className="w-full max-w-2xl">
                   {activeSettingsTab === 'general' && (
                     <div className="space-y-4">
@@ -3776,7 +3816,16 @@ function PlannerApp() {
                       </div>
 
                       <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4">
-                        <div className="flex flex-col gap-4">
+                        <button
+                          type="button"
+                          aria-expanded={isAISettingsExpanded}
+                          onClick={() => setIsAISettingsExpanded((expanded) => !expanded)}
+                          className="flex w-full items-center justify-between text-left text-sm font-semibold text-foreground"
+                        >
+                          {t('aiProvider')}
+                          <ChevronRight className={cn("h-4 w-4 transition-transform", isAISettingsExpanded && "rotate-90")} />
+                        </button>
+                        {isAISettingsExpanded && <div className="flex flex-col gap-4 pt-3">
                           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                             <div>
                               <p className="text-sm font-semibold text-foreground">{t('aiProvider')}</p>
@@ -3899,7 +3948,7 @@ function PlannerApp() {
                               )}
                             </div>
                           )}
-                        </div>
+                        </div>}
                       </div>
 
                       <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 space-y-4">
@@ -3941,40 +3990,86 @@ function PlannerApp() {
                   )}
 
                   {activeSettingsTab === 'schedule' && (
-                    <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6 space-y-4">
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <span className="text-sm text-foreground">{t('startHour')}</span>
-                        <div className="flex items-center gap-3">
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.startHour > 0) handleUpdateSettings({ startHour: settingsState.startHour - 1 }); }}>
-                            <Minus className="w-3 h-3" />
-                          </Button>
-                          <span className="w-12 text-center font-black text-[#107C41]">{settingsState.startHour}h</span>
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.startHour < settingsState.endHour - 1) handleUpdateSettings({ startHour: settingsState.startHour + 1 }); }}>
-                            <Plus className="w-3 h-3" />
-                          </Button>
+                    <div className="w-full max-w-2xl space-y-4">
+                      <div className="rounded-2xl border border-border bg-muted/60 p-4 dark:bg-muted/30 md:p-6">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm text-foreground">{t('startHour')}</span>
+                          <div className="flex items-center gap-3">
+                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => setScheduleDraft((draft) => ({ ...draft, startHour: Math.max(0, draft.startHour - 1) }))} disabled={scheduleDraft.startHour <= 0}>
+                              <Minus className="w-3 h-3" />
+                            </Button>
+                            <span className="w-12 text-center font-black text-[#107C41]">{scheduleDraft.startHour}h</span>
+                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => setScheduleDraft((draft) => ({ ...draft, startHour: Math.min(draft.endHour - 1, draft.startHour + 1) }))} disabled={scheduleDraft.startHour >= scheduleDraft.endHour - 1}>
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="my-3 border-t border-border" />
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="text-sm text-foreground">{t('endHour')}</span>
+                          <div className="flex items-center gap-3">
+                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => setScheduleDraft((draft) => ({ ...draft, endHour: Math.max(draft.startHour + 1, draft.endHour - 1) }))} disabled={scheduleDraft.endHour <= scheduleDraft.startHour + 1}>
+                              <Minus className="w-3 h-3" />
+                            </Button>
+                            <span className="w-12 text-center font-black text-[#107C41]">{scheduleDraft.endHour}h</span>
+                            <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => setScheduleDraft((draft) => ({ ...draft, endHour: Math.min(23, draft.endHour + 1) }))} disabled={scheduleDraft.endHour >= 23}>
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="my-3 border-t border-border" />
+                        <div className="flex items-center justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-foreground">{t('showLunarCalendar')}</p>
+                            <p className="text-xs text-muted-foreground">{t('showLunarCalendarDescription')}</p>
+                          </div>
+                          <Switch
+                            checked={scheduleDraft.showLunarCalendar !== false}
+                            onCheckedChange={(checked) => setScheduleDraft((draft) => ({ ...draft, showLunarCalendar: checked }))}
+                          />
                         </div>
                       </div>
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <span className="text-sm text-foreground">{t('endHour')}</span>
-                        <div className="flex items-center gap-3">
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.endHour > settingsState.startHour + 1) handleUpdateSettings({ endHour: settingsState.endHour - 1 }); }}>
-                            <Minus className="w-3 h-3" />
-                          </Button>
-                          <span className="w-12 text-center font-black text-[#107C41]">{settingsState.endHour}h</span>
-                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl bg-background" onClick={() => { if (settingsState.endHour < 23) handleUpdateSettings({ endHour: settingsState.endHour + 1 }); }}>
-                            <Plus className="w-3 h-3" />
-                          </Button>
+
+                      <div className="rounded-2xl border border-border bg-muted/60 p-4 dark:bg-muted/30 md:p-6">
+                        <div className="mb-4">
+                          <p className="text-sm font-semibold text-foreground">{t('weekTransitionEffect')}</p>
+                          <p className="text-xs text-muted-foreground">{t('weekTransitionEffectDescription')}</p>
                         </div>
+                        <Select
+                          value={scheduleDraft.weekTransitionEffect ?? 'slide'}
+                          onValueChange={(value: WeekTransitionEffect) => setScheduleDraft((draft) => ({ ...draft, weekTransitionEffect: value }))}
+                        >
+                          <SelectTrigger className="w-full sm:w-80"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="slide">{t('transitionSlide')}</SelectItem>
+                            <SelectItem value="fade">{t('transitionFade')}</SelectItem>
+                            <SelectItem value="none">{t('transitionNone')}</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">{t('showLunarCalendar')}</p>
-                          <p className="text-xs text-muted-foreground">{t('showLunarCalendarDescription')}</p>
-                        </div>
-                        <Switch
-                          checked={settingsState.showLunarCalendar !== false}
-                          onCheckedChange={(checked) => handleUpdateSettings({ showLunarCalendar: checked })}
+
+                      <div className="rounded-2xl border border-border bg-muted/60 p-4 dark:bg-muted/30 md:p-6">
+                        <BackgroundCustomizer
+                          config={scheduleDraft.backgroundConfig}
+                          onChange={(backgroundConfig) => setScheduleDraft((draft) => ({ ...draft, backgroundConfig }))}
+                          boardOpacity={scheduleDraft.boardOpacity ?? 1}
+                          onBoardOpacityChange={(boardOpacity) => setScheduleDraft((draft) => ({ ...draft, boardOpacity }))}
+                          t={t}
+                          theme={settingsState.theme}
+                          showSaveButton={false}
                         />
+                      </div>
+
+                      <div className="flex justify-end">
+                        <Button
+                          className="min-w-28 bg-[#107C41] text-white hover:bg-[#0d6435]"
+                          onClick={() => {
+                            handleUpdateSettings(scheduleDraft);
+                            toast.success(t('settingsSaved'));
+                          }}
+                        >
+                          {t('save')}
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -3984,24 +4079,13 @@ function PlannerApp() {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm font-semibold text-foreground">{t('notificationsLabel')}</p>
-                          <p className="text-xs text-muted-foreground">{t('notificationSound')}</p>
                         </div>
                         <div className="flex items-center gap-3">
                           <Switch checked={!!settingsState.notificationsEnabled} onCheckedChange={(v) => { void handleToggleNotifications(v); }} />
                         </div>
                       </div>
 
-                      <div className="mt-3 rounded-2xl border border-border bg-background/80 p-3 text-xs">
-                        <p className={cn(
-                          "font-semibold",
-                          settingsState.notificationsEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'
-                        )}>
-                          {settingsState.notificationsEnabled ? t('notificationsStatusOn') : t('notificationsStatusOff')}
-                        </p>
-                        <p className="mt-1 text-[11px] text-muted-foreground">
-                          {settingsState.notificationsEnabled ? t('notificationsStatusOnDescription') : t('notificationsStatusOffDescription')}
-                        </p>
-                      </div>
+                      <p className="text-xs text-muted-foreground">{t('notificationPermissionNote')}</p>
 
                       <Button
                         variant="outline"
@@ -4027,7 +4111,6 @@ function PlannerApp() {
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <div className="space-y-1">
                           <Label className="text-foreground">{t('completionSoundLabel')}</Label>
-                          <p className="text-[10px] text-muted-foreground">{t('completionSoundDescription')}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <Select value={settingsState.notificationSound} onValueChange={(v: NotificationSound) => handleUpdateSettings({ notificationSound: v })}>
@@ -4046,35 +4129,6 @@ function PlannerApp() {
                         </div>
                       </div>
 
-                    </div>
-                  )}
-
-                  {activeSettingsTab === 'appearance' && (
-                    <div className="space-y-4">
-                      <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6">
-                        <div className="mb-4">
-                          <p className="text-sm font-semibold text-foreground">{t('weekTransitionEffect')}</p>
-                          <p className="text-xs text-muted-foreground">{t('weekTransitionEffectDescription')}</p>
-                        </div>
-                        <Select value={settingsState.weekTransitionEffect} onValueChange={(v: WeekTransitionEffect) => handleUpdateSettings({ weekTransitionEffect: v })}>
-                          <SelectTrigger className="w-full sm:w-80"><SelectValue /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="slide">{t('transitionSlide')}</SelectItem>
-                            <SelectItem value="fade">{t('transitionFade')}</SelectItem>
-                            <SelectItem value="none">{t('transitionNone')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6">
-                        <BackgroundCustomizer
-                          config={settingsState.backgroundConfig}
-                          onChange={(config) => handleUpdateSettings({ backgroundConfig: config })}
-                          boardOpacity={settingsState.boardOpacity ?? 1}
-                          onBoardOpacityChange={(boardOpacity) => handleUpdateSettings({ boardOpacity })}
-                          t={t}
-                          theme={settingsState.theme}
-                        />
-                      </div>
                     </div>
                   )}
 

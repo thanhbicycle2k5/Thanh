@@ -20,6 +20,7 @@ interface BackgroundCustomizerProps {
   onBoardOpacityChange: (opacity: number) => void;
   t: (key: string) => string;
   theme: Theme;
+  showSaveButton?: boolean;
 }
 
 const PRESET_COLORS = [
@@ -98,6 +99,7 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
   onBoardOpacityChange,
   t,
   theme,
+  showSaveButton = true,
 }) => {
   const [type, setType] = React.useState<BackgroundType>(config?.type || 'color');
   const [value, setValue] = React.useState<string>(config?.value || '#FFFFFF');
@@ -118,13 +120,29 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
   }, [boardOpacity]);
 
   const handleTypeChange = (newType: BackgroundType) => {
+    const nextValue = newType === 'color'
+      ? '#FFFFFF'
+      : newType === 'gradient'
+        ? PRESET_GRADIENTS[0]
+        : '';
     setType(newType);
-    if (newType === 'color') {
-      setValue('#FFFFFF');
-    } else if (newType === 'gradient') {
-      setValue(PRESET_GRADIENTS[0]);
-    } else if (newType === 'image') {
-      setValue('');
+    setValue(nextValue);
+    if (!showSaveButton && nextValue) {
+      onChange({ type: newType, value: nextValue, opacity: safeOpacity });
+    }
+  };
+
+  const handleValueChange = (nextValue: string) => {
+    setValue(nextValue);
+    if (!showSaveButton && nextValue) {
+      onChange({ type, value: nextValue, opacity: safeOpacity });
+    }
+  };
+
+  const handleOpacityChange = (nextOpacity: number) => {
+    setOpacity(nextOpacity);
+    if (!showSaveButton && value) {
+      onChange({ type, value, opacity: nextOpacity });
     }
   };
 
@@ -152,7 +170,7 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
     const file = e.target.files?.[0];
     if (file) {
       void compressBackgroundImage(file)
-        .then(setValue)
+        .then(handleValueChange)
         .catch((error) => {
           console.error('Unable to prepare background image:', error);
         });
@@ -200,13 +218,13 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
             <input
               type="color"
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onChange={(e) => handleValueChange(e.target.value)}
               className="w-10 h-10 rounded cursor-pointer border border-border"
             />
             <Input
               type="text"
               value={value}
-              onChange={(e) => setValue(e.target.value)}
+              onChange={(e) => handleValueChange(e.target.value)}
               className="text-xs h-8"
               placeholder="#FFFFFF"
             />
@@ -217,7 +235,7 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
                 key={color}
                 className="w-8 h-8 rounded border border-border hover:scale-110 transition-transform"
                 style={{ backgroundColor: color }}
-                onClick={() => setValue(color)}
+                onClick={() => handleValueChange(color)}
                 title={color}
               />
             ))}
@@ -238,7 +256,7 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
                   value === gradient ? 'border-[#107C41]' : 'border-border'
                 )}
                 style={{ background: gradient }}
-                onClick={() => setValue(gradient)}
+                onClick={() => handleValueChange(gradient)}
               />
             ))}
           </div>
@@ -280,7 +298,7 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
           onValueChange={(v) => {
             const nextValue = Array.isArray(v) ? v[0] : v;
             if (typeof nextValue === 'number' && Number.isFinite(nextValue)) {
-              setOpacity(nextValue);
+              handleOpacityChange(nextValue);
             }
           }}
           min={0}
@@ -353,13 +371,14 @@ export const BackgroundCustomizer: React.FC<BackgroundCustomizerProps> = ({
         </div>
       </div>
 
-      {/* Save Button */}
-      <Button
-        className="w-full bg-[#107C41] hover:bg-[#0d6435] text-white text-xs h-8"
-        onClick={handleSave}
-      >
-        {t('save')}
-      </Button>
+      {showSaveButton && (
+        <Button
+          className="w-full bg-[#107C41] hover:bg-[#0d6435] text-white text-xs h-8"
+          onClick={handleSave}
+        >
+          {t('save')}
+        </Button>
+      )}
     </div>
   );
 };
