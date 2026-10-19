@@ -85,6 +85,7 @@ import { DynamicCat, getCatImage } from './components/DynamicCat';
 import { SpeechBubbleOverlay } from './components/SpeechBubbleOverlay';
 import { BackgroundCustomizer } from './components/BackgroundCustomizer';
 import { CelebrationEffect } from './components/CelebrationEffect';
+import { StreakSplash } from './components/StreakSplash';
 import { SchedulyChat } from './components/SchedulyChat';
 import { getRandomCatQuote } from './data/catQuotes';
 import { checkLocalAI, LOCAL_AI_MODEL } from './services/localAI';
@@ -510,6 +511,7 @@ function PlannerApp() {
   const [pomodoroDeadline, setPomodoroDeadline] = React.useState<number | null>(null);
   const [pomodoroSessions, setPomodoroSessions] = React.useState(0);
   const [showCelebration, setShowCelebration] = React.useState(0);
+  const [streakSplash, setStreakSplash] = React.useState<{ previous: number; current: number } | null>(null);
   const [catMoodOverride, setCatMoodOverride] = React.useState<CatMood | null>(null);
   const [speechBubble, setSpeechBubble] = React.useState<{ id: string; text: string; status: SchedulyStatus } | null>(null);
   const speechBubbleTimeoutRef = React.useRef<number | null>(null);
@@ -1330,6 +1332,7 @@ function PlannerApp() {
     setPomodoroRunning(false);
     setPomodoroSessions(0);
     setShowCelebration(0);
+    setStreakSplash(null);
     setCatMoodOverride(null);
     setSpeechBubble(null);
     if (speechBubbleTimeoutRef.current !== null) {
@@ -2288,6 +2291,7 @@ function PlannerApp() {
     let streakEncouragement: string | null = null;
     if (isNewCompletion) {
       void cancelScheduledNotificationById(makeNotificationId(p));
+      void playNotificationSound(settingsRef.current.notificationSound);
 
       if (!options?.suppressCompletionToast) {
         const motivators = [t('motivate1'), t('motivate2'), t('motivate3'), t('motivate4'), t('motivate5')];
@@ -2315,6 +2319,9 @@ function PlannerApp() {
           today,
           settingsRef.current.streakDays
         );
+        if (!beforeStreak.completedToday) {
+          setStreakSplash({ previous: beforeStreak.current, current: afterStreak.current });
+        }
         if (afterStreak.current > beforeStreak.current) {
           streakEncouragement = [5, 7, 10, 30].includes(afterStreak.current)
             ? t('streakMilestoneEncouragement', { days: String(afterStreak.current) })
@@ -2503,7 +2510,6 @@ function PlannerApp() {
     if (settingsState.catEnabled !== false) {
       playMeow();
     }
-    setShowCelebration((trigger) => trigger + 1);
     window.setTimeout(() => setCatMoodOverride(null), 3000);
   }, [settingsState.catEnabled, settingsState.notificationSound]);
 
@@ -3577,6 +3583,15 @@ function PlannerApp() {
 
       <CelebrationEffect trigger={showCelebration} count={36} />
       <Toaster />
+      {streakSplash && (
+        <StreakSplash
+          open
+          previousStreak={streakSplash.previous}
+          currentStreak={streakSplash.current}
+          t={t}
+          onClose={() => setStreakSplash(null)}
+        />
+      )}
 
       <Dialog open={isSearchOpen} onOpenChange={setIsSearchOpen}>
         {isSearchOpen && <DialogContent className="max-w-xl">
