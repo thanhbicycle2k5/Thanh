@@ -415,6 +415,8 @@ function PlannerApp() {
   const previousStreakSnapshotRef = React.useRef<{ dateKey: string; current: number } | null>(null);
   const notificationToggleInFlightRef = React.useRef(false);
   const [settingsState, setSettings] = React.useState<AppSettings>(() => normalizeSettings(storage.getSettings()));
+  const [displayNameDraft, setDisplayNameDraft] = React.useState(() => normalizeSettings(storage.getSettings()).displayName);
+  const [isDisplayNameSaveConfirmOpen, setIsDisplayNameSaveConfirmOpen] = React.useState(false);
   const [scheduleDraft, setScheduleDraft] = React.useState<Pick<
     AppSettings,
     'startHour' | 'endHour' | 'showLunarCalendar' | 'weekTransitionEffect' | 'backgroundConfig' | 'boardOpacity'
@@ -449,6 +451,9 @@ function PlannerApp() {
   React.useEffect(() => {
     settingsRef.current = settingsState;
   }, [settingsState]);
+  React.useEffect(() => {
+    setDisplayNameDraft(settingsState.displayName);
+  }, [settingsState.displayName]);
 
   const [isMobile, setIsMobile] = React.useState(false);
   const [prefersReducedMotion, setPrefersReducedMotion] = React.useState(false);
@@ -4174,8 +4179,30 @@ function PlannerApp() {
                   )}
 
                   {activeSettingsTab === 'account' && (
-                    <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6">
-                      <div className="space-y-4">
+                    <div className="space-y-4">
+                      <div className="rounded-2xl border border-border bg-muted/60 p-4 dark:bg-muted/30 md:p-6">
+                        <div className="space-y-3">
+                          <Label htmlFor="display-name" className="text-foreground">{t('displayName')}</Label>
+                          <Input
+                            id="display-name"
+                            value={displayNameDraft}
+                            maxLength={40}
+                            onChange={(event) => setDisplayNameDraft(event.target.value)}
+                          />
+                          <p className="text-xs text-muted-foreground">{t('displayNameHelp')}</p>
+                          <div className="flex justify-end">
+                            <Button
+                              type="button"
+                              disabled={displayNameDraft.trim() === settingsState.displayName.trim()}
+                              onClick={() => setIsDisplayNameSaveConfirmOpen(true)}
+                            >
+                              {t('save')}
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="rounded-2xl border border-border bg-muted/60 p-4 dark:bg-muted/30 md:p-6">
                         {user ? (
                           <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-3">
                             <img src={user.photoURL || ''} className="w-12 h-12 rounded-full flex-shrink-0" />
@@ -4204,16 +4231,6 @@ function PlannerApp() {
                             {t('signIn')}
                           </Button>
                         )}
-                        <div className="space-y-2">
-                          <Label htmlFor="display-name" className="text-foreground">{t('displayName')}</Label>
-                          <Input
-                            id="display-name"
-                            value={settingsState.displayName}
-                            maxLength={40}
-                            onChange={(event) => handleUpdateSettings({ displayName: event.target.value })}
-                          />
-                          <p className="text-xs text-muted-foreground">{t('displayNameHelp')}</p>
-                        </div>
                       </div>
                     </div>
                   
@@ -4223,6 +4240,39 @@ function PlannerApp() {
               </div>
             </SettingsErrorBoundary>
         </DialogContent>}
+      </Dialog>
+
+      <Dialog open={isDisplayNameSaveConfirmOpen} onOpenChange={setIsDisplayNameSaveConfirmOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>{t('confirmDisplayNameSaveTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('confirmDisplayNameSaveDescription', { name: displayNameDraft.trim() || 'bạn' })}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setDisplayNameDraft(settingsState.displayName);
+                setIsDisplayNameSaveConfirmOpen(false);
+              }}
+            >
+              {t('cancel')}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                handleUpdateSettings({ displayName: displayNameDraft.trim() });
+                setIsDisplayNameSaveConfirmOpen(false);
+                toast.success(t('displayNameSaved'));
+              }}
+            >
+              {t('save')}
+            </Button>
+          </div>
+        </DialogContent>
       </Dialog>
 
       <Dialog open={isSummaryOpen} onOpenChange={setIsSummaryOpen}>
