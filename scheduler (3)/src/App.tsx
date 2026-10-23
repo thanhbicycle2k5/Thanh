@@ -530,7 +530,7 @@ function PlannerApp() {
   const [pomodoroDeadline, setPomodoroDeadline] = React.useState<number | null>(null);
   const [pomodoroSessions, setPomodoroSessions] = React.useState(0);
   const [showCelebration, setShowCelebration] = React.useState(0);
-  const [streakSplash, setStreakSplash] = React.useState<{ previous: number; current: number } | null>(null);
+  const [streakSplash, setStreakSplash] = React.useState(false);
   const [catMoodOverride, setCatMoodOverride] = React.useState<CatMood | null>(null);
   const [speechBubble, setSpeechBubble] = React.useState<{ id: string; text: string; status: SchedulyStatus } | null>(null);
   const speechBubbleTimeoutRef = React.useRef<number | null>(null);
@@ -1365,7 +1365,7 @@ function PlannerApp() {
     setPomodoroRunning(false);
     setPomodoroSessions(0);
     setShowCelebration(0);
-    setStreakSplash(null);
+    setStreakSplash(false);
     setCatMoodOverride(null);
     setSpeechBubble(null);
     if (speechBubbleTimeoutRef.current !== null) {
@@ -2353,10 +2353,7 @@ function PlannerApp() {
           settingsRef.current.streakDays
         );
         if (!beforeStreak.completedToday) {
-          setStreakSplash({
-            previous: Math.max(0, afterStreak.current - 1),
-            current: afterStreak.current,
-          });
+          setStreakSplash(true);
         }
         if (afterStreak.current > beforeStreak.current) {
           streakEncouragement = [5, 7, 10, 30].includes(afterStreak.current)
@@ -3625,11 +3622,11 @@ function PlannerApp() {
       {streakSplash && (
         <StreakSplash
           open
-          previousStreak={streakSplash.previous}
-          currentStreak={streakSplash.current}
+          previousStreak={Math.max(0, streakStats.current - 1)}
+          currentStreak={streakStats.current}
           catColor={settingsState.catColor ?? 'yellow'}
           t={t}
-          onClose={() => setStreakSplash(null)}
+          onClose={() => setStreakSplash(false)}
         />
       )}
 

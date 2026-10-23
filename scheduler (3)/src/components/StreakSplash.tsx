@@ -34,7 +34,7 @@ const buildStreakImage = (previousStreak: number, currentStreak: number, title: 
       <filter id="blur"><feGaussianBlur stdDeviation="32"/></filter>
     </defs>
     <rect width="1080" height="1350" rx="72" fill="url(#bg)"/>
-    <image href="${logoImage}" x="90" y="250" width="900" height="900" preserveAspectRatio="xMidYMid meet" opacity=".055"/>
+    <image href="${logoImage}" x="0" y="0" width="1080" height="1350" preserveAspectRatio="xMidYMid slice" opacity=".28" style="mix-blend-mode:multiply"/>
     <circle cx="540" cy="390" r="300" fill="url(#glow)" filter="url(#blur)"/>
     <g fill="#fff" opacity=".5"><circle cx="150" cy="210" r="5"/><circle cx="888" cy="248" r="7"/><circle cx="246" cy="450" r="4"/><circle cx="839" cy="520" r="4"/><circle cx="190" cy="900" r="5"/><circle cx="900" cy="880" r="6"/></g>
     <text x="540" y="150" text-anchor="middle" fill="#ffd166" font-family="Arial,sans-serif" font-size="36" font-weight="700" letter-spacing="9">${escapeSvgText(brand)}</text>
@@ -123,7 +123,7 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, t,
     setIsSharing(true);
     try {
       const [logoImage, catImage] = await Promise.all([
-        loadImageAsDataUrl('/task2goal-app-icon.png'),
+        loadImageAsDataUrl('/task2goal-splash-square.png'),
         loadImageAsDataUrl(getCatImage(catColor)),
       ]);
       const blob = await createPng(buildStreakImage(
@@ -168,7 +168,7 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, t,
       <DialogContent className="max-w-md overflow-hidden border-0 bg-[#111832] p-0 text-white shadow-2xl">
         <div className="relative overflow-hidden px-6 pb-6 pt-8 text-center">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_25%_0%,rgba(251,191,36,0.12),transparent_45%),radial-gradient(ellipse_at_100%_100%,rgba(56,189,248,0.1),transparent_45%)]" />
-          <img src="/task2goal-app-icon.png" alt="" className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 object-contain opacity-[0.045]" />
+          <img src="/task2goal-splash-square.png" alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-multiply" />
           <div className="relative">
             <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-amber-300/15 text-amber-300">
               <Flame className="h-5 w-5" aria-hidden="true" />
