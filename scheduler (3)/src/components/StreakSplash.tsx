@@ -5,11 +5,14 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import type { TranslationKey } from '../lib/i18n';
+import type { CatColor } from '../types';
+import { getCatImage } from './DynamicCat';
 
 interface StreakSplashProps {
   open: boolean;
   previousStreak: number;
   currentStreak: number;
+  catColor: CatColor;
   t: (key: TranslationKey, replacements?: Record<string, string>) => string;
   onClose: () => void;
 }
@@ -21,7 +24,7 @@ const escapeSvgText = (text: string) => text.replace(/[&<>"]/g, (character) => (
   '"': '&quot;',
 })[character] ?? character);
 
-const buildStreakImage = (previousStreak: number, currentStreak: number, title: string, brand: string, tagline: string) => {
+const buildStreakImage = (previousStreak: number, currentStreak: number, title: string, encouragement: string, brand: string, tagline: string, logoImage: string, catImage: string) => {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
     <defs>
       <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#10152f"/><stop offset="1" stop-color="#253c68"/></linearGradient>
@@ -31,10 +34,13 @@ const buildStreakImage = (previousStreak: number, currentStreak: number, title: 
       <filter id="blur"><feGaussianBlur stdDeviation="32"/></filter>
     </defs>
     <rect width="1080" height="1350" rx="72" fill="url(#bg)"/>
+    <image href="${logoImage}" x="90" y="250" width="900" height="900" preserveAspectRatio="xMidYMid meet" opacity=".055"/>
     <circle cx="540" cy="390" r="300" fill="url(#glow)" filter="url(#blur)"/>
     <g fill="#fff" opacity=".5"><circle cx="150" cy="210" r="5"/><circle cx="888" cy="248" r="7"/><circle cx="246" cy="450" r="4"/><circle cx="839" cy="520" r="4"/><circle cx="190" cy="900" r="5"/><circle cx="900" cy="880" r="6"/></g>
     <text x="540" y="150" text-anchor="middle" fill="#ffd166" font-family="Arial,sans-serif" font-size="36" font-weight="700" letter-spacing="9">${escapeSvgText(brand)}</text>
     <text x="540" y="242" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="48" font-weight="700">${escapeSvgText(title)}</text>
+    <text x="540" y="310" text-anchor="middle" fill="#dbeafe" font-family="Arial,sans-serif" font-size="27">${escapeSvgText(encouragement)}</text>
+    <image href="${catImage}" x="350" y="365" width="380" height="430" preserveAspectRatio="xMidYMid meet" opacity=".24"/>
     <g transform="translate(540 520)">
       <circle r="206" fill="#fff" opacity=".06"/>
       <circle r="176" fill="none" stroke="#ffd166" stroke-opacity=".3" stroke-width="3"/>
@@ -74,13 +80,41 @@ async function createPng(svg: string): Promise<Blob> {
   }
 }
 
-export function StreakSplash({ open, previousStreak, currentStreak, t, onClose }: StreakSplashProps) {
+async function loadImageAsDataUrl(src: string): Promise<string> {
+  const response = await fetch(src);
+  if (!response.ok) throw new Error(`Could not load streak poster image (${response.status}).`);
+  const imageBlob = await response.blob();
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result !== 'string') {
+        reject(new Error('Could not encode streak poster image.'));
+        return;
+      }
+      resolve(reader.result);
+    };
+    reader.onerror = () => reject(reader.error ?? new Error('Could not encode streak poster image.'));
+    reader.readAsDataURL(imageBlob);
+  });
+}
+
+const encouragementKeys: TranslationKey[] = [
+  'streakSplashDescription',
+  'streakSplashEncouragement2',
+  'streakSplashEncouragement3',
+  'streakSplashEncouragement4',
+  'streakSplashEncouragement5',
+];
+
+export function StreakSplash({ open, previousStreak, currentStreak, catColor, t, onClose }: StreakSplashProps) {
   const [isSharing, setIsSharing] = React.useState(false);
   const [displayedStreak, setDisplayedStreak] = React.useState(previousStreak);
+  const [encouragementKey, setEncouragementKey] = React.useState<TranslationKey>(encouragementKeys[0]);
 
   React.useEffect(() => {
     if (!open) return;
     setDisplayedStreak(previousStreak);
+    setEncouragementKey(encouragementKeys[Math.floor(Math.random() * encouragementKeys.length)]);
     const timer = window.setTimeout(() => setDisplayedStreak(currentStreak), 450);
     return () => window.clearTimeout(timer);
   }, [currentStreak, open, previousStreak]);
@@ -88,12 +122,19 @@ export function StreakSplash({ open, previousStreak, currentStreak, t, onClose }
   const handleShare = async () => {
     setIsSharing(true);
     try {
+      const [logoImage, catImage] = await Promise.all([
+        loadImageAsDataUrl('/task2goal-app-icon.png'),
+        loadImageAsDataUrl(getCatImage(catColor)),
+      ]);
       const blob = await createPng(buildStreakImage(
         previousStreak,
         currentStreak,
         t('streakSplashTitle'),
+        t(encouragementKey),
         t('streakSplashBrand'),
         t('streakSplashTagline'),
+        logoImage,
+        catImage,
       ));
       const file = new File([blob], `streak-${currentStreak}-days.png`, { type: 'image/png' });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
@@ -127,15 +168,17 @@ export function StreakSplash({ open, previousStreak, currentStreak, t, onClose }
       <DialogContent className="max-w-md overflow-hidden border-0 bg-[#111832] p-0 text-white shadow-2xl">
         <div className="relative overflow-hidden px-6 pb-6 pt-8 text-center">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_25%_0%,rgba(251,191,36,0.12),transparent_45%),radial-gradient(ellipse_at_100%_100%,rgba(56,189,248,0.1),transparent_45%)]" />
+          <img src="/task2goal-app-icon.png" alt="" className="pointer-events-none absolute left-1/2 top-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 object-contain opacity-[0.045]" />
           <div className="relative">
             <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-amber-300/15 text-amber-300">
               <Flame className="h-5 w-5" aria-hidden="true" />
             </div>
             <DialogTitle className="text-xl font-bold text-white">{t('streakSplashTitle')}</DialogTitle>
-            <DialogDescription className="mt-2 text-slate-300">{t('streakSplashDescription')}</DialogDescription>
+            <DialogDescription className="mt-2 text-slate-300">{t(encouragementKey)}</DialogDescription>
 
             <div className="relative mx-auto my-5 flex h-44 max-w-xs items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,rgba(255,190,70,0.2),transparent_50%)]" />
+              <img src={getCatImage(catColor)} alt="" className="absolute bottom-0 right-2 h-24 w-24 object-contain opacity-25" />
               <svg viewBox="0 0 180 210" className="relative h-40 w-36" role="img" aria-label="A glowing flame above a pencil">
                 <defs>
                   <linearGradient id="splash-pencil" x1="0" x2="1">

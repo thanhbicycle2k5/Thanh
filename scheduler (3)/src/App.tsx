@@ -2348,7 +2348,10 @@ function PlannerApp() {
           settingsRef.current.streakDays
         );
         if (!beforeStreak.completedToday) {
-          setStreakSplash({ previous: beforeStreak.current, current: afterStreak.current });
+          setStreakSplash({
+            previous: Math.max(0, afterStreak.current - 1),
+            current: afterStreak.current,
+          });
         }
         if (afterStreak.current > beforeStreak.current) {
           streakEncouragement = [5, 7, 10, 30].includes(afterStreak.current)
@@ -3619,6 +3622,7 @@ function PlannerApp() {
           open
           previousStreak={streakSplash.previous}
           currentStreak={streakSplash.current}
+          catColor={settingsState.catColor ?? 'yellow'}
           t={t}
           onClose={() => setStreakSplash(null)}
         />
