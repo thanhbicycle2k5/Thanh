@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import type { TranslationKey } from '../lib/i18n';
-import type { CatColor } from '../types';
+import type { CatColor, Theme } from '../types';
 import { getCatImage } from './DynamicCat';
 
 interface StreakSplashProps {
@@ -13,6 +13,7 @@ interface StreakSplashProps {
   previousStreak: number;
   currentStreak: number;
   catColor: CatColor;
+  theme: Theme;
   t: (key: TranslationKey, replacements?: Record<string, string>) => string;
   onClose: () => void;
 }
@@ -24,22 +25,29 @@ const escapeSvgText = (text: string) => text.replace(/[&<>"]/g, (character) => (
   '"': '&quot;',
 })[character] ?? character);
 
-const buildStreakImage = (previousStreak: number, currentStreak: number, title: string, encouragement: string, brand: string, tagline: string, logoImage: string, catImage: string) => {
+const buildStreakImage = (previousStreak: number, currentStreak: number, title: string, encouragement: string, brand: string, tagline: string, logoImage: string, catImage: string, theme: Theme) => {
+  const isDark = theme === 'dark';
+  const backgroundStart = isDark ? '#062c20' : '#effff4';
+  const backgroundEnd = isDark ? '#0b4932' : '#d5f7df';
+  const titleColor = isDark ? '#f0fdf4' : '#064e3b';
+  const secondaryColor = isDark ? '#bbf7d0' : '#166534';
+  const accentColor = isDark ? '#4ade80' : '#16a34a';
+  const logoBlendMode = isDark ? 'screen' : 'multiply';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
     <defs>
-      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#10152f"/><stop offset="1" stop-color="#253c68"/></linearGradient>
+      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${backgroundStart}"/><stop offset="1" stop-color="${backgroundEnd}"/></linearGradient>
       <linearGradient id="pencil" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#e88732"/><stop offset=".5" stop-color="#ffd166"/><stop offset="1" stop-color="#e88732"/></linearGradient>
       <linearGradient id="flame" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#ff7b22"/><stop offset=".55" stop-color="#ffd166"/><stop offset="1" stop-color="#fff6bd"/></linearGradient>
       <radialGradient id="glow"><stop stop-color="#ffd166" stop-opacity=".72"/><stop offset="1" stop-color="#ff9f1c" stop-opacity="0"/></radialGradient>
       <filter id="blur"><feGaussianBlur stdDeviation="32"/></filter>
     </defs>
     <rect width="1080" height="1350" rx="72" fill="url(#bg)"/>
-    <image href="${logoImage}" x="0" y="0" width="1080" height="1350" preserveAspectRatio="xMidYMid slice" opacity=".28" style="mix-blend-mode:multiply"/>
+    <image href="${logoImage}" x="0" y="0" width="1080" height="1350" preserveAspectRatio="xMidYMid slice" opacity=".16" style="mix-blend-mode:${logoBlendMode}"/>
     <circle cx="540" cy="390" r="300" fill="url(#glow)" filter="url(#blur)"/>
     <g fill="#fff" opacity=".5"><circle cx="150" cy="210" r="5"/><circle cx="888" cy="248" r="7"/><circle cx="246" cy="450" r="4"/><circle cx="839" cy="520" r="4"/><circle cx="190" cy="900" r="5"/><circle cx="900" cy="880" r="6"/></g>
-    <text x="540" y="150" text-anchor="middle" fill="#ffd166" font-family="Arial,sans-serif" font-size="36" font-weight="700" letter-spacing="9">${escapeSvgText(brand)}</text>
-    <text x="540" y="242" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="48" font-weight="700">${escapeSvgText(title)}</text>
-    <text x="540" y="310" text-anchor="middle" fill="#dbeafe" font-family="Arial,sans-serif" font-size="27">${escapeSvgText(encouragement)}</text>
+    <text x="540" y="150" text-anchor="middle" fill="${accentColor}" font-family="Arial,sans-serif" font-size="36" font-weight="700" letter-spacing="9">${escapeSvgText(brand)}</text>
+    <text x="540" y="242" text-anchor="middle" fill="${titleColor}" font-family="Arial,sans-serif" font-size="48" font-weight="700">${escapeSvgText(title)}</text>
+    <text x="540" y="310" text-anchor="middle" fill="${secondaryColor}" font-family="Arial,sans-serif" font-size="27">${escapeSvgText(encouragement)}</text>
     <image href="${catImage}" x="350" y="365" width="380" height="430" preserveAspectRatio="xMidYMid meet" opacity=".24"/>
     <g transform="translate(540 520)">
       <circle r="206" fill="#fff" opacity=".06"/>
@@ -52,11 +60,11 @@ const buildStreakImage = (previousStreak: number, currentStreak: number, title: 
       <path d="M-46 78 L46 78 M-43 104 L43 104" stroke="#b96a2c" stroke-opacity=".55" stroke-width="6"/>
       <path d="M-47 55 L47 55" stroke="#fff3d2" stroke-width="10"/>
     </g>
-    <text x="540" y="1010" text-anchor="middle" fill="#fff" font-family="Arial,sans-serif" font-size="142" font-weight="800">${previousStreak}</text>
-    <path d="M455 1060 H625" stroke="#ffd166" stroke-width="6" stroke-linecap="round"/>
-    <path d="M603 1038 L627 1060 L603 1082" fill="none" stroke="#ffd166" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="540" y="1190" text-anchor="middle" fill="#ffd166" font-family="Arial,sans-serif" font-size="120" font-weight="800">${currentStreak}</text>
-    <text x="540" y="1270" text-anchor="middle" fill="#dbeafe" font-family="Arial,sans-serif" font-size="30" letter-spacing="4">${escapeSvgText(tagline)}</text>
+    <text x="540" y="1010" text-anchor="middle" fill="${titleColor}" font-family="Arial,sans-serif" font-size="142" font-weight="800">${previousStreak}</text>
+    <path d="M455 1060 H625" stroke="${accentColor}" stroke-width="6" stroke-linecap="round"/>
+    <path d="M603 1038 L627 1060 L603 1082" fill="none" stroke="${accentColor}" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="540" y="1190" text-anchor="middle" fill="${accentColor}" font-family="Arial,sans-serif" font-size="120" font-weight="800">${currentStreak}</text>
+    <text x="540" y="1270" text-anchor="middle" fill="${secondaryColor}" font-family="Arial,sans-serif" font-size="30" letter-spacing="4">${escapeSvgText(tagline)}</text>
   </svg>`;
 };
 
@@ -106,10 +114,11 @@ const encouragementKeys: TranslationKey[] = [
   'streakSplashEncouragement5',
 ];
 
-export function StreakSplash({ open, previousStreak, currentStreak, catColor, t, onClose }: StreakSplashProps) {
+export function StreakSplash({ open, previousStreak, currentStreak, catColor, theme, t, onClose }: StreakSplashProps) {
   const [isSharing, setIsSharing] = React.useState(false);
   const [displayedStreak, setDisplayedStreak] = React.useState(previousStreak);
   const [encouragementKey, setEncouragementKey] = React.useState<TranslationKey>(encouragementKeys[0]);
+  const isDark = theme === 'dark';
 
   React.useEffect(() => {
     if (!open) return;
@@ -135,6 +144,7 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, t,
         t('streakSplashTagline'),
         logoImage,
         catImage,
+        theme,
       ));
       const file = new File([blob], `streak-${currentStreak}-days.png`, { type: 'image/png' });
       if (navigator.share && navigator.canShare?.({ files: [file] })) {
@@ -165,19 +175,19 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, t,
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <DialogContent className="max-w-md overflow-hidden border-0 bg-[#111832] p-0 text-white shadow-2xl">
+      <DialogContent className={`max-w-md overflow-hidden border p-0 shadow-2xl ${isDark ? 'border-emerald-300/20 bg-[#062c20] text-emerald-50' : 'border-emerald-700/15 bg-[#effff4] text-emerald-950'}`}>
         <div className="relative overflow-hidden px-6 pb-6 pt-8 text-center">
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_25%_0%,rgba(251,191,36,0.12),transparent_45%),radial-gradient(ellipse_at_100%_100%,rgba(56,189,248,0.1),transparent_45%)]" />
-          <img src="/task2goal-splash-square.png" alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-30 mix-blend-multiply" />
+          <div className={`pointer-events-none absolute inset-0 ${isDark ? 'bg-[radial-gradient(ellipse_at_25%_0%,rgba(74,222,128,0.12),transparent_45%),radial-gradient(ellipse_at_100%_100%,rgba(16,185,129,0.1),transparent_45%)]' : 'bg-[radial-gradient(ellipse_at_25%_0%,rgba(74,222,128,0.16),transparent_45%),radial-gradient(ellipse_at_100%_100%,rgba(16,185,129,0.12),transparent_45%)]'}`} />
+          <img src="/task2goal-splash-square.png" alt="" className={`pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.16] ${isDark ? 'mix-blend-screen' : 'mix-blend-multiply'}`} />
           <div className="relative">
-            <div className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-amber-300/15 text-amber-300">
+            <div className={`mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full ${isDark ? 'bg-emerald-300/15 text-emerald-300' : 'bg-emerald-700/10 text-emerald-700'}`}>
               <Flame className="h-5 w-5" aria-hidden="true" />
             </div>
-            <DialogTitle className="text-xl font-bold text-white">{t('streakSplashTitle')}</DialogTitle>
-            <DialogDescription className="mt-2 text-slate-300">{t(encouragementKey)}</DialogDescription>
+            <DialogTitle className={`text-xl font-bold ${isDark ? 'text-emerald-50' : 'text-emerald-950'}`}>{t('streakSplashTitle')}</DialogTitle>
+            <DialogDescription className={`mt-2 ${isDark ? 'text-emerald-100/80' : 'text-emerald-900/75'}`}>{t(encouragementKey)}</DialogDescription>
 
-            <div className="relative mx-auto my-5 flex h-44 max-w-xs items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04]">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,rgba(255,190,70,0.2),transparent_50%)]" />
+            <div className={`relative mx-auto my-5 flex h-44 max-w-xs items-center justify-center overflow-hidden rounded-3xl border ${isDark ? 'border-emerald-100/15 bg-emerald-100/[0.06]' : 'border-emerald-800/15 bg-white/45'}`}>
+              <div className={`absolute inset-0 ${isDark ? 'bg-[radial-gradient(circle_at_50%_25%,rgba(74,222,128,0.18),transparent_50%)]' : 'bg-[radial-gradient(circle_at_50%_25%,rgba(74,222,128,0.16),transparent_50%)]'}`} />
               <img src={getCatImage(catColor)} alt="" className="absolute bottom-0 right-2 h-24 w-24 object-contain opacity-25" />
               <svg viewBox="0 0 180 210" className="relative h-40 w-36" role="img" aria-label="A glowing flame above a pencil">
                 <defs>
@@ -203,12 +213,12 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, t,
 
             <div className="mb-6 flex items-center justify-center gap-5">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{t('streakSplashPrevious')}</p>
-                <p className="mt-1 text-3xl font-black text-white">{previousStreak}</p>
+                <p className={`text-xs font-medium uppercase tracking-wide ${isDark ? 'text-emerald-100/60' : 'text-emerald-900/60'}`}>{t('streakSplashPrevious')}</p>
+                <p className={`mt-1 text-3xl font-black ${isDark ? 'text-emerald-50' : 'text-emerald-950'}`}>{previousStreak}</p>
               </div>
-              <ArrowRight className="mt-5 h-5 w-5 text-amber-300" aria-hidden="true" />
+              <ArrowRight className={`mt-5 h-5 w-5 ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`} aria-hidden="true" />
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-amber-200">{t('streakSplashCurrent')}</p>
+                <p className={`text-xs font-medium uppercase tracking-wide ${isDark ? 'text-emerald-200' : 'text-emerald-700'}`}>{t('streakSplashCurrent')}</p>
                 <AnimatePresence mode="wait">
                   <motion.p
                     key={displayedStreak}
@@ -216,7 +226,7 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, t,
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8, scale: 0.8 }}
                     transition={{ duration: 0.25 }}
-                    className="mt-1 text-4xl font-black text-amber-300"
+                    className={`mt-1 text-4xl font-black ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}
                   >
                     {displayedStreak}
                   </motion.p>
@@ -225,10 +235,10 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, t,
             </div>
 
             <div className="mx-auto flex max-w-xs gap-3">
-              <Button className="h-11 flex-1 bg-amber-300 font-bold text-slate-950 hover:bg-amber-200" onClick={onClose}>
+              <Button className="h-11 flex-1 bg-emerald-600 font-bold text-white hover:bg-emerald-500" onClick={onClose}>
                 {t('streakSplashContinue')}
               </Button>
-              <Button variant="outline" className="h-11 gap-2 border-white/20 bg-white/5 text-white hover:bg-white/10 hover:text-white" onClick={() => void handleShare()} disabled={isSharing}>
+              <Button variant="outline" className={`h-11 gap-2 ${isDark ? 'border-emerald-100/20 bg-emerald-100/5 text-emerald-50 hover:bg-emerald-100/10 hover:text-white' : 'border-emerald-800/20 bg-white/50 text-emerald-950 hover:bg-white/80'}`} onClick={() => void handleShare()} disabled={isSharing}>
                 <Share2 className="h-4 w-4" aria-hidden="true" />
                 {t('streakSplashShare')}
               </Button>
