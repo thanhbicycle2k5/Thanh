@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ArrowRight, Copy, Share2 } from 'lucide-react';
+import { ArrowRight, Copy, Share2, Volume2, VolumeX } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'motion/react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -132,6 +132,8 @@ const encouragementKeys: TranslationKey[] = [
 
 export function StreakSplash({ open, previousStreak, currentStreak, catColor, language, onClose }: StreakSplashProps) {
   const [isSharing, setIsSharing] = React.useState(false);
+  const [isMusicPlaying, setIsMusicPlaying] = React.useState(false);
+  const musicRef = React.useRef<HTMLAudioElement | null>(null);
   const [displayedStreak, setDisplayedStreak] = React.useState(previousStreak);
   const [encouragementKey, setEncouragementKey] = React.useState<TranslationKey>(encouragementKeys[0]);
   const [posterLanguage, setPosterLanguage] = React.useState<Language>(language);
@@ -142,12 +144,61 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, la
 
   React.useEffect(() => {
     if (!open) return;
+    const audio = new Audio('/music/meditation-piano.ogg');
+    let disposed = false;
+    audio.loop = true;
+    audio.volume = 0.2;
+    musicRef.current = audio;
+    void audio.play().then(() => {
+      if (disposed) return;
+      setIsMusicPlaying(true);
+    }).catch((error: unknown) => {
+      if (disposed) return;
+      console.warn('Streak popup music could not start automatically:', error);
+      setIsMusicPlaying(false);
+      toast.info(translate(language, 'streakSplashMusicBlocked'));
+    });
+    return () => {
+      disposed = true;
+      audio.pause();
+      audio.currentTime = 0;
+      audio.src = '';
+      audio.load();
+      musicRef.current = null;
+    };
+  }, [language, open]);
+
+  React.useEffect(() => {
+    if (!open) return;
     setDisplayedStreak(previousStreak);
     setPosterLanguage(language);
     setEncouragementKey(encouragementKeys[Math.floor(Math.random() * encouragementKeys.length)]);
     const timer = window.setTimeout(() => setDisplayedStreak(currentStreak), 450);
     return () => window.clearTimeout(timer);
   }, [currentStreak, language, open, previousStreak]);
+
+  const togglePopupMusic = async () => {
+    let audio = musicRef.current;
+    if (!audio) {
+      audio = new Audio('/music/meditation-piano.ogg');
+      audio.loop = true;
+      audio.volume = 0.2;
+      musicRef.current = audio;
+    }
+    if (!audio.paused) {
+      audio.pause();
+      setIsMusicPlaying(false);
+      return;
+    }
+    try {
+      await audio.play();
+      setIsMusicPlaying(true);
+    } catch (error) {
+      console.error('Streak popup music could not be played:', error);
+      toast.error(translate(posterLanguage, 'streakSplashMusicBlocked'));
+      setIsMusicPlaying(false);
+    }
+  };
 
   const createCurrentPoster = async () => {
     const [logoImage, appIconImage, catImage, latinFontDataUrl, vietnameseFontDataUrl] = await Promise.all([
@@ -249,6 +300,17 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, la
                   </button>
                 ))}
               </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                className="mt-2 text-emerald-800"
+                aria-label={t(isMusicPlaying ? 'streakSplashMusicPause' : 'streakSplashMusicPlay')}
+                title={t(isMusicPlaying ? 'streakSplashMusicPause' : 'streakSplashMusicPlay')}
+                onClick={() => void togglePopupMusic()}
+              >
+                {isMusicPlaying ? <Volume2 className="h-4 w-4" /> : <VolumeX className="h-4 w-4" />}
+              </Button>
             </div>
             <DialogTitle className="text-xl font-bold text-emerald-950">{t('streakSplashTitle')}</DialogTitle>
             <DialogDescription className="mt-2 text-emerald-900/75">{t(encouragementKey)}</DialogDescription>

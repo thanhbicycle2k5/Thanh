@@ -2843,7 +2843,7 @@ function PlannerApp() {
           <PopoverContent align="start" className="space-y-2">
             <button
               type="button"
-              className="w-full rounded-sm text-left font-semibold hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="w-full rounded-md border border-border bg-background px-3 py-2 text-left font-semibold shadow-sm transition-shadow hover:bg-muted/50 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               onClick={() => setStreakSplash(true)}
             >
               {t('streakCurrent')}: {streakStats.current} {t('streakDays')}
