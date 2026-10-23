@@ -2190,7 +2190,8 @@ function PlannerApp() {
     const cacheKey = `${user.uid}:${leaderboardWeekStarting}`;
     if (leaderboardLoadedUserWeek !== cacheKey) return;
 
-    const name = (settingsState.displayName.trim() || `${t('leaderboardPlayer')} #${user.uid.slice(0, 4)}`)
+    const accountName = user.displayName?.trim() || user.email?.split('@')[0]?.trim();
+    const name = (settingsState.displayName.trim() || accountName || `${t('leaderboardPlayer')} #${user.uid.slice(0, 4)}`)
       .slice(0, 40);
     const entry: WeeklyLeaderboardEntry = {
       uid: user.uid,

@@ -18,7 +18,7 @@ This contains everything you need to run your app locally.
 
 ### Weekly leaderboard
 
-The leaderboard is public and shows at most 5 entries for the current week in a popup opened from the floating trophy icon. It reads at most 5 leaderboard rows each time the popup opens; a signed-in user reads their own score once and writes only when their weekly score or display name changes. Only the chosen display name (or an app-generated alias) and aggregate weekly score are shown—task titles and notes remain private.
+The leaderboard is public and shows at most 5 entries for the current week in a popup opened from the floating trophy icon. It reads at most 5 leaderboard rows each time the popup opens; a signed-in user reads their own score once and writes only when their weekly score or display name changes. The public name is the chosen display name, falling back to the sign-in account name. Task titles and notes remain private.
 
 Deploy its Firestore rules and composite index before enabling the feature:
 
