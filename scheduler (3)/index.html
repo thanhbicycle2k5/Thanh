@@ -81,8 +81,7 @@
         width: min(78vw, 500px);
         aspect-ratio: 1;
         overflow: hidden;
-        background: #ffffff;
-        border: 3px solid #ffffff;
+        background: transparent;
         box-sizing: border-box;
       }
       .splash-screen__logo img {
@@ -91,6 +90,7 @@
         height: 100%;
         object-fit: contain;
         object-position: center;
+        mix-blend-mode: multiply;
       }
       .splash-screen__title {
         font-size: clamp(2rem, 8vw, 4rem);

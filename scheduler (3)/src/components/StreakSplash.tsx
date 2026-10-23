@@ -49,17 +49,20 @@ const buildStreakImage = (previousStreak: number, currentStreak: number, title: 
       <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${backgroundStart}"/><stop offset="1" stop-color="${backgroundEnd}"/></linearGradient>
       <linearGradient id="flame" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#f97316"/><stop offset=".55" stop-color="#facc15"/><stop offset="1" stop-color="#fef9c3"/></linearGradient>
       <radialGradient id="glow"><stop stop-color="#facc15" stop-opacity=".55"/><stop offset="1" stop-color="#facc15" stop-opacity="0"/></radialGradient>
+      <radialGradient id="flameGlow"><stop stop-color="#facc15" stop-opacity=".7"/><stop offset=".35" stop-color="#facc15" stop-opacity=".42"/><stop offset="1" stop-color="#facc15" stop-opacity="0"/></radialGradient>
       <filter id="blur"><feGaussianBlur stdDeviation="42"/></filter>
+      <filter id="flameBlur"><feGaussianBlur stdDeviation="30"/></filter>
     </defs>
     <rect width="1080" height="1146" rx="72" fill="url(#bg)"/>
     <image href="${logoImage}" x="0" y="0" width="1080" height="1146" preserveAspectRatio="xMidYMid slice" opacity=".12" style="mix-blend-mode:multiply"/>
     <circle cx="540" cy="573" r="310" fill="url(#glow)" filter="url(#blur)"/>
+    <circle cx="520" cy="390" r="230" fill="url(#flameGlow)" filter="url(#flameBlur)"/>
     <g fill="${secondaryColor}" opacity=".55"><circle cx="150" cy="210" r="5"/><circle cx="888" cy="248" r="7"/><circle cx="246" cy="450" r="4"/><circle cx="839" cy="520" r="4"/><circle cx="190" cy="900" r="5"/><circle cx="900" cy="880" r="6"/></g>
     <text x="540" y="130" text-anchor="middle" fill="${accentColor}" font-family="'Yeseva One',serif" font-size="36" font-weight="700" letter-spacing="9">${escapeSvgText(brand)}</text>
     <text x="540" y="220" text-anchor="middle" fill="${titleColor}" font-family="'Yeseva One',serif" font-size="48" font-weight="700">${escapeSvgText(title)}</text>
     <text x="540" y="282" text-anchor="middle" fill="${secondaryColor}" font-family="'Yeseva One',serif" font-size="27">${escapeSvgText(encouragement)}</text>
-    <image href="${appIconImage}" x="385" y="390" width="310" height="310" preserveAspectRatio="xMidYMid meet"/>
-    <g transform="translate(-24 0)">
+    <image href="${appIconImage}" x="385" y="390" width="310" height="310" preserveAspectRatio="xMidYMid meet" style="mix-blend-mode:multiply"/>
+    <g transform="translate(-32 0)">
       <path d="M518 418 C493 388 510 360 535 322 C539 357 572 357 564 389 C590 375 594 350 586 329 C632 376 622 426 582 440 C556 450 531 439 518 418Z" fill="url(#flame)" stroke="#fff7cc" stroke-width="5"/>
       <path d="M548 414 C542 400 553 390 565 374 C570 393 584 397 577 413 C571 425 555 427 548 414Z" fill="#fffde7"/>
     </g>
@@ -74,8 +77,9 @@ const buildStreakImage = (previousStreak: number, currentStreak: number, title: 
   </svg>`;
 };
 
-async function createPng(svg: string): Promise<Blob> {
-  await document.fonts.load('400 32px "Yeseva One"');
+async function createPng(svg: string, fontSample: string): Promise<Blob> {
+  await document.fonts.load('400 32px "Yeseva One"', fontSample);
+  await document.fonts.ready;
   const imageUrl = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
   try {
     const image = new Image();
@@ -208,21 +212,29 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, la
       loadImageAsDataUrl(yesevaLatinFontUrl),
       loadImageAsDataUrl(yesevaVietnameseFontUrl),
     ]);
-    return createPng(buildStreakImage(
+    const title = t('streakSplashTitle');
+    const encouragement = t(encouragementKey);
+    const brand = t('streakSplashBrand');
+    const previousLabel = t('streakSplashPrevious');
+    const currentLabel = t('streakSplashCurrent');
+    const tagline = t('streakSplashTagline');
+    const fontSample = [title, encouragement, brand, previousLabel, currentLabel, tagline].join(' ');
+    const svg = buildStreakImage(
         previousStreak,
         currentStreak,
-        t('streakSplashTitle'),
-        t(encouragementKey),
-        t('streakSplashBrand'),
-        t('streakSplashPrevious'),
-        t('streakSplashCurrent'),
-        t('streakSplashTagline'),
+        title,
+        encouragement,
+        brand,
+        previousLabel,
+        currentLabel,
+        tagline,
         logoImage,
         appIconImage,
         catImage,
         latinFontDataUrl,
         vietnameseFontDataUrl,
-      ));
+      );
+    return createPng(svg, fontSample);
   };
 
   const handleShare = async () => {
@@ -261,7 +273,7 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, la
         return;
       }
 
-      const posterBlob = createCurrentPoster();
+      const posterBlob = await createCurrentPoster();
       const clipboardWrite = navigator.clipboard.write([
         new ClipboardItem({ 'image/png': posterBlob }),
       ]);
@@ -319,10 +331,16 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, la
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_25%,rgba(250,204,21,0.14),transparent_50%)]" />
               <img src={getCatImage(catColor)} alt="" className="absolute bottom-0 right-2 z-10 h-28 w-28 object-contain" />
               <div className="relative z-0 h-40 w-40">
-                <img src="/task2goal-app-icon.png" alt="Task2Goal logo" className="h-full w-full object-contain" />
+                <motion.div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute left-1/2 top-[24%] h-40 w-40 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(250,204,21,0.7)_0%,rgba(250,204,21,0.38)_36%,rgba(250,204,21,0)_72%)] blur-xl"
+                  animate={{ scale: [0.82, 1.12, 0.82], opacity: [0.72, 1, 0.72] }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                />
+                <img src="/task2goal-app-icon.png" alt="Task2Goal logo" className="relative h-full w-full object-contain mix-blend-multiply" />
                 <motion.svg
                   viewBox="0 0 80 100"
-                  className="absolute left-[calc(50%-2px)] top-[0%] h-10 w-8 -translate-x-1/2"
+                  className="absolute left-[calc(50%-4px)] top-[0%] h-10 w-8 -translate-x-1/2"
                   role="img"
                   aria-label="Jumping flame"
                   animate={{ y: [0, -8, 0], scale: [1, 1.04, 1] }}
