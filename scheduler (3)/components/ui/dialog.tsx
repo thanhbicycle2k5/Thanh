@@ -42,6 +42,7 @@ function DialogOverlay({
 function DialogContent({
   className,
   children,
+  style,
   showCloseButton = true,
   allowTouchScroll = false,
   ...props
@@ -98,21 +99,21 @@ function DialogContent({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        style={
-          position
+        style={{
+          ...style,
+          ...(position
             ? {
                 left: `${position.x}px`,
                 top: `${position.y}px`,
                 transform: "translate(-50%, -50%)",
-                touchAction: allowTouchScroll ? "pan-y" : "none",
               }
             : {
                 left: "50%",
                 top: "50%",
                 transform: "translate(-50%, -50%)",
-                touchAction: allowTouchScroll ? "pan-y" : "none",
-              }
-        }
+              }),
+          touchAction: allowTouchScroll ? "pan-y" : "none",
+        }}
         className={cn(
           "fixed z-50 grid w-full max-w-[calc(100%-2rem)] gap-4 rounded-xl border border-border bg-popover p-4 text-sm text-popover-foreground shadow-xl ring-1 ring-foreground/10 duration-100 outline-none data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
           className
