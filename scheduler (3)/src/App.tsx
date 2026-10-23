@@ -317,6 +317,16 @@ const LEGACY_WEEK_COLOR_CLASSES: Record<string, string> = {
   'bg-orange-500/10 border-orange-500/20': 'bg-orange-500/30 border-orange-500/60',
 };
 
+type LeaderboardErrorKind = 'index' | 'permission' | 'generic';
+
+const getLeaderboardErrorKind = (error: unknown): LeaderboardErrorKind => {
+  if (typeof error === 'object' && error !== null && 'code' in error) {
+    if (error.code === 'failed-precondition') return 'index';
+    if (error.code === 'permission-denied') return 'permission';
+  }
+  return 'generic';
+};
+
 const Logo = ({ className, onClick }: { className?: string; onClick?: () => void }) => (
   <button
     type="button"
@@ -437,7 +447,7 @@ function PlannerApp() {
   const [settingsError, setSettingsError] = React.useState<string | null>(null);
   const [sharedLinks, setSharedLinks] = React.useState<SharedScheduleLink[]>([]);
   const [leaderboardEntries, setLeaderboardEntries] = React.useState<WeeklyLeaderboardEntry[]>([]);
-  const [leaderboardError, setLeaderboardError] = React.useState(false);
+  const [leaderboardError, setLeaderboardError] = React.useState<LeaderboardErrorKind | null>(null);
   const leaderboardLoadedUserWeekRef = React.useRef<string | null>(null);
   const [leaderboardLoadedUserWeek, setLeaderboardLoadedUserWeek] = React.useState<string | null>(null);
   const weekMetaSaveTimersRef = React.useRef<Record<string, number>>({});
@@ -2147,7 +2157,7 @@ function PlannerApp() {
     if (!isLeaderboardOpen) return;
 
     setLeaderboardEntries([]);
-    setLeaderboardError(false);
+    setLeaderboardError(null);
     let active = true;
     void getWeeklyLeaderboardEntries(leaderboardWeekStarting)
       .then((entries) => {
@@ -2155,7 +2165,7 @@ function PlannerApp() {
       })
       .catch((error) => {
         console.warn('Weekly leaderboard load failed:', error);
-        if (active) setLeaderboardError(true);
+        if (active) setLeaderboardError(getLeaderboardErrorKind(error));
       });
     return () => { active = false; };
   }, [isLeaderboardOpen, leaderboardWeekStarting]);
@@ -2179,7 +2189,7 @@ function PlannerApp() {
       })
       .catch((error) => {
         console.warn('Could not load the signed-in user leaderboard score:', error);
-        if (active) setLeaderboardError(true);
+        if (active) setLeaderboardError(getLeaderboardErrorKind(error));
       });
 
     return () => { active = false; };
@@ -2211,7 +2221,7 @@ function PlannerApp() {
           })
           .catch((error) => {
             console.warn('Could not remove the weekly leaderboard entry:', error);
-            setLeaderboardError(true);
+            setLeaderboardError(getLeaderboardErrorKind(error));
           });
       }, 2500);
       return () => window.clearTimeout(timeout);
@@ -2228,11 +2238,11 @@ function PlannerApp() {
             ...current.filter((item) => item.uid !== user.uid),
             entry,
           ]);
-          setLeaderboardError(false);
+          setLeaderboardError(null);
         })
         .catch((error) => {
           console.warn('Could not update the weekly leaderboard entry:', error);
-          setLeaderboardError(true);
+          setLeaderboardError(getLeaderboardErrorKind(error));
         });
     }, 2500);
     return () => window.clearTimeout(timeout);
@@ -3299,7 +3309,13 @@ function PlannerApp() {
           </DialogHeader>
           <p className="text-xs text-muted-foreground">{t('leaderboardPrivacy')}</p>
           {leaderboardError ? (
-            <p className="rounded-lg bg-muted px-3 py-4 text-sm text-muted-foreground">{t('leaderboardUnavailable')}</p>
+            <p className="rounded-lg bg-muted px-3 py-4 text-sm text-muted-foreground">
+              {t(leaderboardError === 'index'
+                ? 'leaderboardIndexRequired'
+                : leaderboardError === 'permission'
+                  ? 'leaderboardRulesRequired'
+                  : 'leaderboardUnavailable')}
+            </p>
           ) : rankedLeaderboardEntries.length === 0 ? (
             <p className="rounded-lg bg-muted px-3 py-4 text-sm text-muted-foreground">
               {user ? t('leaderboardNoEntries') : t('leaderboardSignIn')}
