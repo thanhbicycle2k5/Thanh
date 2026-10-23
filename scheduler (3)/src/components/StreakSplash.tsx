@@ -55,8 +55,10 @@ const buildStreakImage = (previousStreak: number, currentStreak: number, title: 
     <text x="540" y="220" text-anchor="middle" fill="${titleColor}" font-family="'Yeseva One',serif" font-size="48" font-weight="700">${escapeSvgText(title)}</text>
     <text x="540" y="282" text-anchor="middle" fill="${secondaryColor}" font-family="'Yeseva One',serif" font-size="27">${escapeSvgText(encouragement)}</text>
     <image href="${appIconImage}" x="385" y="390" width="310" height="310" preserveAspectRatio="xMidYMid meet"/>
-    <path d="M518 418 C493 388 510 360 535 322 C539 357 572 357 564 389 C590 375 594 350 586 329 C632 376 622 426 582 440 C556 450 531 439 518 418Z" fill="url(#flame)" stroke="#fff7cc" stroke-width="5"/>
-    <path d="M548 414 C542 400 553 390 565 374 C570 393 584 397 577 413 C571 425 555 427 548 414Z" fill="#fffde7"/>
+    <g transform="translate(-24 0)">
+      <path d="M518 418 C493 388 510 360 535 322 C539 357 572 357 564 389 C590 375 594 350 586 329 C632 376 622 426 582 440 C556 450 531 439 518 418Z" fill="url(#flame)" stroke="#fff7cc" stroke-width="5"/>
+      <path d="M548 414 C542 400 553 390 565 374 C570 393 584 397 577 413 C571 425 555 427 548 414Z" fill="#fffde7"/>
+    </g>
     <image href="${catImage}" x="680" y="640" width="250" height="280" preserveAspectRatio="xMidYMid meet"/>
     <text x="320" y="1040" text-anchor="middle" fill="${secondaryColor}" font-family="'Yeseva One',serif" font-size="28" font-weight="700" letter-spacing="3">${escapeSvgText(previousLabel)}</text>
     <text x="320" y="1165" text-anchor="middle" fill="${titleColor}" font-family="'Yeseva One',serif" font-size="138" font-weight="800">${previousStreak}</text>
@@ -252,7 +254,7 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, la
                 <img src="/task2goal-app-icon.png" alt="Task2Goal logo" className="h-full w-full object-contain" />
                 <motion.svg
                   viewBox="0 0 80 100"
-                  className="absolute left-1/2 top-[0%] h-10 w-8 -translate-x-1/2"
+                  className="absolute left-[calc(50%-2px)] top-[0%] h-10 w-8 -translate-x-1/2"
                   role="img"
                   aria-label="Jumping flame"
                   animate={{ y: [0, -8, 0], scale: [1, 1.04, 1] }}
