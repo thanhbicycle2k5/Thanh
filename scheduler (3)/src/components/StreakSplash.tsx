@@ -144,7 +144,7 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, la
 
   React.useEffect(() => {
     if (!open) return;
-    const audio = new Audio('/music/meditation-piano.ogg');
+    const audio = new Audio('/music/clementi-celebration-piano.oga');
     let disposed = false;
     audio.loop = true;
     audio.volume = 0.2;
@@ -180,7 +180,7 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, la
   const togglePopupMusic = async () => {
     let audio = musicRef.current;
     if (!audio) {
-      audio = new Audio('/music/meditation-piano.ogg');
+      audio = new Audio('/music/clementi-celebration-piano.oga');
       audio.loop = true;
       audio.volume = 0.2;
       musicRef.current = audio;
