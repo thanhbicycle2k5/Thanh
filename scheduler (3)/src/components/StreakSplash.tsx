@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { translations, type TranslationKey } from '../lib/i18n';
 import type { CatColor, Language } from '../types';
 import { getCatImage } from './DynamicCat';
+import yesevaLatinFontUrl from '@fontsource/yeseva-one/files/yeseva-one-latin-400-normal.woff2?url';
 import yesevaVietnameseFontUrl from '@fontsource/yeseva-one/files/yeseva-one-vietnamese-400-normal.woff2?url';
 
 interface StreakSplashProps {
@@ -33,23 +34,26 @@ const escapeSvgText = (text: string) => text.replace(/[&<>"]/g, (character) => (
   '"': '&quot;',
 })[character] ?? character);
 
-const buildStreakImage = (previousStreak: number, currentStreak: number, title: string, encouragement: string, brand: string, previousLabel: string, currentLabel: string, tagline: string, logoImage: string, appIconImage: string, catImage: string, fontDataUrl: string) => {
+const buildStreakImage = (previousStreak: number, currentStreak: number, title: string, encouragement: string, brand: string, previousLabel: string, currentLabel: string, tagline: string, logoImage: string, appIconImage: string, catImage: string, latinFontDataUrl: string, vietnameseFontDataUrl: string) => {
   const backgroundStart = '#ffffff';
   const backgroundEnd = '#ffffff';
   const titleColor = '#064e3b';
   const secondaryColor = '#166534';
   const accentColor = '#16a34a';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1146" viewBox="0 0 1080 1146">
     <defs>
-      <style>@font-face{font-family:'Yeseva One';src:url('${fontDataUrl}') format('woff2');font-weight:400;font-style:normal}</style>
+      <style>
+        @font-face{font-family:'Yeseva One';src:url('${latinFontDataUrl}') format('woff2');font-weight:400;font-style:normal;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
+        @font-face{font-family:'Yeseva One';src:url('${vietnameseFontDataUrl}') format('woff2');font-weight:400;font-style:normal;unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}
+      </style>
       <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${backgroundStart}"/><stop offset="1" stop-color="${backgroundEnd}"/></linearGradient>
       <linearGradient id="flame" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#f97316"/><stop offset=".55" stop-color="#facc15"/><stop offset="1" stop-color="#fef9c3"/></linearGradient>
       <radialGradient id="glow"><stop stop-color="#facc15" stop-opacity=".55"/><stop offset="1" stop-color="#facc15" stop-opacity="0"/></radialGradient>
       <filter id="blur"><feGaussianBlur stdDeviation="42"/></filter>
     </defs>
-    <rect width="1080" height="1350" rx="72" fill="url(#bg)"/>
-    <image href="${logoImage}" x="0" y="0" width="1080" height="1350" preserveAspectRatio="xMidYMid slice" opacity=".12" style="mix-blend-mode:multiply"/>
-    <circle cx="540" cy="675" r="310" fill="url(#glow)" filter="url(#blur)"/>
+    <rect width="1080" height="1146" rx="72" fill="url(#bg)"/>
+    <image href="${logoImage}" x="0" y="0" width="1080" height="1146" preserveAspectRatio="xMidYMid slice" opacity=".12" style="mix-blend-mode:multiply"/>
+    <circle cx="540" cy="573" r="310" fill="url(#glow)" filter="url(#blur)"/>
     <g fill="${secondaryColor}" opacity=".55"><circle cx="150" cy="210" r="5"/><circle cx="888" cy="248" r="7"/><circle cx="246" cy="450" r="4"/><circle cx="839" cy="520" r="4"/><circle cx="190" cy="900" r="5"/><circle cx="900" cy="880" r="6"/></g>
     <text x="540" y="130" text-anchor="middle" fill="${accentColor}" font-family="'Yeseva One',serif" font-size="36" font-weight="700" letter-spacing="9">${escapeSvgText(brand)}</text>
     <text x="540" y="220" text-anchor="middle" fill="${titleColor}" font-family="'Yeseva One',serif" font-size="48" font-weight="700">${escapeSvgText(title)}</text>
@@ -60,13 +64,13 @@ const buildStreakImage = (previousStreak: number, currentStreak: number, title: 
       <path d="M548 414 C542 400 553 390 565 374 C570 393 584 397 577 413 C571 425 555 427 548 414Z" fill="#fffde7"/>
     </g>
     <image href="${catImage}" x="680" y="640" width="250" height="280" preserveAspectRatio="xMidYMid meet"/>
-    <text x="320" y="1040" text-anchor="middle" fill="${secondaryColor}" font-family="'Yeseva One',serif" font-size="28" font-weight="700" letter-spacing="3">${escapeSvgText(previousLabel)}</text>
-    <text x="320" y="1165" text-anchor="middle" fill="${titleColor}" font-family="'Yeseva One',serif" font-size="138" font-weight="800">${previousStreak}</text>
-    <path d="M455 1115 H625" stroke="${accentColor}" stroke-width="7" stroke-linecap="round"/>
-    <path d="M603 1092 L627 1115 L603 1138" fill="none" stroke="${accentColor}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="760" y="1040" text-anchor="middle" fill="${accentColor}" font-family="'Yeseva One',serif" font-size="28" font-weight="700" letter-spacing="3">${escapeSvgText(currentLabel)}</text>
-    <text x="760" y="1165" text-anchor="middle" fill="${accentColor}" font-family="'Yeseva One',serif" font-size="138" font-weight="800">${currentStreak}</text>
-    <text x="540" y="1290" text-anchor="middle" fill="${secondaryColor}" font-family="'Yeseva One',serif" font-size="26" letter-spacing="4">${escapeSvgText(tagline)}</text>
+    <text x="320" y="950" text-anchor="middle" fill="${secondaryColor}" font-family="'Yeseva One',serif" font-size="28" font-weight="700" letter-spacing="3">${escapeSvgText(previousLabel)}</text>
+    <text x="320" y="1060" text-anchor="middle" fill="${titleColor}" font-family="'Yeseva One',serif" font-size="138" font-weight="800">${previousStreak}</text>
+    <path d="M455 1010 H625" stroke="${accentColor}" stroke-width="7" stroke-linecap="round"/>
+    <path d="M603 987 L627 1010 L603 1033" fill="none" stroke="${accentColor}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="760" y="950" text-anchor="middle" fill="${accentColor}" font-family="'Yeseva One',serif" font-size="28" font-weight="700" letter-spacing="3">${escapeSvgText(currentLabel)}</text>
+    <text x="760" y="1060" text-anchor="middle" fill="${accentColor}" font-family="'Yeseva One',serif" font-size="138" font-weight="800">${currentStreak}</text>
+    <text x="540" y="1130" text-anchor="middle" fill="${secondaryColor}" font-family="'Yeseva One',serif" font-size="26" letter-spacing="4">${escapeSvgText(tagline)}</text>
   </svg>`;
 };
 
@@ -79,7 +83,7 @@ async function createPng(svg: string): Promise<Blob> {
     await image.decode();
     const canvas = document.createElement('canvas');
     canvas.width = 1080;
-    canvas.height = 1350;
+    canvas.height = 1146;
     const context = canvas.getContext('2d');
     if (!context) throw new Error('Canvas is not supported.');
     context.drawImage(image, 0, 0);
@@ -146,10 +150,11 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, la
   }, [currentStreak, language, open, previousStreak]);
 
   const createCurrentPoster = async () => {
-    const [logoImage, appIconImage, catImage, fontDataUrl] = await Promise.all([
+    const [logoImage, appIconImage, catImage, latinFontDataUrl, vietnameseFontDataUrl] = await Promise.all([
       loadImageAsDataUrl('/task2goal-splash-square.png'),
       loadImageAsDataUrl('/task2goal-app-icon.png'),
       loadImageAsDataUrl(getCatImage(catColor)),
+      loadImageAsDataUrl(yesevaLatinFontUrl),
       loadImageAsDataUrl(yesevaVietnameseFontUrl),
     ]);
     return createPng(buildStreakImage(
@@ -164,7 +169,8 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, la
         logoImage,
         appIconImage,
         catImage,
-        fontDataUrl,
+        latinFontDataUrl,
+        vietnameseFontDataUrl,
       ));
   };
 
