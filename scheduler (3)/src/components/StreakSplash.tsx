@@ -7,8 +7,6 @@ import { Button } from '@/components/ui/button';
 import { translations, type TranslationKey } from '../lib/i18n';
 import type { CatColor, Language } from '../types';
 import { getCatImage } from './DynamicCat';
-import yesevaLatinFontUrl from '@fontsource/yeseva-one/files/yeseva-one-latin-400-normal.woff2?url';
-import yesevaVietnameseFontUrl from '@fontsource/yeseva-one/files/yeseva-one-vietnamese-400-normal.woff2?url';
 
 interface StreakSplashProps {
   open: boolean;
@@ -27,76 +25,116 @@ const translate = (language: Language, key: TranslationKey, replacements: Record
   return text;
 };
 
-const escapeSvgText = (text: string) => text.replace(/[&<>"]/g, (character) => ({
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-})[character] ?? character);
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('Could not decode streak poster image.'));
+    image.src = src;
+  });
+}
 
-const buildStreakImage = (previousStreak: number, currentStreak: number, title: string, encouragement: string, brand: string, previousLabel: string, currentLabel: string, tagline: string, logoImage: string, appIconImage: string, catImage: string, latinFontDataUrl: string, vietnameseFontDataUrl: string) => {
-  const backgroundStart = '#ffffff';
-  const backgroundEnd = '#ffffff';
+async function createPng(
+  images: { logo: string; appIcon: string; cat: string },
+  text: { brand: string; title: string; encouragement: string; previousLabel: string; currentLabel: string; tagline: string },
+  previousStreak: number,
+  currentStreak: number,
+): Promise<Blob> {
+  const fontSample = Object.values(text).join(' ');
+  await document.fonts.load('400 32px "Yeseva One"', fontSample);
+  await document.fonts.ready;
+  const [logo, appIcon, cat] = await Promise.all([
+    loadImage(images.logo),
+    loadImage(images.appIcon),
+    loadImage(images.cat),
+  ]);
+  const canvas = document.createElement('canvas');
+  canvas.width = 1080;
+  canvas.height = 1146;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('Canvas is not supported.');
+
   const titleColor = '#064e3b';
   const secondaryColor = '#166534';
   const accentColor = '#16a34a';
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1146" viewBox="0 0 1080 1146">
-    <defs>
-      <style>
-        @font-face{font-family:'Yeseva One';src:url('${latinFontDataUrl}') format('woff2');font-weight:400;font-style:normal;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
-        @font-face{font-family:'Yeseva One';src:url('${vietnameseFontDataUrl}') format('woff2');font-weight:400;font-style:normal;unicode-range:U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB}
-      </style>
-      <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${backgroundStart}"/><stop offset="1" stop-color="${backgroundEnd}"/></linearGradient>
-      <linearGradient id="flame" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#f97316"/><stop offset=".55" stop-color="#facc15"/><stop offset="1" stop-color="#fef9c3"/></linearGradient>
-      <radialGradient id="glow"><stop stop-color="#facc15" stop-opacity=".55"/><stop offset="1" stop-color="#facc15" stop-opacity="0"/></radialGradient>
-      <radialGradient id="flameGlow"><stop stop-color="#facc15" stop-opacity=".7"/><stop offset=".35" stop-color="#facc15" stop-opacity=".42"/><stop offset="1" stop-color="#facc15" stop-opacity="0"/></radialGradient>
-      <filter id="blur"><feGaussianBlur stdDeviation="42"/></filter>
-      <filter id="flameBlur"><feGaussianBlur stdDeviation="30"/></filter>
-    </defs>
-    <rect width="1080" height="1146" rx="72" fill="url(#bg)"/>
-    <image href="${logoImage}" x="0" y="0" width="1080" height="1146" preserveAspectRatio="xMidYMid slice" opacity=".12" style="mix-blend-mode:multiply"/>
-    <circle cx="540" cy="573" r="310" fill="url(#glow)" filter="url(#blur)"/>
-    <circle cx="520" cy="390" r="230" fill="url(#flameGlow)" filter="url(#flameBlur)"/>
-    <g fill="${secondaryColor}" opacity=".55"><circle cx="150" cy="210" r="5"/><circle cx="888" cy="248" r="7"/><circle cx="246" cy="450" r="4"/><circle cx="839" cy="520" r="4"/><circle cx="190" cy="900" r="5"/><circle cx="900" cy="880" r="6"/></g>
-    <text x="540" y="130" text-anchor="middle" fill="${accentColor}" font-family="'Yeseva One',serif" font-size="36" font-weight="700" letter-spacing="9">${escapeSvgText(brand)}</text>
-    <text x="540" y="220" text-anchor="middle" fill="${titleColor}" font-family="'Yeseva One',serif" font-size="48" font-weight="700">${escapeSvgText(title)}</text>
-    <text x="540" y="282" text-anchor="middle" fill="${secondaryColor}" font-family="'Yeseva One',serif" font-size="27">${escapeSvgText(encouragement)}</text>
-    <image href="${appIconImage}" x="385" y="390" width="310" height="310" preserveAspectRatio="xMidYMid meet" style="mix-blend-mode:multiply"/>
-    <g transform="translate(-32 0)">
-      <path d="M518 418 C493 388 510 360 535 322 C539 357 572 357 564 389 C590 375 594 350 586 329 C632 376 622 426 582 440 C556 450 531 439 518 418Z" fill="url(#flame)" stroke="#fff7cc" stroke-width="5"/>
-      <path d="M548 414 C542 400 553 390 565 374 C570 393 584 397 577 413 C571 425 555 427 548 414Z" fill="#fffde7"/>
-    </g>
-    <image href="${catImage}" x="680" y="640" width="250" height="280" preserveAspectRatio="xMidYMid meet"/>
-    <text x="320" y="950" text-anchor="middle" fill="${secondaryColor}" font-family="'Yeseva One',serif" font-size="28" font-weight="700" letter-spacing="3">${escapeSvgText(previousLabel)}</text>
-    <text x="320" y="1060" text-anchor="middle" fill="${titleColor}" font-family="'Yeseva One',serif" font-size="138" font-weight="800">${previousStreak}</text>
-    <path d="M455 1010 H625" stroke="${accentColor}" stroke-width="7" stroke-linecap="round"/>
-    <path d="M603 987 L627 1010 L603 1033" fill="none" stroke="${accentColor}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
-    <text x="760" y="950" text-anchor="middle" fill="${accentColor}" font-family="'Yeseva One',serif" font-size="28" font-weight="700" letter-spacing="3">${escapeSvgText(currentLabel)}</text>
-    <text x="760" y="1060" text-anchor="middle" fill="${accentColor}" font-family="'Yeseva One',serif" font-size="138" font-weight="800">${currentStreak}</text>
-    <text x="540" y="1130" text-anchor="middle" fill="${secondaryColor}" font-family="'Yeseva One',serif" font-size="26" letter-spacing="4">${escapeSvgText(tagline)}</text>
-  </svg>`;
-};
+  context.fillStyle = '#ffffff';
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  context.save();
+  context.globalAlpha = 0.12;
+  context.globalCompositeOperation = 'multiply';
+  context.drawImage(logo, 0, 0, canvas.width, canvas.height);
+  context.restore();
 
-async function createPng(svg: string, fontSample: string): Promise<Blob> {
-  await document.fonts.load('400 32px "Yeseva One"', fontSample);
-  await document.fonts.ready;
-  const imageUrl = URL.createObjectURL(new Blob([svg], { type: 'image/svg+xml;charset=utf-8' }));
-  try {
-    const image = new Image();
-    image.src = imageUrl;
-    await image.decode();
-    const canvas = document.createElement('canvas');
-    canvas.width = 1080;
-    canvas.height = 1146;
-    const context = canvas.getContext('2d');
-    if (!context) throw new Error('Canvas is not supported.');
-    context.drawImage(image, 0, 0);
-    return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((result) => result ? resolve(result) : reject(new Error('Could not encode streak image.')), 'image/png');
+  const drawGlow = (x: number, y: number, radius: number, centerAlpha: number) => {
+    const glow = context.createRadialGradient(x, y, 0, x, y, radius);
+    glow.addColorStop(0, `rgba(250,204,21,${centerAlpha})`);
+    glow.addColorStop(0.36, `rgba(250,204,21,${centerAlpha * 0.55})`);
+    glow.addColorStop(1, 'rgba(250,204,21,0)');
+    context.fillStyle = glow;
+    context.fillRect(x - radius, y - radius, radius * 2, radius * 2);
+  };
+  drawGlow(540, 573, 310, 0.55);
+  drawGlow(520, 390, 230, 0.7);
+
+  context.fillStyle = `${secondaryColor}8c`;
+  [[150, 210, 5], [888, 248, 7], [246, 450, 4], [839, 520, 4], [190, 900, 5], [900, 880, 6]]
+    .forEach(([x, y, radius]) => {
+      context.beginPath();
+      context.arc(x, y, radius, 0, Math.PI * 2);
+      context.fill();
     });
-  } finally {
-    URL.revokeObjectURL(imageUrl);
-  }
+
+  const drawText = (value: string, x: number, y: number, size: number, color: string, weight = 400) => {
+    context.font = `${weight} ${size}px "Yeseva One", serif`;
+    context.textAlign = 'center';
+    context.textBaseline = 'alphabetic';
+    context.fillStyle = color;
+    context.fillText(value, x, y);
+  };
+  drawText(text.brand, 540, 130, 36, accentColor, 700);
+  drawText(text.title, 540, 220, 48, titleColor, 700);
+  drawText(text.encouragement, 540, 282, 27, secondaryColor);
+  context.save();
+  context.globalCompositeOperation = 'multiply';
+  context.drawImage(appIcon, 385, 390, 310, 310);
+  context.restore();
+
+  context.save();
+  context.translate(-32, 0);
+  const flame = new Path2D('M518 418 C493 388 510 360 535 322 C539 357 572 357 564 389 C590 375 594 350 586 329 C632 376 622 426 582 440 C556 450 531 439 518 418Z');
+  const flameFill = context.createLinearGradient(0, 440, 0, 322);
+  flameFill.addColorStop(0, '#f97316');
+  flameFill.addColorStop(0.55, '#facc15');
+  flameFill.addColorStop(1, '#fef9c3');
+  context.fillStyle = flameFill;
+  context.fill(flame);
+  context.lineWidth = 5;
+  context.strokeStyle = '#fff7cc';
+  context.stroke(flame);
+  context.fillStyle = '#fffde7';
+  context.fill(new Path2D('M548 414 C542 400 553 390 565 374 C570 393 584 397 577 413 C571 425 555 427 548 414Z'));
+  context.restore();
+  context.drawImage(cat, 680, 640, 250, 280);
+
+  drawText(text.previousLabel, 320, 950, 28, secondaryColor, 700);
+  drawText(String(previousStreak), 320, 1060, 138, titleColor, 800);
+  context.strokeStyle = accentColor;
+  context.lineWidth = 7;
+  context.lineCap = 'round';
+  context.beginPath();
+  context.moveTo(455, 1010);
+  context.lineTo(625, 1010);
+  context.moveTo(603, 987);
+  context.lineTo(627, 1010);
+  context.lineTo(603, 1033);
+  context.stroke();
+  drawText(text.currentLabel, 760, 950, 28, accentColor, 700);
+  drawText(String(currentStreak), 760, 1060, 138, accentColor, 800);
+  drawText(text.tagline, 540, 1130, 26, secondaryColor);
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('Could not encode streak image.')), 'image/png');
+  });
 }
 
 function downloadPoster(blob: Blob, filename: string) {
@@ -205,36 +243,24 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, la
   };
 
   const createCurrentPoster = async () => {
-    const [logoImage, appIconImage, catImage, latinFontDataUrl, vietnameseFontDataUrl] = await Promise.all([
+    const [logoImage, appIconImage, catImage] = await Promise.all([
       loadImageAsDataUrl('/task2goal-splash-square.png'),
       loadImageAsDataUrl('/task2goal-app-icon.png'),
       loadImageAsDataUrl(getCatImage(catColor)),
-      loadImageAsDataUrl(yesevaLatinFontUrl),
-      loadImageAsDataUrl(yesevaVietnameseFontUrl),
     ]);
-    const title = t('streakSplashTitle');
-    const encouragement = t(encouragementKey);
-    const brand = t('streakSplashBrand');
-    const previousLabel = t('streakSplashPrevious');
-    const currentLabel = t('streakSplashCurrent');
-    const tagline = t('streakSplashTagline');
-    const fontSample = [title, encouragement, brand, previousLabel, currentLabel, tagline].join(' ');
-    const svg = buildStreakImage(
-        previousStreak,
-        currentStreak,
-        title,
-        encouragement,
-        brand,
-        previousLabel,
-        currentLabel,
-        tagline,
-        logoImage,
-        appIconImage,
-        catImage,
-        latinFontDataUrl,
-        vietnameseFontDataUrl,
-      );
-    return createPng(svg, fontSample);
+    return createPng(
+      { logo: logoImage, appIcon: appIconImage, cat: catImage },
+      {
+        brand: t('streakSplashBrand'),
+        title: t('streakSplashTitle'),
+        encouragement: t(encouragementKey),
+        previousLabel: t('streakSplashPrevious'),
+        currentLabel: t('streakSplashCurrent'),
+        tagline: t('streakSplashTagline'),
+      },
+      previousStreak,
+      currentStreak,
+    );
   };
 
   const handleShare = async () => {
