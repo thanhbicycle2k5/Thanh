@@ -23,8 +23,13 @@ import {
   onSnapshot,
   Timestamp,
   FieldPath,
+  query,
+  where,
+  orderBy,
+  limit,
 } from "firebase/firestore";
 import { Plan, AppSettings } from "../types";
+import { WeeklyLeaderboardEntry } from "./leaderboard";
 const firebaseConfig = {
   apiKey: "AIzaSyAI2wBxUR9V5OHr1fVNHJbNv0ReUqxjOww",
   authDomain: "wadebicycle.firebaseapp.com",
@@ -340,6 +345,35 @@ export const subscribeWeekMetas = (
       onError?.(normalizedError);
     }
   );
+};
+
+export const getWeeklyLeaderboardEntries = async (
+  weekStarting: string
+): Promise<WeeklyLeaderboardEntry[]> => {
+  const leaderboardQuery = query(
+    collection(db, 'weeklyLeaderboard'),
+    where('weekStarting', '==', weekStarting),
+    orderBy('score', 'desc'),
+    orderBy('completed', 'desc'),
+    limit(5)
+  );
+  const snapshot = await getDocs(leaderboardQuery);
+  return snapshot.docs.map((item) => item.data() as WeeklyLeaderboardEntry);
+};
+
+export const getWeeklyLeaderboardEntry = async (
+  uid: string
+): Promise<WeeklyLeaderboardEntry | null> => {
+  const snapshot = await getDoc(doc(db, 'weeklyLeaderboard', uid));
+  return snapshot.exists() ? snapshot.data() as WeeklyLeaderboardEntry : null;
+};
+
+export const saveWeeklyLeaderboardEntry = async (entry: WeeklyLeaderboardEntry): Promise<void> => {
+  await setDoc(doc(db, 'weeklyLeaderboard', entry.uid), entry);
+};
+
+export const deleteWeeklyLeaderboardEntry = async (uid: string): Promise<void> => {
+  await deleteDoc(doc(db, 'weeklyLeaderboard', uid));
 };
 
 export interface SharedScheduleSnapshot {

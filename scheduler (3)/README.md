@@ -9,11 +9,22 @@ This contains everything you need to run your app locally.
 ## Features
 - Familiar Excel-like grid interface
 - Cloud synchronization with Firebase
+- Public weekly leaderboard based on task completion rate
 - Local-first storage with automatic migration
 - Pomodoro timer for focused work
 - Synthesized environmental sounds for notifications
 - Personalized health tips
 - Responsive design for mobile and desktop
+
+### Weekly leaderboard
+
+The leaderboard is public and shows at most 5 entries for the current week in a popup opened from the floating trophy icon. It reads at most 5 leaderboard rows each time the popup opens; a signed-in user reads their own score once and writes only when their weekly score or display name changes. Only the chosen display name (or an app-generated alias) and aggregate weekly score are shown—task titles and notes remain private.
+
+Deploy its Firestore rules and composite index before enabling the feature:
+
+```bash
+npx firebase-tools deploy --only firestore:rules,firestore:indexes --project wadebicycle
+```
 
 ## Run Locally
 

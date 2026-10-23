@@ -1,0 +1,23 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "weeklyLeaderboard",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "weekStarting",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "score",
+          "order": "DESCENDING"
+        },
+        {
+          "fieldPath": "completed",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
