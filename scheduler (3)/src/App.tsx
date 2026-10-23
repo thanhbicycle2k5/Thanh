@@ -2803,6 +2803,7 @@ function PlannerApp() {
     : 1;
   const boardSurfaceColor = `color-mix(in srgb, var(--card) ${Math.max(2, visibleBoardOpacity * 100)}%, transparent)`;
   const noteSurfaceColor = settingsState.theme === 'dark' ? '#27272a' : '#f5f5f5';
+  const isCurrentWeek = isSameWeek(selectedWeekStart, new Date(), { weekStartsOn: 1 });
   const weekSummaryContent = (
     <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
       <motion.button
@@ -2857,6 +2858,17 @@ function PlannerApp() {
       )}
     >
       <div ref={youtubeContainerRef} className="hidden" />
+      {!isCurrentWeek && (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setSelectedWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
+          className="fixed bottom-28 left-4 z-[60] h-11 rounded-full border-border bg-card/95 px-4 shadow-lg backdrop-blur"
+        >
+          {t('currentWeek')}
+        </Button>
+      )}
       <Button
         type="button"
         variant="outline"
