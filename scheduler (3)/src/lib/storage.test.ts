@@ -13,6 +13,12 @@ test('selected Local AI model is persisted and invalid models use the default', 
   assert.equal(normalizeSettings({ localAIModel: 'unknown' }).localAIModel, 'qwen3:4b');
 });
 
+test('display name is persisted and invalid values use the empty default', () => {
+  assert.equal(normalizeSettings({ displayName: 'Mina' }).displayName, 'Mina');
+  assert.equal(normalizeSettings({ displayName: 42 }).displayName, '');
+  assert.equal(defaultSettings.displayName, '');
+});
+
 test('streak history is normalized for local and cloud settings', () => {
   const settings = normalizeSettings({
     streakBest: 7,

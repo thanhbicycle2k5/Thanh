@@ -255,27 +255,27 @@ function getRandomIndex(status: SchedulyStatus): number {
   return index;
 }
 
-export function getRandomPomodoroEncouragementMessage(): string {
-  if (pomodoroEncouragementMessages.length === 0) return 'Mèo rất vui vì bạn đã hoàn thành một phiên làm việc rất ổn!';
+export function getRandomPomodoroEncouragementMessage(displayName?: string): string {
+  const name = displayName?.trim() || 'bạn';
+  if (pomodoroEncouragementMessages.length === 0) return `${name} ơi, mèo rất vui vì bạn đã hoàn thành một phiên làm việc rất ổn!`;
 
   let index = Math.floor(Math.random() * pomodoroEncouragementMessages.length);
   while (index === lastPomodoroEncouragementIndex) {
     index = Math.floor(Math.random() * pomodoroEncouragementMessages.length);
   }
   lastPomodoroEncouragementIndex = index;
-  return pomodoroEncouragementMessages[index];
+  return `${name} ơi, ${pomodoroEncouragementMessages[index]}`;
 }
 
-export function getSchedulyMessage(status: SchedulyStatus, taskName?: string): string {
+export function getSchedulyMessage(status: SchedulyStatus, taskName?: string, displayName?: string): string {
   const messages = messagesByStatus[status];
   const index = getRandomIndex(status);
   const raw = messages[index];
+  const message = taskName
+    ? raw.replace(/\[Tên nhiệm vụ\]/g, taskName.trim())
+    : raw.replace(/\[Tên nhiệm vụ\]/g, 'nhiệm vụ');
 
-  if (!taskName) {
-    return raw.replace(/\[Tên nhiệm vụ\]/g, 'nhiệm vụ');
-  }
-
-  return raw.replace(/\[Tên nhiệm vụ\]/g, taskName.trim());
+  return status === 'complete' ? `${displayName?.trim() || 'bạn'} ơi, ${message}` : message;
 }
 
 let lastPomodoroEncouragementIndex = -1;

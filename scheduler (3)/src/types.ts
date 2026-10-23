@@ -62,6 +62,7 @@ export interface BackgroundConfig {
 }
 
 export interface AppSettings {
+  displayName: string;
   language: Language;
   theme: Theme;
   musicEnabled: boolean;

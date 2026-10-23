@@ -600,7 +600,7 @@ function PlannerApp() {
 
         if (pomodoroMode === 'work') {
           setCatMoodOverride('celebrating');
-          setSpeechBubble({ id: `pomodoro-encouragement-${Date.now()}`, text: getRandomPomodoroEncouragementMessage(), status: 'complete' });
+          setSpeechBubble({ id: `pomodoro-encouragement-${Date.now()}`, text: getRandomPomodoroEncouragementMessage(settingsRef.current.displayName), status: 'complete' });
           window.setTimeout(() => setCatMoodOverride(null), 2500);
         }
 
@@ -1749,7 +1749,7 @@ function PlannerApp() {
       window.clearTimeout(speechBubbleTimeoutRef.current);
     }
 
-    const text = getSchedulyMessage(status, taskName);
+    const text = getSchedulyMessage(status, taskName, settingsRef.current.displayName);
     setSpeechBubble({ id: id ?? crypto.randomUUID(), text, status });
     speechBubbleTimeoutRef.current = window.setTimeout(() => {
       setSpeechBubble(null);
@@ -2321,7 +2321,8 @@ function PlannerApp() {
       void playNotificationSound(settingsRef.current.notificationSound);
 
       if (!options?.suppressCompletionToast) {
-        const motivators = [t('motivate1'), t('motivate2'), t('motivate3'), t('motivate4'), t('motivate5')];
+        const displayName = settingsRef.current.displayName.trim() || 'bạn';
+        const motivators = [t('motivate1', { name: displayName }), t('motivate2', { name: displayName }), t('motivate3', { name: displayName }), t('motivate4', { name: displayName }), t('motivate5', { name: displayName })];
         const message = motivators[Math.floor(Math.random() * motivators.length)];
         toast.success(message, {
           icon: <Trophy className="w-4 h-4 text-yellow-500" />,
@@ -2351,8 +2352,11 @@ function PlannerApp() {
         }
         if (afterStreak.current > beforeStreak.current) {
           streakEncouragement = [5, 7, 10, 30].includes(afterStreak.current)
-            ? t('streakMilestoneEncouragement', { days: String(afterStreak.current) })
-            : t('streakStartEncouragement');
+            ? t('streakMilestoneEncouragement', {
+                days: String(afterStreak.current),
+                name: settingsRef.current.displayName.trim() || 'bạn',
+              })
+            : t('streakStartEncouragement', { name: settingsRef.current.displayName.trim() || 'bạn' });
         }
       }
 
@@ -2574,7 +2578,7 @@ function PlannerApp() {
     if (previous && previous.dateKey !== streakTodayKey
       && previous.current > 0
       && streakStats.current === 0) {
-      showStreakSpeechBubble(t('streakLostEncouragement'));
+      showStreakSpeechBubble(t('streakLostEncouragement', { name: settingsRef.current.displayName.trim() || 'bạn' }));
     }
     previousStreakSnapshotRef.current = { dateKey: streakTodayKey, current: streakStats.current };
   }, [showStreakSpeechBubble, streakStats.current, streakTodayKey, t]);
@@ -2822,7 +2826,7 @@ function PlannerApp() {
               title={`${t('streakLabel')}: ${streakStats.current} ${t('streakDays')}`}
               onClick={() => {
                 if (!streakStats.completedToday) {
-                  showStreakSpeechBubble(t('streakRiskEncouragement'));
+                  showStreakSpeechBubble(t('streakRiskEncouragement', { name: settingsRef.current.displayName.trim() || 'bạn' }));
                 }
               }}
             >
@@ -4167,34 +4171,46 @@ function PlannerApp() {
 
                   {activeSettingsTab === 'account' && (
                     <div className="rounded-2xl border border-border bg-muted/60 dark:bg-muted/30 p-4 md:p-6">
-                      {user ? (
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-3">
-                          <img src={user.photoURL || ''} className="w-12 h-12 rounded-full flex-shrink-0" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold truncate">{user.displayName}</p>
-                            <p className="text-xs opacity-70 dark:opacity-80 truncate">{user.email}</p>
+                      <div className="space-y-4">
+                        {user ? (
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-3">
+                            <img src={user.photoURL || ''} className="w-12 h-12 rounded-full flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold truncate">{user.displayName}</p>
+                              <p className="text-xs opacity-70 dark:opacity-80 truncate">{user.email}</p>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={() => { void handleLogout(); }} className="flex-shrink-0 whitespace-nowrap">{t('signOut')}</Button>
                           </div>
-                          <Button variant="outline" size="sm" onClick={() => { void handleLogout(); }} className="flex-shrink-0 whitespace-nowrap">{t('signOut')}</Button>
+                        ) : (
+                          <Button
+                            disabled={loginLoading}
+                            onClick={async () => {
+                              setLoginLoading(true);
+                              try {
+                                await signInWithGoogle();
+                              } catch (err: any) {
+                                toast.error(err.message || "Đăng nhập thất bại");
+                              } finally {
+                                setLoginLoading(false);
+                              }
+                            }}
+                            className="w-full bg-[#107C41] hover:bg-[#0d6435] text-white"
+                          >
+                            {loginLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+                            {t('signIn')}
+                          </Button>
+                        )}
+                        <div className="space-y-2">
+                          <Label htmlFor="display-name" className="text-foreground">{t('displayName')}</Label>
+                          <Input
+                            id="display-name"
+                            value={settingsState.displayName}
+                            maxLength={40}
+                            onChange={(event) => handleUpdateSettings({ displayName: event.target.value })}
+                          />
+                          <p className="text-xs text-muted-foreground">{t('displayNameHelp')}</p>
                         </div>
-                      ) : (
-                        <Button
-                          disabled={loginLoading}
-                          onClick={async () => {
-                            setLoginLoading(true);
-                            try {
-                              await signInWithGoogle();
-                            } catch (err: any) {
-                              toast.error(err.message || "Đăng nhập thất bại");
-                            } finally {
-                              setLoginLoading(false);
-                            }
-                          }}
-                          className="w-full bg-[#107C41] hover:bg-[#0d6435] text-white"
-                        >
-                          {loginLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-                          {t('signIn')}
-                        </Button>
-                      )}
+                      </div>
                     </div>
                   
                   )}

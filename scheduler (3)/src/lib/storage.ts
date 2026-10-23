@@ -1,6 +1,7 @@
 import { Plan, AppSettings } from '../types';
 
 export const defaultSettings: AppSettings = {
+  displayName: '',
   language: 'en',
   theme: 'light',
   musicEnabled: false,
@@ -62,6 +63,7 @@ export const normalizeSettings = (raw: any): AppSettings => {
   const obj = raw && typeof raw === 'object' ? raw : {};
 
   const normalized: AppSettings = {
+    displayName: typeof obj.displayName === 'string' ? obj.displayName : defaultSettings.displayName,
     language: obj.language === 'vi' ? 'vi' : 'en',
     theme: obj.theme === 'dark' ? 'dark' : 'light',
     musicEnabled: typeof obj.musicEnabled === 'boolean' ? obj.musicEnabled : defaultSettings.musicEnabled,
