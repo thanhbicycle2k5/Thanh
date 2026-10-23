@@ -2841,7 +2841,13 @@ function PlannerApp() {
             </Button>
           </PopoverTrigger>
           <PopoverContent align="start" className="space-y-2">
-            <p className="font-semibold">{t('streakCurrent')}: {streakStats.current} {t('streakDays')}</p>
+            <button
+              type="button"
+              className="w-full rounded-sm text-left font-semibold hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              onClick={() => setStreakSplash(true)}
+            >
+              {t('streakCurrent')}: {streakStats.current} {t('streakDays')}
+            </button>
             <p className="text-muted-foreground">{t('streakBest')}: {streakStats.best} {t('streakDays')}</p>
           </PopoverContent>
         </Popover>
