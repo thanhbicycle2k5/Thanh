@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ArrowRight, Copy, Flame, Share2 } from 'lucide-react';
+import { ArrowRight, Copy, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { AnimatePresence, motion } from 'motion/react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
@@ -25,7 +25,7 @@ const escapeSvgText = (text: string) => text.replace(/[&<>"]/g, (character) => (
   '"': '&quot;',
 })[character] ?? character);
 
-const buildStreakImage = (previousStreak: number, currentStreak: number, title: string, encouragement: string, brand: string, previousLabel: string, currentLabel: string, tagline: string, logoImage: string, catImage: string, theme: Theme) => {
+const buildStreakImage = (previousStreak: number, currentStreak: number, title: string, encouragement: string, brand: string, previousLabel: string, currentLabel: string, tagline: string, logoImage: string, appIconImage: string, catImage: string, theme: Theme) => {
   const isDark = theme === 'dark';
   const backgroundStart = isDark ? '#062c20' : '#effff4';
   const backgroundEnd = isDark ? '#0b4932' : '#d5f7df';
@@ -36,7 +36,6 @@ const buildStreakImage = (previousStreak: number, currentStreak: number, title: 
   return `<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1350" viewBox="0 0 1080 1350">
     <defs>
       <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="${backgroundStart}"/><stop offset="1" stop-color="${backgroundEnd}"/></linearGradient>
-      <linearGradient id="logo" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#047857"/><stop offset="1" stop-color="#65a30d"/></linearGradient>
       <linearGradient id="flame" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#f97316"/><stop offset=".55" stop-color="#facc15"/><stop offset="1" stop-color="#fef9c3"/></linearGradient>
       <radialGradient id="glow"><stop stop-color="#facc15" stop-opacity=".55"/><stop offset="1" stop-color="#facc15" stop-opacity="0"/></radialGradient>
       <filter id="blur"><feGaussianBlur stdDeviation="42"/></filter>
@@ -48,13 +47,7 @@ const buildStreakImage = (previousStreak: number, currentStreak: number, title: 
     <text x="540" y="130" text-anchor="middle" fill="${accentColor}" font-family="Arial,sans-serif" font-size="36" font-weight="700" letter-spacing="9">${escapeSvgText(brand)}</text>
     <text x="540" y="220" text-anchor="middle" fill="${titleColor}" font-family="Arial,sans-serif" font-size="48" font-weight="700">${escapeSvgText(title)}</text>
     <text x="540" y="282" text-anchor="middle" fill="${secondaryColor}" font-family="Arial,sans-serif" font-size="27">${escapeSvgText(encouragement)}</text>
-    <g transform="translate(540 610)" fill="none" stroke="url(#logo)" stroke-width="27" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M-205 -75 C-135 -105 -65 -95 0 -58 C65 -95 135 -105 205 -75 L205 -40 C135 -65 65 -55 0 -20 C-65 -55 -135 -65 -205 -40Z" fill="url(#logo)" stroke="none"/>
-      <path d="M-205 -25 H205"/>
-      <path d="M-105 -25 V170 C-105 250 -45 300 30 300 H105 C180 300 220 250 220 185 V55 H105"/>
-      <circle cx="58" cy="162" r="55" stroke-width="14"/>
-      <path d="M58 162 V126 M58 162 L83 145" stroke-width="12"/>
-    </g>
+    <image href="${appIconImage}" x="385" y="390" width="310" height="310" preserveAspectRatio="xMidYMid meet"/>
     <path d="M518 446 C493 416 510 388 535 350 C539 385 572 385 564 417 C590 403 594 378 586 357 C632 404 622 454 582 468 C556 478 531 467 518 446Z" fill="url(#flame)" stroke="#fff7cc" stroke-width="5"/>
     <path d="M548 442 C542 428 553 418 565 402 C570 421 584 425 577 441 C571 453 555 455 548 442Z" fill="#fffde7"/>
     <image href="${catImage}" x="680" y="640" width="250" height="280" preserveAspectRatio="xMidYMid meet"/>
@@ -138,8 +131,9 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, th
   }, [currentStreak, open, previousStreak]);
 
   const createCurrentPoster = async () => {
-    const [logoImage, catImage] = await Promise.all([
+    const [logoImage, appIconImage, catImage] = await Promise.all([
       loadImageAsDataUrl('/task2goal-splash-square.png'),
+      loadImageAsDataUrl('/task2goal-app-icon.png'),
       loadImageAsDataUrl(getCatImage(catColor)),
     ]);
     return createPng(buildStreakImage(
@@ -152,6 +146,7 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, th
         t('streakSplashCurrent'),
         t('streakSplashTagline'),
         logoImage,
+        appIconImage,
         catImage,
         theme,
       ));
@@ -214,8 +209,11 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, th
           <div className={`pointer-events-none absolute inset-0 ${isDark ? 'bg-[radial-gradient(ellipse_at_25%_0%,rgba(74,222,128,0.12),transparent_45%),radial-gradient(ellipse_at_100%_100%,rgba(16,185,129,0.1),transparent_45%)]' : 'bg-[radial-gradient(ellipse_at_25%_0%,rgba(74,222,128,0.16),transparent_45%),radial-gradient(ellipse_at_100%_100%,rgba(16,185,129,0.12),transparent_45%)]'}`} />
           <img src="/task2goal-splash-square.png" alt="" className={`pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.16] ${isDark ? 'mix-blend-screen' : 'mix-blend-multiply'}`} />
           <div className="relative">
-            <div className={`mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full ${isDark ? 'bg-emerald-300/15 text-emerald-300' : 'bg-emerald-700/10 text-emerald-700'}`}>
-              <Flame className="h-5 w-5" aria-hidden="true" />
+            <div className={`mx-auto mb-3 flex flex-col items-center leading-tight ${isDark ? 'text-emerald-300' : 'text-emerald-700'}`}>
+              <span className="text-sm font-black tracking-wide">Task2Goal</span>
+              <span className={`mt-0.5 text-[10px] font-medium ${isDark ? 'text-emerald-100/70' : 'text-emerald-800/70'}`}>
+                From Tasks to Goals
+              </span>
             </div>
             <DialogTitle className={`text-xl font-bold ${isDark ? 'text-emerald-50' : 'text-emerald-950'}`}>{t('streakSplashTitle')}</DialogTitle>
             <DialogDescription className={`mt-2 ${isDark ? 'text-emerald-100/80' : 'text-emerald-900/75'}`}>{t(encouragementKey)}</DialogDescription>
@@ -223,37 +221,27 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, th
             <div className={`relative mx-auto my-5 flex h-44 max-w-xs items-center justify-center overflow-hidden rounded-3xl border ${isDark ? 'border-emerald-100/15 bg-emerald-100/[0.06]' : 'border-emerald-800/15 bg-white/45'}`}>
               <div className={`absolute inset-0 ${isDark ? 'bg-[radial-gradient(circle_at_50%_25%,rgba(74,222,128,0.18),transparent_50%)]' : 'bg-[radial-gradient(circle_at_50%_25%,rgba(74,222,128,0.16),transparent_50%)]'}`} />
               <img src={getCatImage(catColor)} alt="" className="absolute bottom-0 right-2 z-10 h-28 w-28 object-contain" />
-              <svg viewBox="0 0 240 220" className="relative z-0 h-40 w-40" role="img" aria-label="Task2Goal logo with a jumping flame">
-                <defs>
-                  <linearGradient id="splash-logo" x1="0" x2="1">
-                    <stop stopColor="#047857" />
-                    <stop offset="1" stopColor="#65a30d" />
-                  </linearGradient>
-                  <linearGradient id="splash-flame" x1="0" y1="1" x2="0" y2="0">
-                    <stop stopColor="#f97316" />
-                    <stop offset=".6" stopColor="#facc15" />
-                    <stop offset="1" stopColor="#fef9c3" />
-                  </linearGradient>
-                </defs>
-                <path d="M23 72 Q58 55 119 84 Q180 55 217 72 V91 Q164 76 119 102 Q74 76 23 91Z" fill="url(#splash-logo)" />
-                <path d="M23 95 H217 M64 95 V174 Q64 204 94 204 H144 Q190 204 190 163 V121 H155" fill="none" stroke="url(#splash-logo)" strokeWidth="15" strokeLinecap="round" strokeLinejoin="round" />
-                <circle cx="128" cy="153" r="22" fill="none" stroke="url(#splash-logo)" strokeWidth="8" />
-                <path d="M128 153 V138 M128 153 L140 144" fill="none" stroke="url(#splash-logo)" strokeWidth="6" strokeLinecap="round" />
-                <motion.path
-                  d="M99 78 C81 58 96 39 114 12 C117 38 144 37 138 58 C156 48 160 31 154 16 C187 49 180 79 151 90 C132 98 108 92 99 78Z"
-                  fill="url(#splash-flame)"
-                  stroke="#fff7cc"
-                  strokeWidth="3"
-                  animate={{ y: [0, -9, 0], scale: [1, 1.04, 1] }}
+              <div className="relative z-0 h-40 w-40">
+                <img src="/task2goal-app-icon.png" alt="Task2Goal logo" className="h-full w-full object-contain" />
+                <motion.svg
+                  viewBox="0 0 80 100"
+                  className="absolute left-1/2 top-[13%] h-14 w-12 -translate-x-1/2"
+                  role="img"
+                  aria-label="Jumping flame"
+                  animate={{ y: [0, -8, 0], scale: [1, 1.04, 1] }}
                   transition={{ duration: 1.15, repeat: Infinity, ease: 'easeInOut' }}
-                />
-                <motion.path
-                  d="M122 77 C118 66 127 58 137 48 C140 61 151 64 145 76 C140 84 127 85 122 77Z"
-                  fill="#fffde7"
-                  animate={{ y: [0, -9, 0] }}
-                  transition={{ duration: 1.15, repeat: Infinity, ease: 'easeInOut' }}
-                />
-              </svg>
+                >
+                  <defs>
+                    <linearGradient id="splash-flame" x1="0" y1="1" x2="0" y2="0">
+                      <stop stopColor="#f97316" />
+                      <stop offset=".6" stopColor="#facc15" />
+                      <stop offset="1" stopColor="#fef9c3" />
+                    </linearGradient>
+                  </defs>
+                  <path d="M40 4 C31 22 18 31 19 49 C12 43 9 35 10 28 C-3 48 3 72 21 82 C36 91 58 84 66 68 C77 45 58 25 48 17 C50 31 46 37 41 40 C44 25 43 13 40 4Z" fill="url(#splash-flame)" stroke="#fff7cc" strokeWidth="3" />
+                  <path d="M37 64 C31 55 39 48 45 42 C47 51 55 54 52 63 C49 71 40 72 37 64Z" fill="#fffde7" />
+                </motion.svg>
+              </div>
             </div>
 
             <div className="mb-6 flex items-center justify-center gap-5">
