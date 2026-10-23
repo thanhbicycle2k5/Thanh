@@ -3,6 +3,13 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "@fontsource-variable/geist";
+@import "@fontsource/yeseva-one/latin-400.css";
+@import "@fontsource/yeseva-one/vietnamese-400.css";
+
+.streak-splash,
+.streak-splash * {
+  font-family: "Yeseva One", serif;
+}
 
 .shared-schedule-shell { height: 100vh; height: 100dvh; min-height: 0; background: #f1f5f9; color: #0f172a; padding: 24px; display: flex; flex-direction: column; overflow: hidden; }
 .shared-toolbar { width: min(1120px, 100%); flex: 0 0 auto; margin: 0 auto 20px; display: flex; align-items: center; justify-content: space-between; gap: 16px; }

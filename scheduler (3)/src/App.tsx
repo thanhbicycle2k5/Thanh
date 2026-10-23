@@ -3637,8 +3637,7 @@ function PlannerApp() {
           previousStreak={Math.max(0, streakStats.current - 1)}
           currentStreak={streakStats.current}
           catColor={settingsState.catColor ?? 'yellow'}
-          theme={settingsState.theme}
-          t={t}
+          language={settingsState.language}
           onClose={() => setStreakSplash(false)}
         />
       )}
