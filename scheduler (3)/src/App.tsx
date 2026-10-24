@@ -2941,17 +2941,34 @@ function PlannerApp() {
   const isCurrentWeek = isSameWeek(selectedWeekStart, new Date(), { weekStartsOn: 1 });
   const weekSummaryContent = (
     <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
-      <motion.button
-        type="button"
-        className="flex cursor-pointer items-baseline gap-2 rounded-lg px-2 py-1 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        onClick={() => setIsSummaryOpen(true)}
-        whileTap={{ scale: 0.96, y: 1 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 24 }}
-        aria-label={`${t('weekOf')} ${getISOWeek(selectedWeekStart)}, ${t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}`}
-      >
-        <span className="whitespace-nowrap text-2xl font-black">{t('weekOf')} {getISOWeek(selectedWeekStart)}</span>
-        <span className="whitespace-nowrap text-xs font-semibold text-muted-foreground">{t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}</span>
-      </motion.button>
+      <div className="flex items-center justify-between gap-1">
+        <motion.button
+          type="button"
+          className="flex min-w-0 cursor-pointer items-baseline gap-2 rounded-lg px-2 py-1 text-left transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => setIsSummaryOpen(true)}
+          whileTap={{ scale: 0.96, y: 1 }}
+          transition={{ type: 'spring', stiffness: 500, damping: 24 }}
+          aria-label={`${t('weekOf')} ${getISOWeek(selectedWeekStart)}, ${t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}`}
+        >
+          <span className="whitespace-nowrap text-2xl font-black">{t('weekOf')} {getISOWeek(selectedWeekStart)}</span>
+          <span className="whitespace-nowrap text-xs font-semibold text-muted-foreground">{t('yearLabel', { year: String(getISOWeekYear(selectedWeekStart)) })}</span>
+        </motion.button>
+        {isMobile && (
+          <button
+            type="button"
+            onClick={() => setIsLeaderboardOpen((open) => !open)}
+            className={cn(
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border bg-background text-foreground transition-colors hover:bg-muted",
+              isLeaderboardOpen && "border-yellow-500/60 bg-yellow-500/10"
+            )}
+            title={t('leaderboardTitle')}
+            aria-label={t('leaderboardTitle')}
+            aria-expanded={isLeaderboardOpen}
+          >
+            <Trophy className="h-4 w-4 text-yellow-500" />
+          </button>
+        )}
+      </div>
       <div className="flex min-w-0 items-center justify-between gap-1">
         <p className="whitespace-nowrap text-sm text-muted-foreground">
           {format(selectedWeekStart, 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })} - {format(subDays(addWeeks(selectedWeekStart, 1), 1), 'd MMMM', { locale: settingsState.language === 'vi' ? vi : enUS })}
@@ -3537,20 +3554,22 @@ function PlannerApp() {
             </button>
           )}
 
-          <button
-            type="button"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={() => setIsLeaderboardOpen((open) => !open)}
-            className={cn(
-              "h-12 w-12 rounded-full border border-border bg-background text-foreground shadow-2xl transition-all hover:scale-110 active:scale-95",
-              isLeaderboardOpen && "border-yellow-500/60 bg-yellow-500/10"
-            )}
-            title={t('leaderboardTitle')}
-            aria-label={t('leaderboardTitle')}
-            aria-expanded={isLeaderboardOpen}
-          >
-            <Trophy className="mx-auto h-5 w-5 text-yellow-500" />
-          </button>
+          {!isMobile && (
+            <button
+              type="button"
+              onPointerDown={(event) => event.stopPropagation()}
+              onClick={() => setIsLeaderboardOpen((open) => !open)}
+              className={cn(
+                "h-12 w-12 rounded-full border border-border bg-background text-foreground shadow-2xl transition-all hover:scale-110 active:scale-95",
+                isLeaderboardOpen && "border-yellow-500/60 bg-yellow-500/10"
+              )}
+              title={t('leaderboardTitle')}
+              aria-label={t('leaderboardTitle')}
+              aria-expanded={isLeaderboardOpen}
+            >
+              <Trophy className="mx-auto h-5 w-5 text-yellow-500" />
+            </button>
+          )}
 
           <HealthTipPanel theme={settingsState.theme} isSettingsOpen={isSettingsOpen} t={t} lang={settingsState.language} onActivate={(m) => { setCatMoodOverride(m); setTimeout(() => setCatMoodOverride(null), 4000); }} />
 
