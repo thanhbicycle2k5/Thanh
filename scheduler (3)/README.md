@@ -18,7 +18,7 @@ This contains everything you need to run your app locally.
 
 ### Weekly leaderboard
 
-The public leaderboard has week, month, and year periods, each showing at most 5 entries in the popup opened from the floating trophy icon. It reads at most 5 rows each time a period is selected; a signed-in user reads their own three score documents once and writes only when a period's score or display name changes. The public name is the chosen display name, falling back to the sign-in account name. Task titles and notes remain private.
+The public leaderboard has week, month, and year periods, each showing at most 5 entries in the popup opened from the floating trophy icon. It reads at most 5 rows each time a period is selected; a signed-in user reads their own three score documents once and writes only when a period's score or display name changes. Signed-in users are listed even when they have no plans in the selected period (0/0 score); each user must open the app and sign in to register. The public name is the chosen display name, falling back to the sign-in account name. Task titles and notes remain private.
 
 Deploy its Firestore rules and composite index before enabling the feature:
 

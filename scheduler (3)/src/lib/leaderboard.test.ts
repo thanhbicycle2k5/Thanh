@@ -61,6 +61,21 @@ test('monthly and yearly scores include only plans from their calendar period', 
   });
 });
 
+test('a signed-in user without plans can be represented by a zero score', () => {
+  const zeroScore = getLeaderboardScore([], 'week', '2026-10-19');
+  assert.deepEqual(zeroScore, {
+    periodStarting: '2026-10-19',
+    completed: 0,
+    total: 0,
+    score: 0,
+  });
+  assert.equal(rankLeaderboardEntries([{
+    uid: 'new-user',
+    name: 'New user',
+    ...zeroScore,
+  }])[0]?.completionRate, 0);
+});
+
 test('leaderboard ranks by completion rate and filters invalid scores', () => {
   const ranked = rankLeaderboardEntries([
     { uid: 'two-of-four', name: 'B', periodStarting: '2026-10-19', completed: 2, total: 4, score: 5000 },

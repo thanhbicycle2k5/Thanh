@@ -64,7 +64,7 @@ export const rankLeaderboardEntries = (
   .filter((entry) => Number.isInteger(entry.completed)
     && Number.isInteger(entry.total)
     && Number.isInteger(entry.score)
-    && entry.total > 0
+    && entry.total >= 0
     && entry.completed >= 0
     && entry.completed <= entry.total
     && entry.score >= 0

@@ -19,7 +19,7 @@ import { enUS, vi } from 'date-fns/locale';
 import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack, AIProvider, LocalAIModel } from './types';
 import { storage, normalizeSettings, defaultSettings, mergeSettingsForSync } from './lib/storage';
 import { mergePlans, markPlanForSync, getDeviceId, enqueueSyncOperation, clearQueuedOperation, flushSyncQueue, hasQueuedOperations } from './lib/sync';
-import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, subscribeWeekMetas, getWeeklyLeaderboardEntries, getLeaderboardEntry, saveLeaderboardEntry, deleteLeaderboardEntry, subscribeSharedScheduleLinks, updateSharedScheduleOwnerLabel, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule, deleteExpiredSharedSchedules, SharedScheduleLink } from './lib/firebase';
+import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, subscribeWeekMetas, getWeeklyLeaderboardEntries, getLeaderboardEntry, saveLeaderboardEntry, subscribeSharedScheduleLinks, updateSharedScheduleOwnerLabel, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule, deleteExpiredSharedSchedules, SharedScheduleLink } from './lib/firebase';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
@@ -449,6 +449,7 @@ function PlannerApp() {
   const [leaderboardPeriod, setLeaderboardPeriod] = React.useState<LeaderboardPeriod>('week');
   const [leaderboardEntries, setLeaderboardEntries] = React.useState<LeaderboardEntry[]>([]);
   const [leaderboardError, setLeaderboardError] = React.useState<LeaderboardErrorKind | null>(null);
+  const [isLeaderboardLoading, setIsLeaderboardLoading] = React.useState(false);
   const leaderboardLoadedUserScoresRef = React.useRef<Partial<Record<LeaderboardPeriod, string>>>({});
   const [leaderboardLoadedUserPeriods, setLeaderboardLoadedUserPeriods] = React.useState<string | null>(null);
   const weekMetaSaveTimersRef = React.useRef<Record<string, number>>({});
@@ -2169,14 +2170,21 @@ function PlannerApp() {
 
     setLeaderboardEntries([]);
     setLeaderboardError(null);
+    setIsLeaderboardLoading(true);
     let active = true;
     void getWeeklyLeaderboardEntries(leaderboardPeriod, leaderboardPeriodStarting)
       .then((entries) => {
-        if (active) setLeaderboardEntries(entries);
+        if (active) {
+          setLeaderboardEntries(entries);
+          setIsLeaderboardLoading(false);
+        }
       })
       .catch((error) => {
         console.warn(`${leaderboardPeriod} leaderboard load failed:`, error);
-        if (active) setLeaderboardError(getLeaderboardErrorKind(error));
+        if (active) {
+          setLeaderboardError(getLeaderboardErrorKind(error));
+          setIsLeaderboardLoading(false);
+        }
       });
     return () => { active = false; };
   }, [isLeaderboardOpen, leaderboardPeriod, leaderboardPeriodStarting]);
@@ -2221,24 +2229,6 @@ function PlannerApp() {
       const score = leaderboardScores[period];
       const previousSignature = leaderboardLoadedUserScoresRef.current[period];
       const entry: LeaderboardEntry = { uid: user.uid, name, ...score };
-
-      if (score.total === 0) {
-        if (!previousSignature || previousSignature === 'missing') return [];
-        return [window.setTimeout(() => {
-          void deleteLeaderboardEntry(period, user.uid)
-            .then(() => {
-              leaderboardLoadedUserScoresRef.current[period] = 'missing';
-              if (period === leaderboardPeriod) {
-                setLeaderboardEntries((current) => current.filter((item) => item.uid !== user.uid));
-              }
-            })
-            .catch((error) => {
-              console.warn(`Could not remove the ${period} leaderboard entry:`, error);
-              setLeaderboardError(getLeaderboardErrorKind(error));
-            });
-        }, 2500)];
-      }
-
       const signature = JSON.stringify([entry.name, entry.periodStarting, entry.completed, entry.total, entry.score]);
       if (previousSignature === signature) return [];
       return [window.setTimeout(() => {
@@ -3358,39 +3348,45 @@ function PlannerApp() {
               </button>
             ))}
           </div>
-          {leaderboardError ? (
-            <p className="rounded-lg bg-muted px-3 py-4 text-sm text-muted-foreground">
-              {t(leaderboardError === 'index'
-                ? 'leaderboardIndexRequired'
-                : leaderboardError === 'permission'
-                  ? 'leaderboardRulesRequired'
-                  : 'leaderboardUnavailable')}
-            </p>
-          ) : rankedLeaderboardEntries.length === 0 ? (
-            <p className="rounded-lg bg-muted px-3 py-4 text-sm text-muted-foreground">
-              {user ? t('leaderboardNoEntries') : t('leaderboardSignIn')}
-            </p>
-          ) : (
-            <ol className="space-y-2">
-              {rankedLeaderboardEntries.slice(0, 5).map((entry) => (
-                <li
-                  key={entry.uid}
-                  className={cn(
-                    "flex items-center justify-between gap-3 rounded-lg border border-border px-3 py-2",
-                    entry.uid === user?.uid && "border-[#107C41]/50 bg-[#107C41]/5"
-                  )}
-                >
-                  <div className="flex min-w-0 items-center gap-3">
-                    <span className="w-7 shrink-0 text-center text-sm font-bold text-muted-foreground">#{entry.rank}</span>
-                    <span className="truncate text-sm font-semibold">{entry.name}</span>
-                  </div>
-                  <span className="shrink-0 text-sm font-bold text-[#107C41]">
-                    {entry.completionRate}% <span className="font-normal text-muted-foreground">({entry.completed}/{entry.total})</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
-          )}
+          <div className="h-[260px] overflow-hidden">
+            {leaderboardError ? (
+              <div className="flex h-full items-center justify-center rounded-lg bg-muted px-3 py-4 text-sm text-muted-foreground">
+                {t(leaderboardError === 'index'
+                  ? 'leaderboardIndexRequired'
+                  : leaderboardError === 'permission'
+                    ? 'leaderboardRulesRequired'
+                    : 'leaderboardUnavailable')}
+              </div>
+            ) : isLeaderboardLoading ? (
+              <div className="flex h-full items-center justify-center rounded-lg bg-muted px-3 py-4 text-sm text-muted-foreground">
+                {t('leaderboardLoading')}
+              </div>
+            ) : rankedLeaderboardEntries.length === 0 ? (
+              <div className="flex h-full items-center justify-center rounded-lg bg-muted px-3 py-4 text-sm text-muted-foreground">
+                {user ? t('leaderboardNoEntries') : t('leaderboardSignIn')}
+              </div>
+            ) : (
+              <ol className="space-y-2">
+                {rankedLeaderboardEntries.slice(0, 5).map((entry) => (
+                  <li
+                    key={entry.uid}
+                    className={cn(
+                      "flex h-11 items-center justify-between gap-3 rounded-lg border border-border px-3",
+                      entry.uid === user?.uid && "border-[#107C41]/50 bg-[#107C41]/5"
+                    )}
+                  >
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="w-7 shrink-0 text-center text-sm font-bold text-muted-foreground">#{entry.rank}</span>
+                      <span className="truncate text-sm font-semibold">{entry.name}</span>
+                    </div>
+                    <span className="shrink-0 text-sm font-bold text-[#107C41]">
+                      {entry.completionRate}% <span className="font-normal text-muted-foreground">({entry.completed}/{entry.total})</span>
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

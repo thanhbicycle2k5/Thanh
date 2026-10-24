@@ -44,7 +44,7 @@ service cloud.firestore {
         && request.resource.data.completed is int
         && request.resource.data.total is int
         && request.resource.data.completed >= 0
-        && request.resource.data.total > 0
+        && request.resource.data.total >= 0
         && request.resource.data.completed <= request.resource.data.total
         && request.resource.data.score is int
         && request.resource.data.score >= 0
