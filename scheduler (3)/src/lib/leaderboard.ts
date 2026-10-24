@@ -1,36 +1,57 @@
-import { isSameWeek } from 'date-fns';
+import { format, isSameWeek, startOfMonth, startOfWeek, startOfYear } from 'date-fns';
 
 import { Plan } from '../types';
 
-export interface WeeklyLeaderboardEntry {
+export type LeaderboardPeriod = 'week' | 'month' | 'year';
+export const LEADERBOARD_PERIODS: LeaderboardPeriod[] = ['week', 'month', 'year'];
+
+export interface LeaderboardEntry {
   uid: string;
   name: string;
-  weekStarting: string;
+  periodStarting: string;
   completed: number;
   total: number;
   score: number;
 }
 
-export interface RankedLeaderboardEntry extends WeeklyLeaderboardEntry {
+export interface RankedLeaderboardEntry extends LeaderboardEntry {
   rank: number;
   completionRate: number;
 }
 
-export const getWeeklyLeaderboardScore = (
+export const getLeaderboardPeriodStarting = (date: Date, period: LeaderboardPeriod): string => {
+  const periodStart = period === 'week'
+    ? startOfWeek(date, { weekStartsOn: 1 })
+    : period === 'month'
+      ? startOfMonth(date)
+      : startOfYear(date);
+  return format(periodStart, 'yyyy-MM-dd');
+};
+
+export const getLeaderboardScore = (
   plans: Plan[],
-  weekStarting: string
-): Pick<WeeklyLeaderboardEntry, 'weekStarting' | 'completed' | 'total' | 'score'> => {
-  const weekStart = new Date(`${weekStarting}T12:00:00`);
-  const weeklyPlans = plans.filter((plan) => {
+  period: LeaderboardPeriod,
+  periodStarting: string
+): Pick<LeaderboardEntry, 'periodStarting' | 'completed' | 'total' | 'score'> => {
+  const periodStart = new Date(`${periodStarting}T12:00:00`);
+  const periodPlans = plans.filter((plan) => {
     const planDate = new Date(plan.date);
-    return !Number.isNaN(planDate.getTime())
-      && isSameWeek(planDate, weekStart, { weekStartsOn: 1 });
+    if (Number.isNaN(planDate.getTime())) return false;
+
+    if (period === 'week') {
+      return isSameWeek(planDate, periodStart, { weekStartsOn: 1 });
+    }
+    if (period === 'month') {
+      return planDate.getFullYear() === periodStart.getFullYear()
+        && planDate.getMonth() === periodStart.getMonth();
+    }
+    return planDate.getFullYear() === periodStart.getFullYear();
   });
 
-  const completed = weeklyPlans.filter((plan) => plan.color === 'green').length;
-  const total = weeklyPlans.length;
+  const completed = periodPlans.filter((plan) => plan.color === 'green').length;
+  const total = periodPlans.length;
   return {
-    weekStarting,
+    periodStarting,
     completed,
     total,
     score: total > 0 ? Math.round((completed / total) * 10_000) : 0,
@@ -38,7 +59,7 @@ export const getWeeklyLeaderboardScore = (
 };
 
 export const rankLeaderboardEntries = (
-  entries: WeeklyLeaderboardEntry[]
+  entries: LeaderboardEntry[]
 ): RankedLeaderboardEntry[] => [...entries]
   .filter((entry) => Number.isInteger(entry.completed)
     && Number.isInteger(entry.total)
@@ -48,11 +69,9 @@ export const rankLeaderboardEntries = (
     && entry.completed <= entry.total
     && entry.score >= 0
     && entry.score <= 10_000)
-  .sort((a, b) => {
-    return b.score - a.score || b.completed - a.completed || a.name.localeCompare(b.name);
-  })
+  .sort((a, b) => b.score - a.score || b.completed - a.completed || a.name.localeCompare(b.name))
   .map((entry, index) => ({
     ...entry,
     rank: index + 1,
-    completionRate: Math.round((entry.score / 100)),
+    completionRate: Math.round(entry.score / 100),
   }));

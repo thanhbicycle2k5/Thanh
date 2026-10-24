@@ -9,7 +9,7 @@ This contains everything you need to run your app locally.
 ## Features
 - Familiar Excel-like grid interface
 - Cloud synchronization with Firebase
-- Public weekly leaderboard based on task completion rate
+- Public weekly, monthly, and yearly leaderboards based on task completion rate
 - Local-first storage with automatic migration
 - Pomodoro timer for focused work
 - Synthesized environmental sounds for notifications
@@ -18,7 +18,7 @@ This contains everything you need to run your app locally.
 
 ### Weekly leaderboard
 
-The leaderboard is public and shows at most 5 entries for the current week in a popup opened from the floating trophy icon. It reads at most 5 leaderboard rows each time the popup opens; a signed-in user reads their own score once and writes only when their weekly score or display name changes. The public name is the chosen display name, falling back to the sign-in account name. Task titles and notes remain private.
+The public leaderboard has week, month, and year periods, each showing at most 5 entries in the popup opened from the floating trophy icon. It reads at most 5 rows each time a period is selected; a signed-in user reads their own three score documents once and writes only when a period's score or display name changes. The public name is the chosen display name, falling back to the sign-in account name. Task titles and notes remain private.
 
 Deploy its Firestore rules and composite index before enabling the feature:
 

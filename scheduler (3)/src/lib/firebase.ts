@@ -29,7 +29,7 @@ import {
   limit,
 } from "firebase/firestore";
 import { Plan, AppSettings } from "../types";
-import { WeeklyLeaderboardEntry } from "./leaderboard";
+import { LeaderboardEntry, LeaderboardPeriod } from "./leaderboard";
 const firebaseConfig = {
   apiKey: "AIzaSyAI2wBxUR9V5OHr1fVNHJbNv0ReUqxjOww",
   authDomain: "wadebicycle.firebaseapp.com",
@@ -348,32 +348,38 @@ export const subscribeWeekMetas = (
 };
 
 export const getWeeklyLeaderboardEntries = async (
-  weekStarting: string
-): Promise<WeeklyLeaderboardEntry[]> => {
+  period: LeaderboardPeriod,
+  periodStarting: string
+): Promise<LeaderboardEntry[]> => {
+  const collectionName = `${period}lyLeaderboard`;
   const leaderboardQuery = query(
-    collection(db, 'weeklyLeaderboard'),
-    where('weekStarting', '==', weekStarting),
+    collection(db, collectionName),
+    where('periodStarting', '==', periodStarting),
     orderBy('score', 'desc'),
     orderBy('completed', 'desc'),
     limit(5)
   );
   const snapshot = await getDocs(leaderboardQuery);
-  return snapshot.docs.map((item) => item.data() as WeeklyLeaderboardEntry);
+  return snapshot.docs.map((item) => item.data() as LeaderboardEntry);
 };
 
-export const getWeeklyLeaderboardEntry = async (
+export const getLeaderboardEntry = async (
+  period: LeaderboardPeriod,
   uid: string
-): Promise<WeeklyLeaderboardEntry | null> => {
-  const snapshot = await getDoc(doc(db, 'weeklyLeaderboard', uid));
-  return snapshot.exists() ? snapshot.data() as WeeklyLeaderboardEntry : null;
+): Promise<LeaderboardEntry | null> => {
+  const collectionName = `${period}lyLeaderboard`;
+  const snapshot = await getDoc(doc(db, collectionName, uid));
+  return snapshot.exists() ? snapshot.data() as LeaderboardEntry : null;
 };
 
-export const saveWeeklyLeaderboardEntry = async (entry: WeeklyLeaderboardEntry): Promise<void> => {
-  await setDoc(doc(db, 'weeklyLeaderboard', entry.uid), entry);
+export const saveLeaderboardEntry = async (period: LeaderboardPeriod, entry: LeaderboardEntry): Promise<void> => {
+  const collectionName = `${period}lyLeaderboard`;
+  await setDoc(doc(db, collectionName, entry.uid), entry);
 };
 
-export const deleteWeeklyLeaderboardEntry = async (uid: string): Promise<void> => {
-  await deleteDoc(doc(db, 'weeklyLeaderboard', uid));
+export const deleteLeaderboardEntry = async (period: LeaderboardPeriod, uid: string): Promise<void> => {
+  const collectionName = `${period}lyLeaderboard`;
+  await deleteDoc(doc(db, collectionName, uid));
 };
 
 export interface SharedScheduleSnapshot {

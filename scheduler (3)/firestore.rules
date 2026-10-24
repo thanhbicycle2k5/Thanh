@@ -32,6 +32,25 @@ service cloud.firestore {
       return resource.data;
     }
 
+    function isValidLeaderboardEntry(userId) {
+      return request.resource.data.keys().hasAll(['uid', 'name', 'periodStarting', 'completed', 'total', 'score'])
+        && request.resource.data.keys().hasOnly(['uid', 'name', 'periodStarting', 'completed', 'total', 'score'])
+        && request.resource.data.uid == userId
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.periodStarting is string
+        && request.resource.data.periodStarting.matches('^\\d{4}-\\d{2}-\\d{2}$')
+        && request.resource.data.completed is int
+        && request.resource.data.total is int
+        && request.resource.data.completed >= 0
+        && request.resource.data.total > 0
+        && request.resource.data.completed <= request.resource.data.total
+        && request.resource.data.score is int
+        && request.resource.data.score >= 0
+        && request.resource.data.score <= 10000;
+    }
+
     // Validation Blueprint for Plan
     function isValidPlan(data, isCreate) {
       let requiredFields = ['id', 'title', 'date', 'startHour', 'duration', 'color'];
@@ -103,23 +122,19 @@ service cloud.firestore {
 
     match /weeklyLeaderboard/{userId} {
       allow read: if true;
-      allow create, update: if isOwner(userId)
-        && request.resource.data.keys().hasAll(['uid', 'name', 'weekStarting', 'completed', 'total', 'score'])
-        && request.resource.data.keys().hasOnly(['uid', 'name', 'weekStarting', 'completed', 'total', 'score'])
-        && request.resource.data.uid == userId
-        && request.resource.data.name is string
-        && request.resource.data.name.size() > 0
-        && request.resource.data.name.size() <= 40
-        && request.resource.data.weekStarting is string
-        && request.resource.data.weekStarting.matches('^\\d{4}-\\d{2}-\\d{2}$')
-        && request.resource.data.completed is int
-        && request.resource.data.total is int
-        && request.resource.data.completed >= 0
-        && request.resource.data.total > 0
-        && request.resource.data.completed <= request.resource.data.total
-        && request.resource.data.score is int
-        && request.resource.data.score >= 0
-        && request.resource.data.score <= 10000;
+      allow create, update: if isOwner(userId) && isValidLeaderboardEntry(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /monthlyLeaderboard/{userId} {
+      allow read: if true;
+      allow create, update: if isOwner(userId) && isValidLeaderboardEntry(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    match /yearlyLeaderboard/{userId} {
+      allow read: if true;
+      allow create, update: if isOwner(userId) && isValidLeaderboardEntry(userId);
       allow delete: if isOwner(userId);
     }
   }

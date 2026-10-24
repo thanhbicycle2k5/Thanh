@@ -19,7 +19,7 @@ import { enUS, vi } from 'date-fns/locale';
 import { Plan, NotificationSound, WeekTransitionEffect, MusicPlaybackMode, MusicTrack, AIProvider, LocalAIModel } from './types';
 import { storage, normalizeSettings, defaultSettings, mergeSettingsForSync } from './lib/storage';
 import { mergePlans, markPlanForSync, getDeviceId, enqueueSyncOperation, clearQueuedOperation, flushSyncQueue, hasQueuedOperations } from './lib/sync';
-import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, subscribeWeekMetas, getWeeklyLeaderboardEntries, getWeeklyLeaderboardEntry, saveWeeklyLeaderboardEntry, deleteWeeklyLeaderboardEntry, subscribeSharedScheduleLinks, updateSharedScheduleOwnerLabel, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule, deleteExpiredSharedSchedules, SharedScheduleLink } from './lib/firebase';
+import { auth, db, signInWithGoogle, signOutUser, clearAuthState, onAuthChanged, cloudStorage, subscribePlans, subscribeSettings, subscribeWeekMetas, getWeeklyLeaderboardEntries, getLeaderboardEntry, saveLeaderboardEntry, deleteLeaderboardEntry, subscribeSharedScheduleLinks, updateSharedScheduleOwnerLabel, settleRedirectAuth, createSharedSchedule, deleteSharedSchedule, deleteExpiredSharedSchedules, SharedScheduleLink } from './lib/firebase';
 import { doc, setDoc, Timestamp } from 'firebase/firestore';
 import { PRESET_TRACKS } from './lib/musicTracks';
 import { listCustomTracks, saveCustomTrack, removeCustomTrack, loadMusicPlayerState, saveMusicPlayerState, resetMusicPlayerState, getNextTrackId } from './lib/musicPlayer';
@@ -90,7 +90,7 @@ import { SchedulyChat } from './components/SchedulyChat';
 import { getRandomCatQuote } from './data/catQuotes';
 import { checkLocalAI, LOCAL_AI_MODEL } from './services/localAI';
 import { getOnDeviceAIModelName, getOnDeviceAIUnavailableReason, isOnDeviceAIModelCached, prepareOnDeviceAI } from './services/onDeviceAI';
-import { getWeeklyLeaderboardScore, rankLeaderboardEntries, WeeklyLeaderboardEntry } from './lib/leaderboard';
+import { getLeaderboardPeriodStarting, getLeaderboardScore, LEADERBOARD_PERIODS, LeaderboardPeriod, rankLeaderboardEntries, LeaderboardEntry } from './lib/leaderboard';
 
 import { 
   Dialog,
@@ -446,10 +446,11 @@ function PlannerApp() {
   const [isAISettingsExpanded, setIsAISettingsExpanded] = React.useState(false);
   const [settingsError, setSettingsError] = React.useState<string | null>(null);
   const [sharedLinks, setSharedLinks] = React.useState<SharedScheduleLink[]>([]);
-  const [leaderboardEntries, setLeaderboardEntries] = React.useState<WeeklyLeaderboardEntry[]>([]);
+  const [leaderboardPeriod, setLeaderboardPeriod] = React.useState<LeaderboardPeriod>('week');
+  const [leaderboardEntries, setLeaderboardEntries] = React.useState<LeaderboardEntry[]>([]);
   const [leaderboardError, setLeaderboardError] = React.useState<LeaderboardErrorKind | null>(null);
-  const leaderboardLoadedUserWeekRef = React.useRef<string | null>(null);
-  const [leaderboardLoadedUserWeek, setLeaderboardLoadedUserWeek] = React.useState<string | null>(null);
+  const leaderboardLoadedUserScoresRef = React.useRef<Partial<Record<LeaderboardPeriod, string>>>({});
+  const [leaderboardLoadedUserPeriods, setLeaderboardLoadedUserPeriods] = React.useState<string | null>(null);
   const weekMetaSaveTimersRef = React.useRef<Record<string, number>>({});
   const settingsSaveTimerRef = React.useRef<number | null>(null);
 
@@ -2143,11 +2144,21 @@ function PlannerApp() {
   const currentWeekPlans = React.useMemo(() => {
     return plans.filter(p => isSameWeek(new Date(p.date), selectedWeekStart, { weekStartsOn: 1 }));
   }, [plans, selectedWeekStart]);
-  const leaderboardWeekStarting = format(startOfWeek(new Date(`${streakTodayKey}T12:00:00`), { weekStartsOn: 1 }), 'yyyy-MM-dd');
-  const leaderboardScore = React.useMemo(
-    () => getWeeklyLeaderboardScore(plans, leaderboardWeekStarting),
-    [leaderboardWeekStarting, plans]
+  const leaderboardPeriodStartings = React.useMemo(
+    () => Object.fromEntries(LEADERBOARD_PERIODS.map((period) => [
+      period,
+      getLeaderboardPeriodStarting(new Date(`${streakTodayKey}T12:00:00`), period),
+    ])) as Record<LeaderboardPeriod, string>,
+    [streakTodayKey]
   );
+  const leaderboardScores = React.useMemo(
+    () => Object.fromEntries(LEADERBOARD_PERIODS.map((period) => [
+      period,
+      getLeaderboardScore(plans, period, leaderboardPeriodStartings[period]),
+    ])) as Record<LeaderboardPeriod, ReturnType<typeof getLeaderboardScore>>,
+    [leaderboardPeriodStartings, plans]
+  );
+  const leaderboardPeriodStarting = leaderboardPeriodStartings[leaderboardPeriod];
   const rankedLeaderboardEntries = React.useMemo(
     () => rankLeaderboardEntries(leaderboardEntries),
     [leaderboardEntries]
@@ -2159,94 +2170,98 @@ function PlannerApp() {
     setLeaderboardEntries([]);
     setLeaderboardError(null);
     let active = true;
-    void getWeeklyLeaderboardEntries(leaderboardWeekStarting)
+    void getWeeklyLeaderboardEntries(leaderboardPeriod, leaderboardPeriodStarting)
       .then((entries) => {
         if (active) setLeaderboardEntries(entries);
       })
       .catch((error) => {
-        console.warn('Weekly leaderboard load failed:', error);
+        console.warn(`${leaderboardPeriod} leaderboard load failed:`, error);
         if (active) setLeaderboardError(getLeaderboardErrorKind(error));
       });
     return () => { active = false; };
-  }, [isLeaderboardOpen, leaderboardWeekStarting]);
+  }, [isLeaderboardOpen, leaderboardPeriod, leaderboardPeriodStarting]);
 
   React.useEffect(() => {
     if (!user || authLoading || syncing || !isOnline) {
-      setLeaderboardLoadedUserWeek(null);
+      setLeaderboardLoadedUserPeriods(null);
       return;
     }
 
-    const cacheKey = `${user.uid}:${leaderboardWeekStarting}`;
+    const cacheKey = `${user.uid}:${leaderboardPeriodStartings.week}:${leaderboardPeriodStartings.month}:${leaderboardPeriodStartings.year}`;
     let active = true;
-    setLeaderboardLoadedUserWeek(null);
-    void getWeeklyLeaderboardEntry(user.uid)
-      .then((entry) => {
+    setLeaderboardLoadedUserPeriods(null);
+    void Promise.all(LEADERBOARD_PERIODS.map(async (period) => {
+      const entry = await getLeaderboardEntry(period, user.uid);
+      return [period, entry
+        ? JSON.stringify([entry.name, entry.periodStarting, entry.completed, entry.total, entry.score])
+        : 'missing'] as const;
+    }))
+      .then((entries) => {
         if (!active) return;
-        leaderboardLoadedUserWeekRef.current = entry
-          ? JSON.stringify([entry.name, entry.weekStarting, entry.completed, entry.total, entry.score])
-          : 'missing';
-        setLeaderboardLoadedUserWeek(cacheKey);
+        leaderboardLoadedUserScoresRef.current = Object.fromEntries(entries);
+        setLeaderboardLoadedUserPeriods(cacheKey);
       })
       .catch((error) => {
-        console.warn('Could not load the signed-in user leaderboard score:', error);
+        console.warn('Could not load the signed-in user leaderboard scores:', error);
         if (active) setLeaderboardError(getLeaderboardErrorKind(error));
       });
 
     return () => { active = false; };
-  }, [authLoading, isOnline, leaderboardWeekStarting, syncing, user]);
+  }, [authLoading, isOnline, leaderboardPeriodStartings, syncing, user]);
 
   React.useEffect(() => {
     if (!user || authLoading || syncing || !isOnline) return;
-    const cacheKey = `${user.uid}:${leaderboardWeekStarting}`;
-    if (leaderboardLoadedUserWeek !== cacheKey) return;
+    const cacheKey = `${user.uid}:${leaderboardPeriodStartings.week}:${leaderboardPeriodStartings.month}:${leaderboardPeriodStartings.year}`;
+    if (leaderboardLoadedUserPeriods !== cacheKey) return;
 
     const accountName = user.displayName?.trim() || user.email?.split('@')[0]?.trim();
     const name = (settingsState.displayName.trim() || accountName || `${t('leaderboardPlayer')} #${user.uid.slice(0, 4)}`)
       .slice(0, 40);
-    const entry: WeeklyLeaderboardEntry = {
-      uid: user.uid,
-      name,
-      ...leaderboardScore,
-    };
-    const previousSignature = leaderboardLoadedUserWeekRef.current;
+    const timers = LEADERBOARD_PERIODS.flatMap((period) => {
+      const score = leaderboardScores[period];
+      const previousSignature = leaderboardLoadedUserScoresRef.current[period];
+      const entry: LeaderboardEntry = { uid: user.uid, name, ...score };
 
-    if (leaderboardScore.total === 0) {
-      if (!previousSignature || previousSignature === 'missing') return;
+      if (score.total === 0) {
+        if (!previousSignature || previousSignature === 'missing') return [];
+        return [window.setTimeout(() => {
+          void deleteLeaderboardEntry(period, user.uid)
+            .then(() => {
+              leaderboardLoadedUserScoresRef.current[period] = 'missing';
+              if (period === leaderboardPeriod) {
+                setLeaderboardEntries((current) => current.filter((item) => item.uid !== user.uid));
+              }
+            })
+            .catch((error) => {
+              console.warn(`Could not remove the ${period} leaderboard entry:`, error);
+              setLeaderboardError(getLeaderboardErrorKind(error));
+            });
+        }, 2500)];
+      }
 
-      const timeout = window.setTimeout(() => {
-        void deleteWeeklyLeaderboardEntry(user.uid)
+      const signature = JSON.stringify([entry.name, entry.periodStarting, entry.completed, entry.total, entry.score]);
+      if (previousSignature === signature) return [];
+      return [window.setTimeout(() => {
+        void saveLeaderboardEntry(period, entry)
           .then(() => {
-            leaderboardLoadedUserWeekRef.current = 'missing';
-            setLeaderboardEntries((current) => current.filter((item) => item.uid !== user.uid));
+            leaderboardLoadedUserScoresRef.current[period] = signature;
+            if (period === leaderboardPeriod) {
+              setLeaderboardEntries((current) => [
+                ...current.filter((item) => item.uid !== user.uid),
+                entry,
+              ]);
+              setLeaderboardError(null);
+            }
           })
           .catch((error) => {
-            console.warn('Could not remove the weekly leaderboard entry:', error);
+            console.warn(`Could not update the ${period} leaderboard entry:`, error);
             setLeaderboardError(getLeaderboardErrorKind(error));
           });
-      }, 2500);
-      return () => window.clearTimeout(timeout);
-    }
+      }, 2500)];
+    });
 
-    const signature = JSON.stringify([entry.name, entry.weekStarting, entry.completed, entry.total, entry.score]);
-    if (previousSignature === signature) return;
-
-    const timeout = window.setTimeout(() => {
-      void saveWeeklyLeaderboardEntry(entry)
-        .then(() => {
-          leaderboardLoadedUserWeekRef.current = signature;
-          setLeaderboardEntries((current) => [
-            ...current.filter((item) => item.uid !== user.uid),
-            entry,
-          ]);
-          setLeaderboardError(null);
-        })
-        .catch((error) => {
-          console.warn('Could not update the weekly leaderboard entry:', error);
-          setLeaderboardError(getLeaderboardErrorKind(error));
-        });
-    }, 2500);
-    return () => window.clearTimeout(timeout);
-  }, [authLoading, isOnline, leaderboardLoadedUserWeek, leaderboardScore, leaderboardWeekStarting, settingsState.displayName, syncing, t, user]);
+    return () => timers.forEach((timer) => window.clearTimeout(timer));
+  }, [authLoading, isOnline, leaderboardLoadedUserPeriods, leaderboardPeriod, leaderboardPeriodStartings, leaderboardScores, settingsState.displayName, syncing, t, user]);
 
   const annualPlans = React.useMemo(() => {
     const selectedYear = selectedWeekStart.getFullYear();
@@ -3305,9 +3320,27 @@ function PlannerApp() {
               <Trophy className="h-5 w-5 text-yellow-500" />
               {t('leaderboardTitle')}
             </DialogTitle>
-            <DialogDescription>{t('leaderboardDescription', { week: leaderboardWeekStarting })}</DialogDescription>
+            <DialogDescription>{t('leaderboardDescription', { periodStarting: leaderboardPeriodStarting })}</DialogDescription>
           </DialogHeader>
-          <p className="text-xs text-muted-foreground">{t('leaderboardPrivacy')}</p>
+          <div className="grid grid-cols-3 gap-2" role="tablist" aria-label={t('leaderboardTitle')}>
+            {LEADERBOARD_PERIODS.map((period) => (
+              <button
+                key={period}
+                type="button"
+                role="tab"
+                aria-selected={leaderboardPeriod === period}
+                onClick={() => setLeaderboardPeriod(period)}
+                className={cn(
+                  "rounded-md border px-3 py-2 text-sm font-semibold transition-colors",
+                  leaderboardPeriod === period
+                    ? "border-[#107C41] bg-[#107C41] text-white"
+                    : "border-border bg-background text-muted-foreground hover:bg-muted"
+                )}
+              >
+                {t(period === 'week' ? 'leaderboardWeek' : period === 'month' ? 'leaderboardMonth' : 'leaderboardYear')}
+              </button>
+            ))}
+          </div>
           {leaderboardError ? (
             <p className="rounded-lg bg-muted px-3 py-4 text-sm text-muted-foreground">
               {t(leaderboardError === 'index'
@@ -3507,10 +3540,14 @@ function PlannerApp() {
           <button
             type="button"
             onPointerDown={(event) => event.stopPropagation()}
-            onClick={() => setIsLeaderboardOpen(true)}
-            className="h-12 w-12 rounded-full border border-border bg-background text-foreground shadow-2xl transition-all hover:scale-110 active:scale-95"
+            onClick={() => setIsLeaderboardOpen((open) => !open)}
+            className={cn(
+              "h-12 w-12 rounded-full border border-border bg-background text-foreground shadow-2xl transition-all hover:scale-110 active:scale-95",
+              isLeaderboardOpen && "border-yellow-500/60 bg-yellow-500/10"
+            )}
             title={t('leaderboardTitle')}
             aria-label={t('leaderboardTitle')}
+            aria-expanded={isLeaderboardOpen}
           >
             <Trophy className="mx-auto h-5 w-5 text-yellow-500" />
           </button>
