@@ -22,6 +22,11 @@ test('random mascot quote does not repeat the previous quote', () => {
   assert.notEqual(nextQuote.id, previousQuote.id);
 });
 
+test('mascot dialogue has complete endings and natural continuation after verse commas', () => {
+  assert.ok(allCatQuotes.every((quote) => /[.!?]$/.test(quote.text)));
+  assert.ok(allCatQuotes.every((quote) => !/[,:;]\s+[A-ZĐ]/u.test(quote.text)));
+});
+
 test('folk sayings use complete standalone proverbs and paired verse lines', () => {
   assert.ok(folkSayings.length > 50);
   assert.deepEqual(folkSayings.map((saying) => saying.id), Array.from({ length: folkSayings.length }, (_, index) => index + 1));

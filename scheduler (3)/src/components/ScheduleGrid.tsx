@@ -1650,9 +1650,10 @@ function ScheduleGridComponent({
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent
           allowTouchScroll
+          allowDrag={false}
           className="sm:rounded-2xl border-border max-w-sm bg-card flex max-h-[calc(100dvh-2rem)] min-h-0 flex-col overflow-hidden"
         >
-          <DialogHeader className="shrink-0">
+          <DialogHeader draggable={false} className="shrink-0">
             <DialogTitle className="text-foreground">
               {allPlans.some(p => p.id === editingPlan?.id) ? t('editPlan') : t('addPlan')}
             </DialogTitle>

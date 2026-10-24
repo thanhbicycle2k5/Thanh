@@ -32,7 +32,7 @@ const quoteSeeds: QuoteSeed[] = [
       'Não hôm nay hơi lag.', 'Deadline vừa nhắn tin.', 'Mood sáng nay hơi chậm.',
       'Tôi và bài tập đang nhìn nhau.', 'Lịch học nhìn tôi rất nghiêm túc.',
       'Cà phê vừa online.', 'Một ngày mới đang load.', 'Ví tiền vẫn đang im lặng.',
-      'Năng lượng hôm nay hơi tiết kiệm.', 'Scheduly vừa hỏi: học chưa?',
+      'Năng lượng hôm nay hơi tiết kiệm.', 'Scheduly hỏi nhỏ: bạn đã sẵn sàng học chưa?',
     ],
     followUps: [
       'Dù hôm nay thế nào, mình vẫn có thể đi từng bước.', 'Chậm một chút cũng được, miễn là mình vẫn đang cố gắng.',
@@ -61,10 +61,10 @@ const quoteSeeds: QuoteSeed[] = [
     category: 'flirt',
     phrases: [
       'Bạn giống Wi-Fi nhà mình.', 'Nếu bạn là deadline, mình vẫn muốn gặp.',
-      'Mình không cần bản đồ khi đã biết hướng về bạn.', 'Bạn có phải từ điển không?',
+      'Mình không cần bản đồ khi đã biết hướng về bạn.', 'Bạn giống cuốn từ điển mình muốn đọc mãi.',
       'Lịch tuần của mình đang thiếu một cuộc hẹn.', 'Bạn giống ly cà phê buổi sáng.',
       'Nếu nụ cười là bài tập, mình xin làm bài chung.', 'Mắt mình hơi mỏi vì cứ nhìn bạn.',
-      'Bạn làm toán giỏi không?', 'Scheduly hỏi nhỏ: mình làm quen nhé?',
+      'Bạn khiến mình muốn cùng nhau giải mọi bài toán.', 'Scheduly hỏi nhỏ: mình làm quen nhé?',
     ],
     followUps: [
       'Ở gần bạn là mình tự động thấy vui hơn.', 'Bạn làm ngày dài dịu lại.',
@@ -147,10 +147,10 @@ const quoteSeeds: QuoteSeed[] = [
       'Mèo có móng vuốt, còn bạn có kế hoạch.', 'Chăm chỉ là chiếc chìa khóa, nghỉ ngơi là tay nắm.',
     ],
     followUps: [
-      'Kế hoạch giúp mình bớt căng, không phải để tự làm khó mình.', 'Mèo đùa một chút để ngày bớt nặng.',
-      'Bí quá thì đổi cách làm, biết đâu lại thông.', 'Mỗi chữ mới là thêm một cơ hội chơi chữ.',
-      'Giữ đầu óc sáng, rồi mình sẽ nghĩ ra cách hay.', 'Lịch kín đến đâu cũng nhớ chừa chỗ để thở.',
-      'Mèo gọi đó là chiến thuật mềm mại.', 'Vui một chút rồi quay lại làm tiếp nhé.',
+      'Mèo đùa một chút để ngày bớt nặng.', 'Câu chữ xoay một vòng, ý nghĩa lại vui hơn.',
+      'Bí quá thì đổi cách chơi chữ, biết đâu lại thông.', 'Thêm một từ mới là thêm một cơ hội đùa vui.',
+      'Giữ đầu óc sáng, rồi mình sẽ nghĩ ra câu hay.', 'Lịch kín đến đâu cũng nhớ chừa chỗ cho một câu đùa.',
+      'Mèo gọi đó là chiến thuật mềm mại.', 'Cười một chút rồi quay lại chơi chữ tiếp nhé.',
     ],
   },
   {
@@ -208,7 +208,10 @@ function buildQuotes(): CatQuote[] {
     for (let index = 0; index < count; index += 1) {
       const phrase = phrases[index % phrases.length];
       const followUp = followUps[Math.floor(index / phrases.length) % followUps.length];
-      quotes.push({ id: id++, category, text: `${phrase} ${followUp}` });
+      const continuation = /[,;:]$/.test(phrase.trim())
+        ? `${followUp.charAt(0).toLocaleLowerCase()}${followUp.slice(1)}`
+        : followUp;
+      quotes.push({ id: id++, category, text: `${phrase} ${continuation}` });
     }
     return quotes;
   });

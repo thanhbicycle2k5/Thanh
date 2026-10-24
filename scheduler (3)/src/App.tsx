@@ -4045,7 +4045,7 @@ function PlannerApp() {
       </Dialog>
 
       <Dialog open={isSettingsOpen} onOpenChange={handleSettingsOpenChange} disablePointerDismissal={false}>
-        {isSettingsOpen && <DialogContent className={cn(
+        {isSettingsOpen && <DialogContent allowDrag={false} className={cn(
             "w-full max-w-[calc(100vw-64px)] md:max-w-6xl h-[90vh] sm:rounded-2xl bg-card dark:bg-card p-0 flex flex-col",
            desktopFontClass
          )}>
@@ -4072,7 +4072,7 @@ function PlannerApp() {
             >
               <div className="flex h-[90vh] min-h-0 flex-col rounded-2xl bg-card shadow-xl">
                 <aside className="shrink-0 border-b bg-muted/30 p-3 sm:p-4">
-                  <DialogHeader className="p-0">
+                  <DialogHeader draggable={false} className="p-0">
                     <DialogTitle className="text-sm md:text-base text-foreground">{t('settings')}</DialogTitle>
                   </DialogHeader>
                   <div className="mt-3 grid grid-cols-5 gap-1" role="tablist" aria-label={t('settings')}>

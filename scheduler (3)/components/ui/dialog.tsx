@@ -45,11 +45,13 @@ function DialogContent({
   style,
   showCloseButton = true,
   allowTouchScroll = false,
+  allowDrag = true,
   closeButtonClassName,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
   allowTouchScroll?: boolean
+  allowDrag?: boolean
   closeButtonClassName?: string
 }) {
   const [position, setPosition] = React.useState<{ x: number; y: number } | null>(null)
@@ -98,9 +100,9 @@ function DialogContent({
       <DialogOverlay />
       <DialogPrimitive.Popup
         data-slot="dialog-content"
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
+        onPointerDown={allowDrag ? handlePointerDown : undefined}
+        onPointerMove={allowDrag ? handlePointerMove : undefined}
+        onPointerUp={allowDrag ? handlePointerUp : undefined}
         style={{
           ...style,
           ...(position
@@ -146,13 +148,13 @@ function DialogContent({
   )
 }
 
-function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
+function DialogHeader({ className, draggable = true, ...props }: React.ComponentProps<"div"> & { draggable?: boolean }) {
   return (
     <div
       data-slot="dialog-header"
-      data-drag-handle="true"
-      style={{ touchAction: "none" }}
-      className={cn("flex flex-col gap-2 cursor-grab select-none touch-none", className)}
+      data-drag-handle={draggable ? "true" : undefined}
+      style={draggable ? { touchAction: "none" } : undefined}
+      className={cn("flex flex-col gap-2 select-none", draggable && "cursor-grab touch-none", className)}
       {...props}
     />
   )
