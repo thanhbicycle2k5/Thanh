@@ -2690,6 +2690,9 @@ function PlannerApp() {
 
   const totalPlansCount = currentWeekPlans.length;
   const completedPlansCount = currentWeekPlans.filter(p => p.color === 'green').length;
+  const weeklyProgressPercent = totalPlansCount > 0
+    ? Math.round((completedPlansCount / totalPlansCount) * 100)
+    : 0;
   const completedStreakDays = React.useMemo(() => getCompletedDayKeys(plans), [plans]);
   const streakStats = React.useMemo(
     () => calculateStreak(completedStreakDays, new Date(`${streakTodayKey}T12:00:00`), settingsState.streakDays),
@@ -3323,12 +3326,30 @@ function PlannerApp() {
          </AnimatePresence>
            </div>
 
-           <div className="mt-8 flex justify-between items-center bg-[#107C41] text-white p-6 rounded-xl">
-              <div>
-                 <h3 className="font-bold">{t('weeklyProgress')}</h3>
-                 <p className="text-sm opacity-80">{completedPlansCount}/{totalPlansCount} {t('tasksCompleted')}</p>
+           <div className="mt-8 rounded-xl border border-border bg-card p-6 text-foreground">
+              <div className="flex items-center justify-between gap-4">
+                 <div>
+                    <h3 className="font-bold">{t('weeklyProgress')}</h3>
+                    <p className="text-sm text-muted-foreground">{completedPlansCount}/{totalPlansCount} {t('tasksCompleted')}</p>
+                 </div>
+                 <div className="flex items-center gap-2 text-[#107C41]">
+                    <span className="text-sm font-bold">{weeklyProgressPercent}%</span>
+                    <CheckCircle2 className="h-8 w-8" aria-hidden="true" />
+                 </div>
               </div>
-              <CheckCircle2 className="w-10 h-10 opacity-20" />
+              <div
+                 className="mt-4 h-3 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700"
+                 role="progressbar"
+                 aria-label={t('weeklyProgress')}
+                 aria-valuemin={0}
+                 aria-valuemax={100}
+                 aria-valuenow={weeklyProgressPercent}
+              >
+                 <div
+                    className="h-full rounded-full bg-[#107C41] transition-[width] duration-500"
+                    style={{ width: `${weeklyProgressPercent}%` }}
+                 />
+              </div>
            </div>
 
         </div>
