@@ -4,6 +4,7 @@ export interface FolkSaying {
   id: number;
   kind: FolkSayingKind;
   text: string;
+  englishText: string;
 }
 
 const proverbLines = [
@@ -22,6 +23,60 @@ const proverbLines = [
   'Dạy con từ thuở còn thơ.', 'Cá không ăn muối cá ươn.', 'Thuốc đắng dã tật.', 'Sự thật mất lòng.',
   'Lửa thử vàng, gian nan thử sức.', 'Thất bại là mẹ thành công.', 'Sau cơn mưa, trời lại sáng.',
   'Kiến tha lâu cũng đầy tổ.', 'Năng nhặt chặt bị.', 'Tích tiểu thành đại.', 'Góp gió thành bão.',
+];
+
+const proverbTranslations = [
+  'Perseverance can turn an iron bar into a needle.',
+  'Where there is a will, there is a way.',
+  'Travel far for a day, and you will gain a basketful of knowledge.',
+  'Learn how to eat, speak, wrap, and open.',
+  'Without a teacher, it is hard to succeed.',
+  'First learn good manners, then learn your lessons.',
+  'When enjoying fruit, remember who planted the tree.',
+  'When drinking water, remember its source.',
+  'Whole leaves protect torn ones; those who have more should help those in need.',
+  'When one horse is hurt, the whole stable feels the pain.',
+  'Love others as you love yourself.',
+  'Please, gourd, embrace the squash; though we share different vines, we share the same trellis.',
+  'One tree alone cannot make a forest.',
+  'Three trees together can form a mountain.',
+  'Unity is strength.',
+  'Near ink you grow dark; near a lamp you grow bright.',
+  'Good wood matters more than a fine coat of paint.',
+  'Good character outlasts outward beauty.',
+  'Stay clean in spirit, even when life is hard.',
+  'Even if the paper is torn, keep its margins neat.',
+  'Be as honest as your own heart.',
+  'An upright tree need not fear being struck down.',
+  'Kindness is met with kindness.',
+  'Sow the wind, reap the storm.',
+  'You reap what you sow.',
+  'Seeing once is worth hearing a hundred times.',
+  'Hearing cannot compare to seeing with your own eyes.',
+  'Make claims with evidence, and give advice with proof.',
+  'Words cost nothing, so choose them with care.',
+  'Choose your words to bring comfort to one another.',
+  'Once trust is broken, it takes a thousand acts to restore it.',
+  'If you know, speak up; if you do not, listen.',
+  'Respect those above you and care for those below.',
+  'Respect your elders and you will live a long life.',
+  'Siblings are like hands and feet.',
+  'When one sibling falls, another helps them up.',
+  'Blood runs thicker than water.',
+  'A family is blessed when children surpass their parents.',
+  'Old bamboo makes way for new shoots.',
+  'Guide a tree while it is still young.',
+  'Teach children while they are still young.',
+  'A fish that will not take salt will rot; a child who defies their parents will go astray.',
+  'Bitter medicine cures the illness.',
+  'The truth can be hard to hear.',
+  'Fire tests gold; hardship tests strength.',
+  'Failure is the mother of success.',
+  'After the rain, the sky clears.',
+  'With patience, even ants can fill their nest.',
+  'Little by little, the bag becomes full.',
+  'Small things add up to something great.',
+  'Many small breezes can become a storm.',
 ];
 
 const folkLines = [
@@ -51,12 +106,44 @@ const folkLines = [
   'Ai ơi giữ chí cho bền,', 'Dù ai xoay hướng đổi nền mặc ai.',
 ];
 
+const folkTranslations = [
+  'A father’s love is as vast as Mount Thai Son; a mother’s love flows like water from its source.',
+  'Honor your parents with all your heart; that is the true path of a child.',
+  'Siblings are never strangers; they share the same parents and home.',
+  'When siblings live in harmony, their parents rejoice.',
+  'Be wise and gracious with those beyond your home; siblings should never fight among themselves.',
+  'Let the silk cloth cover the mirror; people of one country should care for one another.',
+  'Wherever you travel, remember the Hung Kings’ festival on the tenth day of the third lunar month.',
+  'I return to bathe in my own pond; clear or cloudy, home is still best.',
+  'Shrimp heads simmer with gourd; husband and wife share the meal with delight.',
+  'A fish that will not take salt will rot; a child who defies their parents will go astray.',
+  'To cross the river, build the Kieu bridge; to help your child learn, cherish their teacher.',
+  'Even one written character makes a teacher; a teacher’s guidance is precious.',
+  'Words are worth gold; they cost nothing, so choose them with care.',
+  'The clever bird sings clearly; the wise person speaks gently.',
+  'Eat with care and live within your means; mind your manners wherever you are.',
+  'Only those who work will have food; no one gets a share for doing nothing.',
+  'Our hands can accomplish anything; human effort can turn stone into food.',
+  'Do not leave the fields abandoned; every patch of land is worth its weight in gold.',
+  'Every patch of land is precious; water, soil, care, and seed each matter.',
+  'How old is the moon? When does a mountain become a hill?',
+  'The breeze sways bamboo branches; bells ring at Tran Vu as roosters crow at Tho Xuong.',
+  'The road through Nghe winds along, surrounded by green hills and clear waters like a painting.',
+  'Hold firmly to your purpose, no matter how others change direction.',
+];
+
 function buildFolkSayings(): FolkSaying[] {
   const sayings: FolkSaying[] = [];
   let id = 1;
 
-  proverbLines.forEach((text) => sayings.push({ id: id++, kind: 'tuc-ngu', text }));
+  proverbLines.forEach((text, index) => sayings.push({
+    id: id++,
+    kind: 'tuc-ngu',
+    text,
+    englishText: proverbTranslations[index],
+  }));
 
+  let translationIndex = 0;
   for (let index = 0; index + 1 < folkLines.length; index += 2) {
     if (index === 18) continue;
     const firstLine = folkLines[index].replace(/[,.!?;:]\s*$/, '');
@@ -65,6 +152,7 @@ function buildFolkSayings(): FolkSaying[] {
       id: id++,
       kind: 'ca-dao',
       text: `${firstLine}, ${secondLine.charAt(0).toLocaleLowerCase()}${secondLine.slice(1)}.`,
+      englishText: folkTranslations[translationIndex++],
     });
   }
 
