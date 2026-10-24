@@ -3109,7 +3109,7 @@ function PlannerApp() {
              <Popover>
                <PopoverTrigger asChild>
                  <Button variant="ghost" size="icon" className={cn("h-9 w-9 shrink-0", isMusicPlaying && "text-red-500")} title={t('music')} aria-label={t('music')}>
-                    <Music className={cn("w-4 h-4 transition-all", isMusicPlaying && "text-red-500 animate-spin-slow")} />
+                    <Music className={cn("w-4 h-4 text-red-500 transition-all", isMusicPlaying && "animate-spin-slow")} />
                  </Button>
                </PopoverTrigger>
                <PopoverContent className="w-80 p-4" align="end">
@@ -3228,10 +3228,10 @@ function PlannerApp() {
               }}>
                 <Dumbbell className={cn("w-4 h-4 transition-colors", gymRestOpen && "text-[#FF6B00]")} />
              </Button>
-             <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0" onClick={() => {
+             <Button variant="ghost" size="icon" className={cn("h-9 w-9 shrink-0", isSettingsOpen && "text-yellow-500")} onClick={() => {
                 handleSettingsOpenChange(true);
               }}>
-                <Settings className="w-4 h-4" />
+                <Settings className={cn("w-4 h-4 transition-colors", isSettingsOpen && "text-yellow-500")} />
              </Button>
           </div>
         </div>
@@ -3576,12 +3576,17 @@ function PlannerApp() {
               onPointerDown={(e) => e.stopPropagation()}
               onClick={() => setIsPomodoroOpen(v => !v)}
               className={cn(
-                "w-12 h-12 rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95",
-                pomodoroRunning ? "animate-pulse bg-red-500" : "bg-[#107C41]"
+                "w-12 h-12 rounded-full border shadow-2xl flex items-center justify-center transition-all hover:scale-110 active:scale-95",
+                isPomodoroOpen
+                  ? "border-[#107C41] bg-[#107C41] text-white shadow-[0_0_18px_rgba(16,124,65,0.45)]"
+                  : "border-border bg-background text-foreground",
+                pomodoroRunning && "animate-pulse"
               )}
               title={t('pomodoro')}
+              aria-label={t('pomodoro')}
+              aria-expanded={isPomodoroOpen}
             >
-              <Timer className="w-6 h-6 text-white" />
+              <Timer className={cn("w-6 h-6 transition-colors", isPomodoroOpen && "text-white")} />
             </button>
 
             <AnimatePresence>
