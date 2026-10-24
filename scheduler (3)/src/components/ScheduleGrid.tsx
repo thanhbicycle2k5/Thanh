@@ -34,7 +34,7 @@ import {
 } from "@/components/ui/select";
 import { START_MINUTE_OPTIONS, doPlanTimesOverlap, formatPlanTime, getPlanEndMinutes } from '../lib/taskTime';
 import { getColorForClickCount } from '../lib/taskColor';
-import { getAppliedOccurrenceDateKeys, toPlanDateTimestamp } from '../lib/taskRecurrence';
+import { createAppliedOccurrencePlan, getAppliedOccurrenceDateKeys } from '../lib/taskRecurrence';
 import { getTaskClipboardText, parsePlainTask, type CopiedTask } from '../lib/taskClipboard';
 import type { SharedScheduleLink } from '../lib/firebase';
 
@@ -550,16 +550,6 @@ function ScheduleGridComponent({
   const daysOfCurrentWeek = React.useMemo(() => {
     return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   }, [currentWeekStart]);
-
-  const planMap = React.useMemo(() => {
-    const map = new Map<string, Plan>();
-    plans.forEach((plan) => {
-      const dayKey = format(new Date(plan.date), 'yyyy-MM-dd');
-      const key = `${dayKey}#${plan.startHour}`;
-      map.set(key, plan);
-    });
-    return map;
-  }, [plans]);
 
   const occupiedHoursMap = React.useMemo(() => {
     const map = new Map<string, boolean>();
@@ -1123,6 +1113,15 @@ function ScheduleGridComponent({
     return sourcePlan?.id === plan.id ? undefined : sourcePlan;
   };
 
+  const planMap = React.useMemo(() => {
+    const map = new Map<string, Plan>();
+    plans.forEach((plan) => {
+      const dayKey = format(new Date(plan.date), 'yyyy-MM-dd');
+      map.set(`${dayKey}#${plan.startHour}`, plan);
+    });
+    return map;
+  }, [plans]);
+
   const isAppliedOccurrence = (plan: Plan | null) => Boolean(getAppliedSourcePlan(plan));
 
   const getAppliedPlansForSource = (source: Plan) => source.recurrenceGroupId
@@ -1219,16 +1218,7 @@ function ScheduleGridComponent({
           return;
         }
 
-        await onAddPlan({
-          ...basePlan,
-          id: crypto.randomUUID(),
-          date: toPlanDateTimestamp(candidateKey),
-          applyMode: 'none',
-          applyDays: undefined,
-          applyWeekInterval: undefined,
-          applyWeekDays: undefined,
-          applyUntil: undefined,
-        });
+        await onAddPlan(createAppliedOccurrencePlan(basePlan, candidateKey, crypto.randomUUID()));
       };
 
       if (isNew) {

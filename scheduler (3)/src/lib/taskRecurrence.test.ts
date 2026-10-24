@@ -2,11 +2,33 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { format } from 'date-fns';
 
-import { getAppliedOccurrenceDateKeys, toPlanDateTimestamp } from './taskRecurrence';
+import { createAppliedOccurrencePlan, getAppliedOccurrenceDateKeys, toPlanDateTimestamp } from './taskRecurrence';
+import { Plan } from '../types';
 
 test('generated plan timestamps preserve the exact local calendar date', () => {
   const timestamp = toPlanDateTimestamp('2026-10-06');
   assert.equal(format(new Date(timestamp), 'yyyy-MM-dd'), '2026-10-06');
+});
+
+test('applied child plans do not inherit notes or recurrence settings from the source', () => {
+  const source: Plan = {
+    id: 'source',
+    title: 'Task',
+    date: '2026-10-05T12:00:00.000Z',
+    startHour: 9,
+    duration: 1,
+    color: 'yellow',
+    notes: 'Source-only note',
+    applyMode: 'day',
+    applyUntil: '2026-10-10',
+  };
+
+  const child = createAppliedOccurrencePlan(source, '2026-10-06', 'child');
+
+  assert.equal(child.id, 'child');
+  assert.equal(format(new Date(child.date), 'yyyy-MM-dd'), '2026-10-06');
+  assert.equal(child.notes, undefined);
+  assert.equal(child.applyMode, 'none');
 });
 
 test('daily recurrence creates child dates after the original date through the end date', () => {
