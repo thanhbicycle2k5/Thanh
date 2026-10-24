@@ -998,9 +998,13 @@ function ScheduleGridComponent({
       setIsDialogOpen(true);
     };
 
-    if (isMobileViewport() && !quickEditEnabled) {
-      if (existing?.notes?.trim()) openExistingPlan();
-      return;
+    const isLockedMobile = isMobileViewport() && !quickEditEnabled;
+    if (isLockedMobile) {
+      if (existing?.notes?.trim()) {
+        openExistingPlan();
+        return;
+      }
+      if (!existing || existing.title === '') return;
     }
 
     if (quickEditEnabled && existing) {
@@ -1067,7 +1071,7 @@ function ScheduleGridComponent({
       if (clickCount.current === 1) {
         clickCount.current = 0;
         clickTimer.current = null;
-        openExistingPlan();
+        if (!isLockedMobile) openExistingPlan();
         return;
       }
 
