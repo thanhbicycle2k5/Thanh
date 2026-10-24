@@ -688,6 +688,11 @@ function PlannerApp() {
     setPomodoroDeadline(null);
     setPomodoroSecondsLeft(POMODORO_DURATIONS[pomodoroMode]);
     setPomodoroHasStarted(false);
+    lastPomodoroMusicTrackRef.current = null;
+    audioRef.current?.pause();
+    youtubePlayerRef.current?.pauseVideo?.();
+    setIsMusicPlaying(false);
+    persistMusicState(selectedMusicId, musicPlaybackMode, false);
   };
   const switchPomodoroMode = (mode: PomodoroMode) => {
     setPomodoroMode(mode);
@@ -695,6 +700,11 @@ function PlannerApp() {
     setPomodoroDeadline(null);
     setPomodoroRunning(false);
     setPomodoroHasStarted(false);
+    lastPomodoroMusicTrackRef.current = null;
+    audioRef.current?.pause();
+    youtubePlayerRef.current?.pauseVideo?.();
+    setIsMusicPlaying(false);
+    persistMusicState(selectedMusicId, musicPlaybackMode, false);
   };
 
   const firedNotificationIdsRef = React.useRef<Set<string>>(new Set());
@@ -3125,8 +3135,8 @@ function PlannerApp() {
 
              <Popover open={isMusicPopoverOpen} onOpenChange={setIsMusicPopoverOpen}>
                <PopoverTrigger asChild>
-                 <Button variant="ghost" size="icon" className={cn("h-9 w-9 shrink-0", isMusicPopoverOpen && "text-red-500")} title={t('music')} aria-label={t('music')}>
-                    <Music className={cn("w-4 h-4 transition-all", isMusicPopoverOpen && "text-red-500", isMusicPlaying && "animate-spin-slow")} />
+                 <Button variant="ghost" size="icon" className={cn("h-9 w-9 shrink-0", (isMusicPopoverOpen || (pomodoroRunning && isMusicPlaying)) && "text-red-500")} title={t('music')} aria-label={t('music')}>
+                    <Music className={cn("w-4 h-4 transition-all", (isMusicPopoverOpen || (pomodoroRunning && isMusicPlaying)) && "text-red-500", isMusicPlaying && "animate-spin-slow")} />
                  </Button>
                </PopoverTrigger>
                <PopoverContent className="w-80 p-4" align="end">
