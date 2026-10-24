@@ -81,6 +81,9 @@ const PLAN_BACKGROUND_COLORS: Record<PlanColor, string> = {
 
 const TASK_COLOR_OPTIONS: PlanColor[] = ['default', 'yellow', 'orange', 'red', 'pink', 'purple', 'blue'];
 
+const isMobileViewport = () => typeof window !== 'undefined'
+  && window.matchMedia('(max-width: 768px)').matches;
+
 const hexToRgba = (hex: string, alpha: number) => {
   const safeHex = hex.replace('#', '');
   const normalized = safeHex.length === 3
@@ -270,11 +273,15 @@ const ScheduleCell = React.memo(function ScheduleCell({
       onClick={() => handleUnifiedClick(day, hour)}
       onContextMenu={(e) => {
         if (plan) return;
+        if (isMobileViewport() && !quickEditEnabled) {
+          e.preventDefault();
+          return;
+        }
         e.preventDefault();
         handleShowPasteAction(`${dayKey}#${hour}`);
       }}
       onTouchStart={() => {
-        if (plan) return;
+        if (plan || (isMobileViewport() && !quickEditEnabled)) return;
         longPressTimer.current = window.setTimeout(() => handleShowPasteAction(`${dayKey}#${hour}`), 600);
       }}
       onTouchEnd={() => {
@@ -316,8 +323,7 @@ const ScheduleCell = React.memo(function ScheduleCell({
             type="button"
             onPointerDown={(e) => e.stopPropagation()}
             onClick={(e) => {
-              const isMobile = typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches;
-              if (isMobile && !quickEditEnabled) {
+              if (isMobileViewport() && !quickEditEnabled) {
                 e.stopPropagation();
                 return;
               }
@@ -700,6 +706,7 @@ function ScheduleGridComponent({
 
   const handlePlanPointerDown = React.useCallback((plan: Plan, e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'touch') return;
+    if (isMobileViewport() && !quickEditEnabled) return;
     if (e.button !== 0) return;
 
     dragStateSuppressClick.current = false;
@@ -724,9 +731,10 @@ function ScheduleGridComponent({
       }, 1000),
       isDragging: false,
     };
-  }, [getScheduleTarget]);
+  }, [getScheduleTarget, quickEditEnabled]);
 
   const finishPlanMove = React.useCallback((state: NonNullable<typeof dragStateRef.current>, clientX: number, clientY: number) => {
+    if (isMobileViewport() && !quickEditEnabled) return;
     const target = getScheduleTarget(clientX, clientY);
     setDragTarget(null);
     if (!target) return;
@@ -780,7 +788,7 @@ function ScheduleGridComponent({
       startHour: target.hour,
       duration: adjustedDuration,
     });
-  }, [endHour, getScheduleTarget, onUpdatePlan, plans]);
+  }, [endHour, getScheduleTarget, onUpdatePlan, plans, quickEditEnabled]);
 
   const handlePlanPointerMove = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'touch') return;
@@ -815,6 +823,7 @@ function ScheduleGridComponent({
   }, [finishPlanMove]);
 
   const handlePlanTouchStart = React.useCallback((plan: Plan, e: React.TouchEvent<HTMLDivElement>) => {
+    if (isMobileViewport() && !quickEditEnabled) return;
     const touch = e.touches[0];
     if (!touch) return;
 
@@ -839,7 +848,7 @@ function ScheduleGridComponent({
       }, 1000),
       isDragging: false,
     };
-  }, [getScheduleTarget]);
+  }, [getScheduleTarget, quickEditEnabled]);
 
   const handlePlanTouchMove = React.useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     const state = dragStateRef.current;
@@ -874,6 +883,10 @@ function ScheduleGridComponent({
 
   const confirmPendingMove = React.useCallback(() => {
     if (!pendingMove) return;
+    if (isMobileViewport() && !quickEditEnabled) {
+      setPendingMove(null);
+      return;
+    }
 
     const targetEndHour = pendingMove.targetHour + pendingMove.plan.duration;
     const conflictingEndHour = getPlanEndMinutes(pendingMove.conflictingPlan) / 60;
@@ -896,9 +909,10 @@ function ScheduleGridComponent({
       startHour: pendingMove.targetHour,
     });
     setPendingMove(null);
-  }, [onUpdatePlan, pendingMove]);
+  }, [onUpdatePlan, pendingMove, quickEditEnabled]);
 
   const handlePasteTask = React.useCallback(async (date: Date, hour: number) => {
+    if (isMobileViewport() && !quickEditEnabled) return;
     try {
       const copiedTask = await readCopiedTask();
       if (!copiedTask) {
@@ -942,7 +956,7 @@ function ScheduleGridComponent({
       console.error('Unable to paste task:', error);
       toast.error('Không thể dán task từ clipboard');
     }
-  }, [onAddPlan, plans, endHour]);
+  }, [onAddPlan, plans, endHour, quickEditEnabled]);
 
   const handleUnifiedClick = React.useCallback((date: Date, hour: number, existingPlan?: Plan) => {
     if (dragStateSuppressClick.current) {
@@ -966,6 +980,11 @@ function ScheduleGridComponent({
       setNewNotes(existing.notes || '');
       setIsDialogOpen(true);
     };
+
+    if (isMobileViewport() && !quickEditEnabled) {
+      if (existing?.notes?.trim()) openExistingPlan();
+      return;
+    }
 
     if (quickEditEnabled && existing) {
       if (clickTimer.current) {
