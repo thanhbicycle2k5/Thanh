@@ -481,6 +481,7 @@ function ScheduleGridComponent({
   const [isSharing, setIsSharing] = React.useState(false);
   const [draggingPlanId, setDraggingPlanId] = React.useState<string | null>(null);
   const [dragTarget, setDragTarget] = React.useState<{ day: string; hour: number } | null>(null);
+  const dragTargetRef = React.useRef<{ day: string; hour: number } | null>(null);
   const [pendingMove, setPendingMove] = React.useState<PendingMove | null>(null);
   const dragStateSuppressClick = React.useRef(false);
   const dragStateRef = React.useRef<{
@@ -628,17 +629,43 @@ function ScheduleGridComponent({
     const cell = element?.closest('td[data-schedule-cell="true"]') as HTMLTableCellElement | null;
     if (!cell?.dataset.day) return null;
 
-    const row = Array.from(document.querySelectorAll('tbody tr[data-schedule-hour]'))
-      .find((candidate) => {
-        const rect = candidate.getBoundingClientRect();
-        return clientY >= rect.top && clientY < rect.bottom;
-      }) as HTMLTableRowElement | undefined;
+    const rows = document.querySelectorAll<HTMLTableRowElement>('tbody tr[data-schedule-hour]');
+    let low = 0;
+    let high = rows.length - 1;
+    let row: HTMLTableRowElement | undefined;
+    while (low <= high) {
+      const middle = Math.floor((low + high) / 2);
+      const candidate = rows[middle];
+      const rect = candidate.getBoundingClientRect();
+      if (clientY < rect.top) {
+        high = middle - 1;
+      } else if (clientY >= rect.bottom) {
+        low = middle + 1;
+      } else {
+        row = candidate;
+        break;
+      }
+    }
     if (!row?.dataset.scheduleHour) return null;
 
     return {
       day: cell.dataset.day,
       hour: Number(row.dataset.scheduleHour),
     };
+  }, []);
+
+  const updateDragTarget = React.useCallback((clientX: number, clientY: number) => {
+    const target = getScheduleTarget(clientX, clientY);
+    const previous = dragTargetRef.current;
+    if (previous?.day === target?.day && previous?.hour === target?.hour) return;
+    dragTargetRef.current = target;
+    setDragTarget(target);
+  }, [getScheduleTarget]);
+
+  const clearDragTarget = React.useCallback(() => {
+    if (dragTargetRef.current === null) return;
+    dragTargetRef.current = null;
+    setDragTarget(null);
   }, []);
 
   const autoScrollWhileDragging = React.useCallback((clientX: number, clientY: number) => {
@@ -682,11 +709,11 @@ function ScheduleGridComponent({
       const state = dragStateRef.current;
       if (!state?.isDragging) return;
       autoScrollWhileDragging(state.clientX, state.clientY);
-      setDragTarget(getScheduleTarget(state.clientX, state.clientY));
+      updateDragTarget(state.clientX, state.clientY);
     }, 50);
 
     return () => window.clearInterval(timer);
-  }, [autoScrollWhileDragging, draggingPlanId, getScheduleTarget]);
+  }, [autoScrollWhileDragging, draggingPlanId, updateDragTarget]);
 
   const handlePlanClick = React.useCallback((e: React.MouseEvent<HTMLDivElement>) => {
     if (!dragStateSuppressClick.current) return;
@@ -717,16 +744,16 @@ function ScheduleGridComponent({
         state.isDragging = true;
         state.element.setPointerCapture(state.pointerId);
         setDraggingPlanId(plan.id);
-        setDragTarget(getScheduleTarget(state.clientX, state.clientY));
+        updateDragTarget(state.clientX, state.clientY);
       }, 1000),
       isDragging: false,
     };
-  }, [getScheduleTarget, quickEditEnabled]);
+  }, [getScheduleTarget, quickEditEnabled, updateDragTarget]);
 
   const finishPlanMove = React.useCallback((state: NonNullable<typeof dragStateRef.current>, clientX: number, clientY: number) => {
     if (isMobileViewport() && !quickEditEnabled) return;
     const target = getScheduleTarget(clientX, clientY);
-    setDragTarget(null);
+    clearDragTarget();
     if (!target) return;
 
     const targetDate = new Date(`${target.day}T00:00:00`);
@@ -778,7 +805,7 @@ function ScheduleGridComponent({
       startHour: target.hour,
       duration: adjustedDuration,
     });
-  }, [endHour, getScheduleTarget, onUpdatePlan, plans, quickEditEnabled]);
+  }, [clearDragTarget, endHour, getScheduleTarget, onUpdatePlan, plans, quickEditEnabled]);
 
   const handlePlanPointerMove = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'touch') return;
@@ -793,8 +820,8 @@ function ScheduleGridComponent({
 
     e.preventDefault();
     autoScrollWhileDragging(e.clientX, e.clientY);
-    setDragTarget(getScheduleTarget(e.clientX, e.clientY));
-  }, [autoScrollWhileDragging, getScheduleTarget]);
+    updateDragTarget(e.clientX, e.clientY);
+  }, [autoScrollWhileDragging, updateDragTarget]);
 
   const handlePlanPointerUp = React.useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     if (e.pointerType === 'touch') return;
@@ -834,11 +861,11 @@ function ScheduleGridComponent({
         if (!state || state.pointerId !== touch.identifier) return;
         state.isDragging = true;
         setDraggingPlanId(plan.id);
-        setDragTarget(getScheduleTarget(state.clientX, state.clientY));
+        updateDragTarget(state.clientX, state.clientY);
       }, 1000),
       isDragging: false,
     };
-  }, [getScheduleTarget, quickEditEnabled]);
+  }, [getScheduleTarget, quickEditEnabled, updateDragTarget]);
 
   const handlePlanTouchMove = React.useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     const state = dragStateRef.current;
@@ -851,8 +878,8 @@ function ScheduleGridComponent({
 
     e.preventDefault();
     autoScrollWhileDragging(touch.clientX, touch.clientY);
-    setDragTarget(getScheduleTarget(touch.clientX, touch.clientY));
-  }, [autoScrollWhileDragging, getScheduleTarget]);
+    updateDragTarget(touch.clientX, touch.clientY);
+  }, [autoScrollWhileDragging, updateDragTarget]);
 
   const handlePlanTouchEnd = React.useCallback((e: React.TouchEvent<HTMLDivElement>) => {
     const state = dragStateRef.current;

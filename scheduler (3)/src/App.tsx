@@ -161,6 +161,42 @@ function WeekNoteEditor({ weekStart, initialNote, theme, placeholder, surfaceCol
   );
 }
 
+const CountdownText = React.memo(function CountdownText({
+  deadline,
+  running,
+  seconds,
+  rounding = 'ceil',
+}: {
+  deadline: number | null;
+  running: boolean;
+  seconds: number;
+  rounding?: 'ceil' | 'round';
+}) {
+  const [displaySeconds, setDisplaySeconds] = React.useState(seconds);
+
+  React.useEffect(() => {
+    if (!running || deadline === null) {
+      setDisplaySeconds(seconds);
+      return;
+    }
+
+    const update = () => {
+      const remaining = (deadline - Date.now()) / 1000;
+      setDisplaySeconds(Math.max(0, rounding === 'round' ? Math.round(remaining) : Math.ceil(remaining)));
+    };
+    update();
+    const interval = window.setInterval(update, 1000);
+    return () => window.clearInterval(interval);
+  }, [deadline, rounding, running, seconds]);
+
+  return (
+    <>
+      {Math.floor(displaySeconds / 60).toString().padStart(2, '0')}:
+      {(displaySeconds % 60).toString().padStart(2, '0')}
+    </>
+  );
+});
+
 export default function App() {
   const shareId = typeof window !== 'undefined' ? getShareIdFromLocation(window.location) : null;
   return shareId ? <SharedScheduleView shareId={shareId} /> : <PlannerApp />;
@@ -616,7 +652,6 @@ function PlannerApp() {
 
     const tick = () => {
       const remaining = calculatePomodoroRemainingSeconds(pomodoroDeadline, Date.now());
-      React.startTransition(() => setPomodoroSecondsLeft(remaining));
 
       if (remaining <= 0) {
         playNotificationSound(settingsState.notificationSound);
@@ -2140,7 +2175,6 @@ function PlannerApp() {
 
     const tick = () => {
       const remaining = Math.max(0, Math.round((gymRestEndAt - Date.now()) / 1000));
-      setGymRestRemaining(remaining);
       if (remaining <= 0) {
         if (gymRestRound < gymRestSets) {
           const nextRound = gymRestRound + 1;
@@ -3663,8 +3697,11 @@ function PlannerApp() {
                         : "bg-teal-500/10 text-teal-600 dark:text-teal-400"
                     )}>
                       <div className="text-5xl font-black font-mono tracking-tighter">
-                        {Math.floor(pomodoroSecondsLeft / 60).toString().padStart(2, '0')}:
-                        {(pomodoroSecondsLeft % 60).toString().padStart(2, '0')}
+                      <CountdownText
+                        deadline={pomodoroDeadline}
+                        running={pomodoroRunning}
+                        seconds={pomodoroSecondsLeft}
+                      />
                       </div>
                       <p className="text-[10px] uppercase opacity-70 mt-1 font-bold tracking-widest">
                         {t(
@@ -3838,7 +3875,12 @@ function PlannerApp() {
 
                     <div className="rounded-[32px] border border-border bg-background p-5 text-center">
                       <div className="text-[3rem] font-black leading-none tracking-tight text-[#FF6B00]">
-                        {formatSeconds(gymRestRemaining)}
+                        <CountdownText
+                          deadline={gymRestEndAt}
+                          running={gymRestRunning}
+                          seconds={gymRestRemaining}
+                          rounding="round"
+                        />
                       </div>
                       <p className="text-xs uppercase opacity-70 mt-2 tracking-[0.3em]">{t('gymRestTimer')}</p>
                       <p className="text-sm font-bold mt-3">{t('setProgress', { current: String(gymRestRound), total: String(gymRestSets) })}</p>
