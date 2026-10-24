@@ -35,10 +35,10 @@ const quoteSeeds: QuoteSeed[] = [
       'Năng lượng hôm nay hơi tiết kiệm.', 'Scheduly vừa hỏi: học chưa?',
     ],
     followUps: [
-      'Nhưng tinh thần vẫn còn online.', 'Mình nghỉ một phút rồi làm tiếp nhé.',
-      'Chậm một chút cũng không sao.', 'Hôm nay vẫn còn nhiều cơ hội để cố gắng.',
-      'Chưa hoàn hảo, nhưng vẫn rất đáng yêu.', 'Một việc nhỏ thôi cũng tính là tiến bộ.',
-      'Hơi rén, nhưng chưa chịu thua.', 'Cứ bình tĩnh, mình xử lý từng bước.',
+      'Dù hôm nay thế nào, mình vẫn có thể đi từng bước.', 'Chậm một chút cũng được, miễn là mình vẫn đang cố gắng.',
+      'Mỗi ngày đều có chỗ cho một khởi đầu mới.', 'Mình cứ bình tĩnh, rồi sẽ tìm được cách.',
+      'Không cần hoàn hảo, chỉ cần đừng bỏ cuộc.', 'Một bước nhỏ hôm nay cũng là tiến bộ.',
+      'Cứ nghỉ khi cần, rồi mình lại tiếp tục nhé.', 'Mèo vẫn ở đây cổ vũ bạn.',
     ],
   },
   {
@@ -51,10 +51,10 @@ const quoteSeeds: QuoteSeed[] = [
       'Mạng Wi-Fi khuyên mình bình tĩnh.', 'Scheduly kết luận hôm nay cần vui trước.',
     ],
     followUps: [
-      'Mình cười trước để khỏi bị bất ngờ.', 'Chăm chỉ cũng cần giờ nghỉ.',
-      'Kiến thức đôi khi cần thêm chút caffeine.', 'Ai cũng cần một nút lưu cho ngày bận rộn.',
-      'Im lặng một lúc cũng là đang tải bài.', 'Nếu chưa hiểu thì ta đổi góc nhìn.',
-      'Ít nhất hôm nay mình đã có mặt.', 'Đùa một chút cho não bớt căng.',
+      'Ít nhất câu chuyện hôm nay đã có thêm một miếng hài.', 'Mèo xin phép cười một tiếng rồi cùng bạn làm tiếp.',
+      'Không hiểu thì mình thử hỏi lại, biết đâu câu trả lời cũng buồn cười.', 'Một chút hài hước giúp ngày bớt căng hơn.',
+      'Mèo ghi nhận: hôm nay trí tưởng tượng hoạt động rất tốt.', 'Cười xong nhớ uống nước rồi quay lại nhé.',
+      'Đôi khi bật cười cũng là một cách nạp lại năng lượng.', 'Câu chuyện này xứng đáng có thêm tiếng meo.',
     ],
   },
   {
@@ -67,10 +67,10 @@ const quoteSeeds: QuoteSeed[] = [
       'Bạn làm toán giỏi không?', 'Scheduly hỏi nhỏ: mình làm quen nhé?',
     ],
     followUps: [
-      'Ở gần bạn là mình tự động kết nối.', 'Bạn làm ngày dài dịu lại.',
+      'Ở gần bạn là mình tự động thấy vui hơn.', 'Bạn làm ngày dài dịu lại.',
       'Có bạn, lịch kín cũng thấy vui hơn.', 'Mình thích những cuộc trò chuyện có bạn.',
       'Bạn là lý do mình muốn đến lớp đúng giờ.', 'Gặp bạn xong, mình quên mất định than thở.',
-      'Mình chỉ hỏi nhẹ thôi, nhưng thật lòng đấy.', 'Nếu bạn đồng ý, hôm nay sẽ rất tuyệt.',
+      'Mình chỉ nói vậy thôi, nhưng thật lòng đấy.', 'Nếu bạn đồng ý, hôm nay sẽ rất tuyệt.',
     ],
   },
   {
@@ -83,9 +83,9 @@ const quoteSeeds: QuoteSeed[] = [
       'Mỗi lần bắt đầu lại đều đáng quý.', 'Mèo nhắc bạn hãy dịu dàng với mình.',
     ],
     followUps: [
-      'Bạn vẫn đang tiến về phía trước.', 'Thế là đủ để hôm nay đáng tự hào rồi.',
+      'Bạn vẫn đang tiến về phía trước theo nhịp của riêng mình.', 'Thế là đủ để hôm nay đáng tự hào rồi.',
       'Nghỉ ngơi không có nghĩa là bỏ cuộc.', 'Bạn xứng đáng được thở chậm lại.',
-      'Mỗi người có một nhịp riêng.', 'Ngày mai mình thử lại bằng một bước nhỏ nhé.',
+      'Mỗi người có một nhịp riêng, bạn không cần phải vội.', 'Ngày mai mình thử lại bằng một bước nhỏ nhé.',
       'Bạn không cần mang cả thế giới một mình.', 'Mọi nỗ lực tử tế đều có ý nghĩa.',
     ],
   },
@@ -99,10 +99,10 @@ const quoteSeeds: QuoteSeed[] = [
       'Một câu hỏi hay thường mở ra nhiều điều mới.', 'Sinh viên thông thái cũng biết nghỉ đúng lúc.',
     ],
     followUps: [
-      'Kiến thức sẽ dần biết đường vào.', 'Cứ làm từng phần, đừng ôm cả núi bài.',
-      'Một khởi đầu nhỏ vẫn là khởi đầu tốt.', 'Ngày mai sẽ bớt hoảng hơn một chút.',
-      'Điều quan trọng là mình thật sự bắt đầu.', 'Học đều một chút tốt hơn dồn hết một đêm.',
-      'Mèo có thể cổ vũ, nhưng bạn là người làm được.', 'Đừng quên uống nước giữa các chương.',
+      'Mỗi lần mở sách là kiến thức lại gần bạn thêm một chút.', 'Cứ chia bài thành từng phần, đừng ôm cả núi bài.',
+      'Một chương nhỏ vẫn là một khởi đầu tốt.', 'Ôn từng chút một sẽ giúp ngày mai bớt áp lực.',
+      'Điều quan trọng nhất là bạn đã thật sự bắt đầu.', 'Học đều một chút tốt hơn dồn hết vào một đêm.',
+      'Mèo cổ vũ bạn, còn từng bước tiến bộ là do chính bạn tạo nên.', 'Đừng quên uống nước giữa các chương nhé.',
     ],
   },
   {
@@ -115,10 +115,10 @@ const quoteSeeds: QuoteSeed[] = [
       'Keep going, bạn đang tiến bộ đấy.', 'Mèo học ngoại ngữ bằng những tiếng meo.',
     ],
     followUps: [
-      'Mỗi ngày một chút là đủ để đi xa.', 'Đừng ngại nói sai rồi sửa lại.',
-      'Bạn không cần biết hết ngay hôm nay.', 'A little practice can change a lot.',
-      'Từ mới sẽ thân quen sau vài lần gặp.', 'Keep going, you are doing better than you think.',
-      'Học ngoại ngữ cũng là học cách kiên nhẫn.', 'Mèo tin vào bạn, no matter the language.',
+      'A little practice each day can take you a long way.', 'Mistakes are part of learning, so keep trying.',
+      'You do not have to know everything today.', 'A little practice can make a big difference.',
+      'New words become familiar each time you meet them.', 'Keep going; you are doing better than you think.',
+      'Learning a language also means learning to be patient.', 'Scheduly believes in you, in every language.',
     ],
   },
   {
@@ -131,10 +131,10 @@ const quoteSeeds: QuoteSeed[] = [
       'Một ngày chậm giữa phố đông,', 'Mèo ru deadline ngủ ngoan,',
     ],
     followUps: [
-      'Học thêm một chút, ước mơ lại gần.', 'Bút đi cùng chữ, bình yên đi cùng mình.',
-      'Bạn cười một chút, ngày lành ghé thăm.', 'Mở thêm một trang, mở thêm một trời.',
-      'Mang theo hy vọng, nhẹ nhàng bước đi.', 'Gom vài từ mới, gieo một niềm tin.',
-      'Nghe câu mèo hát, bình yên ghé nhà.', 'Chậm thôi cũng được, miễn là đừng quên vui.',
+      'Thơ khẽ dừng lại, lòng mình nhẹ hơn.', 'Nghe câu mèo hát, bình yên ghé nhà.',
+      'Chậm thôi cũng được, miễn là đừng quên vui.', 'Ngày mai phía trước, ta bước nhẹ nhàng.',
+      'Học thêm một chút, ước mơ lại gần.', 'Mở thêm trang sách, đón một trời xanh.',
+      'Hy vọng theo ta qua ngày nắng mưa.', 'Giữ niềm vui nhỏ, lòng thấy an yên.',
     ],
   },
   {
@@ -147,10 +147,10 @@ const quoteSeeds: QuoteSeed[] = [
       'Mèo có móng vuốt, còn bạn có kế hoạch.', 'Chăm chỉ là chiếc chìa khóa, nghỉ ngơi là tay nắm.',
     ],
     followUps: [
-      'Có kế hoạch rồi thì mình đi từng bước.', 'Một câu đùa nhẹ làm ngày bớt nặng.',
-      'Đổi cách làm đôi khi là đã thông.', 'Thêm một từ mới là thêm một ô cửa.',
-      'Giữ lòng khiêm tốn, giữ đầu óc sáng.', 'Đừng quên chừa chỗ cho niềm vui.',
-      'Mèo gọi đó là chiến thuật mềm mại.', 'Vui một chút rồi quay lại làm tiếp.',
+      'Kế hoạch giúp mình bớt căng, không phải để tự làm khó mình.', 'Mèo đùa một chút để ngày bớt nặng.',
+      'Bí quá thì đổi cách làm, biết đâu lại thông.', 'Mỗi chữ mới là thêm một cơ hội chơi chữ.',
+      'Giữ đầu óc sáng, rồi mình sẽ nghĩ ra cách hay.', 'Lịch kín đến đâu cũng nhớ chừa chỗ để thở.',
+      'Mèo gọi đó là chiến thuật mềm mại.', 'Vui một chút rồi quay lại làm tiếp nhé.',
     ],
   },
   {
@@ -163,10 +163,10 @@ const quoteSeeds: QuoteSeed[] = [
       'Ngày mai được xây từ vài việc nhỏ của hôm nay.', 'Mèo triết gia nói: ngủ đủ cũng là minh triết.',
     ],
     followUps: [
-      'Đi chậm nhưng có hướng vẫn là đi.', 'Mỗi ngày hiểu thêm một chút là đủ.',
-      'Nghỉ đúng lúc giúp mình nhìn rõ hơn.', 'Tò mò là cách học rất tự nhiên.',
-      'Mèo đồng ý, sau một giấc ngủ ngon.', 'Không cần vội, điều bền vững cần thời gian.',
-      'Hôm nay làm tốt phần của hôm nay.', 'Đôi khi câu trả lời là một tách trà.',
+      'Một kế hoạch nên giúp ta tìm đường, chứ không trói chân mình.', 'Đi chậm nhưng có hướng vẫn là đi.',
+      'Nghỉ đúng lúc giúp ta nhìn rõ con đường hơn.', 'Tò mò là cách tự nhiên để mở thêm cánh cửa tri thức.',
+      'Điều bền vững cần thời gian, không cần vội vàng.', 'Con đường dài được tạo nên từ những bước nhỏ.',
+      'Hôm nay cứ làm tốt phần việc của hôm nay.', 'Đôi khi một tách trà cũng giúp ta suy nghĩ sáng rõ.',
     ],
   },
   {
@@ -178,10 +178,10 @@ const quoteSeeds: QuoteSeed[] = [
       'Nya nya, hôm nay cũng đáng yêu.', 'Scheduly tuyên bố: mình làm được!',
     ],
     followUps: [
-      'Hôm nay mình học một chút nha!', 'Đã đến giờ rót thêm tự tin rồi.',
-      'Đây là lời chào có đuôi mềm.', 'Mèo thấy bạn đang rất cố gắng.',
-      'Một khởi đầu đáng yêu đang chờ.', 'Uống nước rồi quay lại nhé.',
-      'Deadline đang kể chuyện, nhưng mình vẫn bình tĩnh.', 'Mèo sẵn sàng cổ vũ bạn hết cỡ.',
+      'Meow says: you can do it, one small step at a time!', 'Scheduly is here to cheer you on.',
+      'That was a soft little hello from your cat.', 'Meow, your effort is worth celebrating!',
+      'Every new start can be a lovely one.', 'Take a sip of water, then come back when you are ready.',
+      'Even when the deadline is near, let us stay calm.', 'Your cat is always ready to cheer you on!',
     ],
   },
 ];

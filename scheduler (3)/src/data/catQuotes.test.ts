@@ -22,13 +22,14 @@ test('random mascot quote does not repeat the previous quote', () => {
   assert.notEqual(nextQuote.id, previousQuote.id);
 });
 
-test('folk sayings add exactly 500 local entries to the mascot pool', () => {
-  assert.equal(folkSayings.length, 500);
-  assert.deepEqual(folkSayings.map((saying) => saying.id), Array.from({ length: 500 }, (_, index) => index + 1));
-  assert.equal(new Set(folkSayings.map((saying) => saying.text)).size, 500);
+test('folk sayings use complete standalone proverbs and paired verse lines', () => {
+  assert.ok(folkSayings.length > 50);
+  assert.deepEqual(folkSayings.map((saying) => saying.id), Array.from({ length: folkSayings.length }, (_, index) => index + 1));
+  assert.equal(new Set(folkSayings.map((saying) => saying.text)).size, folkSayings.length);
   assert.ok(folkSayings.every((saying) => saying.text.trim().length > 0));
+  assert.ok(folkSayings.every((saying) => /[.!?]$/.test(saying.text)));
   assert.deepEqual(new Set(folkSayings.map((saying) => saying.kind)), new Set(['ca-dao', 'tuc-ngu']));
-  assert.equal(allCatQuotes.length, 1000);
+  assert.equal(allCatQuotes.length, catQuotes.length + folkSayings.length);
 });
 
 test('pomodoro encouragement pool contains 500 unique cheerful lines', () => {

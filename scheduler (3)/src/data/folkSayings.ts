@@ -51,39 +51,21 @@ const folkLines = [
   'Ai ơi giữ chí cho bền,', 'Dù ai xoay hướng đổi nền mặc ai.',
 ];
 
-const gentleEndings = [
-  'Nhắc người kiên nhẫn, giữ lòng thủy chung.',
-  'Dạy ta tử tế, biết cùng sẻ chia.',
-  'Khuyên người bền chí, sớm khuya gắng làm.',
-  'Giữ cho nghĩa nặng, tình sâu lâu bền.',
-  'Để lòng thanh thản, bước chân nhẹ nhàng.',
-  'Mèo nghe cũng gật, bạn làm được thôi.',
-  'Học thêm một chút, ngày mai thêm vui.',
-  'Sống sao cho đẹp, để đời mến thương.',
-  'Chậm mà chắc bước, rồi đường sẽ thông.',
-  'Gom điều tử tế, thành vòng bình an.',
-];
-
 function buildFolkSayings(): FolkSaying[] {
   const sayings: FolkSaying[] = [];
   let id = 1;
-  const usedTexts = new Set<string>();
 
-  const addSaying = (kind: FolkSayingKind, text: string) => {
-    if (usedTexts.has(text) || sayings.length >= 500) return;
-    usedTexts.add(text);
-    sayings.push({ id: id++, kind, text });
-  };
+  proverbLines.forEach((text) => sayings.push({ id: id++, kind: 'tuc-ngu', text }));
 
-  proverbLines.forEach((text) => addSaying('tuc-ngu', text));
-  folkLines.forEach((text) => addSaying('ca-dao', text));
-
-  const sourceLines = [...proverbLines, ...folkLines];
-  for (const source of sourceLines) {
-    for (const ending of gentleEndings) {
-      addSaying(sourceLines.indexOf(source) < proverbLines.length ? 'tuc-ngu' : 'ca-dao', `${source} ${ending}`);
-      if (sayings.length >= 500) return sayings;
-    }
+  for (let index = 0; index + 1 < folkLines.length; index += 2) {
+    if (index === 18) continue;
+    const firstLine = folkLines[index].replace(/[,.!?;:]\s*$/, '');
+    const secondLine = folkLines[index + 1].replace(/[,.!?;:]\s*$/, '');
+    sayings.push({
+      id: id++,
+      kind: 'ca-dao',
+      text: `${firstLine}, ${secondLine.charAt(0).toLocaleLowerCase()}${secondLine.slice(1)}.`,
+    });
   }
 
   return sayings;
