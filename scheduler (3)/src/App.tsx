@@ -544,6 +544,7 @@ function PlannerApp() {
   const [pomodoroMode, setPomodoroMode] = React.useState<PomodoroMode>('work');
   const [pomodoroSecondsLeft, setPomodoroSecondsLeft] = React.useState(POMODORO_DURATIONS.work);
   const [pomodoroRunning, setPomodoroRunning] = React.useState(false);
+  const [pomodoroHasStarted, setPomodoroHasStarted] = React.useState(false);
   const [pomodoroSoundEnabled, setPomodoroSoundEnabled] = React.useState(true);
   const [pomodoroDeadline, setPomodoroDeadline] = React.useState<number | null>(null);
   const [pomodoroSessions, setPomodoroSessions] = React.useState(0);
@@ -650,9 +651,16 @@ function PlannerApp() {
 
   const togglePomodoro = () => {
     if (pomodoroRunning) {
+      if (pomodoroDeadline !== null) {
+        setPomodoroSecondsLeft(calculatePomodoroRemainingSeconds(pomodoroDeadline, Date.now()));
+      }
       setPomodoroRunning(false);
       setPomodoroDeadline(null);
       lastPomodoroMusicTrackRef.current = null;
+      audioRef.current?.pause();
+      youtubePlayerRef.current?.pauseVideo?.();
+      setIsMusicPlaying(false);
+      persistMusicState(selectedMusicId, musicPlaybackMode, false);
       return;
     }
 
@@ -660,6 +668,7 @@ function PlannerApp() {
     setPomodoroSecondsLeft(remainingSeconds);
     setPomodoroDeadline(Date.now() + remainingSeconds * 1000);
     setPomodoroRunning(true);
+    setPomodoroHasStarted(true);
     if (pomodoroSoundEnabled) {
       const trackId = selectedMusicId ?? playlistTracks[0]?.id;
       if (trackId) {
@@ -667,7 +676,9 @@ function PlannerApp() {
           handleUpdateSettings({ musicEnabled: true });
         }
         lastPomodoroMusicTrackRef.current = trackId;
-        void playTrack(trackId, true, true);
+        if (!isMusicPlaying) {
+          toggleMusic();
+        }
       }
     }
   };
@@ -676,12 +687,14 @@ function PlannerApp() {
     setPomodoroRunning(false);
     setPomodoroDeadline(null);
     setPomodoroSecondsLeft(POMODORO_DURATIONS[pomodoroMode]);
+    setPomodoroHasStarted(false);
   };
   const switchPomodoroMode = (mode: PomodoroMode) => {
     setPomodoroMode(mode);
     setPomodoroSecondsLeft(POMODORO_DURATIONS[mode]);
     setPomodoroDeadline(null);
     setPomodoroRunning(false);
+    setPomodoroHasStarted(false);
   };
 
   const firedNotificationIdsRef = React.useRef<Set<string>>(new Set());
@@ -768,6 +781,7 @@ function PlannerApp() {
   const [playlistTracks, setPlaylistTracks] = React.useState<MusicTrack[]>(PRESET_TRACKS);
   const [selectedMusicId, setSelectedMusicId] = React.useState<string | null>(null);
   const [isMusicPlaying, setIsMusicPlaying] = React.useState(false);
+  const [isMusicPopoverOpen, setIsMusicPopoverOpen] = React.useState(false);
   const [musicPlaybackMode, setMusicPlaybackMode] = React.useState<MusicPlaybackMode>('loop_all');
   const [musicInputUrl, setMusicInputUrl] = React.useState('');
   const [musicError, setMusicError] = React.useState<string | null>(null);
@@ -3106,10 +3120,10 @@ function PlannerApp() {
                <Search className={cn("w-4 h-4 transition-colors", isSearchOpen && "text-blue-600")} />
              </Button>
 
-             <Popover>
+             <Popover open={isMusicPopoverOpen} onOpenChange={setIsMusicPopoverOpen}>
                <PopoverTrigger asChild>
-                 <Button variant="ghost" size="icon" className={cn("h-9 w-9 shrink-0", isMusicPlaying && "text-red-500")} title={t('music')} aria-label={t('music')}>
-                    <Music className={cn("w-4 h-4 text-red-500 transition-all", isMusicPlaying && "animate-spin-slow")} />
+                 <Button variant="ghost" size="icon" className={cn("h-9 w-9 shrink-0", isMusicPopoverOpen && "text-red-500")} title={t('music')} aria-label={t('music')}>
+                    <Music className={cn("w-4 h-4 transition-all", isMusicPopoverOpen && "text-red-500", isMusicPlaying && "animate-spin-slow")} />
                  </Button>
                </PopoverTrigger>
                <PopoverContent className="w-80 p-4" align="end">
@@ -3682,7 +3696,7 @@ function PlannerApp() {
                         onClick={togglePomodoro}
                       >
                         {pomodoroRunning ? <Pause className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
-                        {pomodoroRunning ? t('pause') : t('start')}
+                        {pomodoroRunning ? t('pause') : pomodoroHasStarted ? t('resume') : t('start')}
                       </Button>
                       <Button 
                         variant="outline" 
