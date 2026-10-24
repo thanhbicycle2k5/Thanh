@@ -315,7 +315,11 @@ export function StreakSplash({ open, previousStreak, currentStreak, catColor, la
 
   return (
     <Dialog open={open} onOpenChange={(nextOpen) => { if (!nextOpen) onClose(); }}>
-      <DialogContent className="streak-splash max-w-md overflow-hidden border border-amber-300/80 bg-white p-0 text-emerald-950 shadow-[0_0_32px_rgba(250,204,21,0.45),0_12px_32px_rgba(0,0,0,0.18)]" style={{ fontFamily: '"Yeseva One", serif' }}>
+      <DialogContent
+        className="streak-splash max-w-md overflow-hidden border border-amber-300/80 bg-white p-0 text-emerald-950 shadow-[0_0_32px_rgba(250,204,21,0.45),0_12px_32px_rgba(0,0,0,0.18)]"
+        closeButtonClassName="border-emerald-800/20 bg-white text-emerald-950 hover:bg-emerald-50 hover:text-emerald-950"
+        style={{ fontFamily: '"Yeseva One", serif' }}
+      >
         <div className="relative overflow-hidden px-6 pb-6 pt-8 text-center">
           <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_0%_50%,rgba(250,204,21,0.28),transparent_28%),radial-gradient(ellipse_at_100%_50%,rgba(250,204,21,0.28),transparent_28%)]" />
           <img src="/task2goal-splash-square.png" alt="" className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-[0.12] mix-blend-multiply" />

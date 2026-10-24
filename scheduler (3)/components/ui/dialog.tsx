@@ -45,10 +45,12 @@ function DialogContent({
   style,
   showCloseButton = true,
   allowTouchScroll = false,
+  closeButtonClassName,
   ...props
 }: DialogPrimitive.Popup.Props & {
   showCloseButton?: boolean
   allowTouchScroll?: boolean
+  closeButtonClassName?: string
 }) {
   const [position, setPosition] = React.useState<{ x: number; y: number } | null>(null)
   const [dragState, setDragState] = React.useState<{
@@ -127,7 +129,10 @@ function DialogContent({
             render={
               <Button
                 variant="ghost"
-                className="absolute top-2 right-2 rounded-md border border-border bg-background shadow-sm hover:bg-muted"
+                className={cn(
+                  "absolute top-2 right-2 rounded-md border border-border bg-background shadow-sm hover:bg-muted",
+                  closeButtonClassName
+                )}
                 size="icon-sm"
               />
             }
