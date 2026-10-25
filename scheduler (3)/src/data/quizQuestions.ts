@@ -1,4 +1,4 @@
-export type QuizTopic = 'science' | 'geography' | 'history' | 'space' | 'nature' | 'culture';
+export type QuizTopic = 'science' | 'geography' | 'history' | 'space' | 'nature' | 'culture' | 'sports' | 'general';
 
 export interface QuizQuestion {
   id: string;
@@ -8,9 +8,10 @@ export interface QuizQuestion {
   correctIndex: number;
   explanation: { vi: string; en: string };
   source: { label: string; url: string };
+  questionLanguage?: 'vi' | 'en' | 'both';
 }
 
-export const QUIZ_TOPICS: QuizTopic[] = ['science', 'geography', 'history', 'space', 'nature', 'culture'];
+export const QUIZ_TOPICS: QuizTopic[] = ['science', 'geography', 'history', 'space', 'nature', 'culture', 'sports', 'general'];
 
 export const QUIZ_QUESTIONS: QuizQuestion[] = [
   {

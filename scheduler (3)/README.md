@@ -13,6 +13,7 @@ This contains everything you need to run your app locally.
 - Local-first storage with automatic migration
 - Pomodoro timer for focused work
 - Offline world-knowledge quiz with timed questions, cat reactions, local scores, and shareable results
+- Bundled Vietnamese starter pack and 1,000 English Open Trivia Database questions for offline play
 - Synthesized environmental sounds for notifications
 - Personalized health tips
 - Responsive design for mobile and desktop
@@ -36,6 +37,12 @@ npx firebase-tools deploy --only firestore:rules,firestore:indexes --project wad
    `npm install`
 2. Run the app:
    `npm run dev`
+
+### Quiz question data
+
+The English offline quiz pack is derived from the [Open Trivia Database](https://opentdb.com/) under the [Creative Commons Attribution-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-sa/4.0/). The app credits OpenTDB in the quiz and links to the license. If adapting or redistributing the English question data, keep the attribution and share adapted question data under CC BY-SA 4.0. The Vietnamese starter pack is maintained separately and includes per-question references.
+
+To refresh the English pack from OpenTDB, run `node scripts/download-open-trivia-pack.mjs 1000` from this project directory. The API rate limit means downloading a large pack takes a few minutes.
 
 ## Scheduly AI
 
