@@ -12,6 +12,7 @@ This contains everything you need to run your app locally.
 - Public weekly, monthly, and yearly leaderboards based on task completion rate
 - Local-first storage with automatic migration
 - Pomodoro timer for focused work
+- Offline world-knowledge quiz with timed questions, cat reactions, local scores, and shareable results
 - Synthesized environmental sounds for notifications
 - Personalized health tips
 - Responsive design for mobile and desktop

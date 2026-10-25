@@ -72,6 +72,7 @@ import {
   Mail,
   Phone,
   Pencil,
+  Gamepad2,
 } from 'lucide-react';
 import { Calendar as CalendarUI } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -121,6 +122,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+
+const LazyQuizGame = React.lazy(() => import('./components/QuizGame').then(({ QuizGame }) => ({ default: QuizGame })));
 
 function WeekNoteEditor({ weekStart, initialNote, theme, placeholder, surfaceColor, onSave, btnSaveText, btnSavedText }: {
   weekStart: Date;
@@ -457,6 +460,7 @@ function PlannerApp() {
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   const [isTodayPopoverOpen, setIsTodayPopoverOpen] = React.useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = React.useState(false);
+  const [isQuizOpen, setIsQuizOpen] = React.useState(false);
   const [openWeekPopoverKey, setOpenWeekPopoverKey] = React.useState<string | null>(null);
   const [isOnline, setIsOnline] = React.useState(navigator.onLine);
   const [streakTodayKey, setStreakTodayKey] = React.useState(() => getLocalDateKey(new Date()));
@@ -1880,6 +1884,14 @@ function PlannerApp() {
     setIsSchedulyChatOpen(true);
   }, []);
 
+  const handleCatSwipeLeft = React.useCallback(() => {
+    if (catClickTimeoutRef.current !== null) {
+      window.clearTimeout(catClickTimeoutRef.current);
+      catClickTimeoutRef.current = null;
+    }
+    setIsQuizOpen(true);
+  }, []);
+
   const handleCheckLocalAI = React.useCallback(async () => {
     setLocalAIStatus('CHECKING');
     try {
@@ -3166,6 +3178,16 @@ function PlannerApp() {
              >
                <Search className={cn("w-4 h-4 transition-colors", isSearchOpen && "text-blue-600")} />
              </Button>
+             <Button
+               variant="ghost"
+               size="icon"
+               className={cn("h-9 w-9 shrink-0", isQuizOpen && "text-emerald-600")}
+               onClick={() => setIsQuizOpen(true)}
+               title={settingsState.language === 'vi' ? 'Đố vui thế giới' : 'World quiz'}
+               aria-label={settingsState.language === 'vi' ? 'Mở trò chơi đố vui' : 'Open world quiz'}
+             >
+               <Gamepad2 className="h-4 w-4" />
+             </Button>
 
              <Popover open={isMusicPopoverOpen} onOpenChange={setIsMusicPopoverOpen}>
                <PopoverTrigger asChild>
@@ -3938,6 +3960,7 @@ function PlannerApp() {
                   size="sm"
                   onClick={handleCatClick}
                   onDoubleClick={handleCatDoubleClick}
+                  onSwipeLeft={handleCatSwipeLeft}
                 />
               </motion.div>
             </div>
@@ -4657,6 +4680,15 @@ function PlannerApp() {
           </div>
         </DialogContent>}
       </Dialog>
+      {isQuizOpen && (
+        <React.Suspense fallback={<div className="fixed inset-0 z-[120] grid place-items-center bg-background text-sm font-semibold text-muted-foreground">{settingsState.language === 'vi' ? 'Đang mở trò chơi...' : 'Loading game...'}</div>}>
+          <LazyQuizGame
+            language={settingsState.language}
+            catColor={settingsState.catColor ?? 'yellow'}
+            onClose={() => setIsQuizOpen(false)}
+          />
+        </React.Suspense>
+      )}
     </div>
   );
 }

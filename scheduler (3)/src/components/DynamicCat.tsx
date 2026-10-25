@@ -39,6 +39,7 @@ interface DynamicCatProps {
   className?: string;
   onClick?: () => void;
   onDoubleClick?: () => void;
+  onSwipeLeft?: () => void;
 }
 
 const getColorStyles = (color: CatColor | undefined) => {
@@ -217,16 +218,42 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
   className,
   onClick,
   onDoubleClick,
+  onSwipeLeft,
 }) => {
   const [isClicked, setIsClicked] = React.useState(false);
+  const pointerStartRef = React.useRef<{ x: number; y: number; pointerId: number } | null>(null);
+  const suppressClickRef = React.useRef(false);
   const pose = CatPoses[mood];
   const isAnimating = mood === 'gym' || mood === 'celebrating';
   const colorStyles = getColorStyles(color as CatColor);
 
   const handleClick = () => {
+    if (suppressClickRef.current) {
+      suppressClickRef.current = false;
+      return;
+    }
     setIsClicked(true);
     window.setTimeout(() => setIsClicked(false), 600);
     onClick?.();
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    pointerStartRef.current = { x: event.clientX, y: event.clientY, pointerId: event.pointerId };
+  };
+
+  const handlePointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const start = pointerStartRef.current;
+    pointerStartRef.current = null;
+    if (!start || start.pointerId !== event.pointerId) return;
+
+    const deltaX = event.clientX - start.x;
+    const deltaY = event.clientY - start.y;
+    if (deltaX <= -56 && Math.abs(deltaX) > Math.abs(deltaY) * 1.2) {
+      event.preventDefault();
+      suppressClickRef.current = true;
+      window.setTimeout(() => { suppressClickRef.current = false; }, 500);
+      onSwipeLeft?.();
+    }
   };
 
   return (
@@ -249,7 +276,10 @@ export const DynamicCat: React.FC<DynamicCatProps> = ({
       whileTap={{ scale: 0.96 }}
       onClick={handleClick}
       onDoubleClick={onDoubleClick}
-      className={cn(sizeMap[size], className, 'cursor-pointer select-none')}
+      onPointerDown={handlePointerDown}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={() => { pointerStartRef.current = null; }}
+      className={cn(sizeMap[size], className, 'cursor-pointer select-none touch-pan-y')}
     >
       <img src={getCatImage(color)} alt="Cat mascot" className="h-full w-full object-contain" draggable={false} />
       {false && <svg
