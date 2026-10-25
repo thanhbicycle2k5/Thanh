@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
 const target = resolve('src/data/openTriviaQuestions.ts');
@@ -85,22 +85,24 @@ function topicFor(category) {
   return topic;
 }
 
-function normalizeQuestion(result) {
+function normalizeQuestion(result, existingTranslations) {
   const question = decode(result.question).trim();
   const correctAnswer = decode(result.correct_answer).trim();
   const incorrectAnswers = result.incorrect_answers.map(decode).map((answer) => answer.trim());
   const answers = [...incorrectAnswers, correctAnswer];
   if (!question || answers.length !== 4 || new Set(answers.map((answer) => answer.toLocaleLowerCase())).size !== 4) return null;
   const id = createHash('sha256').update(question.toLocaleLowerCase()).digest('hex').slice(0, 20);
+  const existing = existingTranslations.get(`opentdb-${id}`);
+  const translatedAnswers = new Map(existing?.answers.en.map((answer, index) => [answer, existing.answers.vi[index]]));
   return {
     id: `opentdb-${id}`,
     topic: topicFor(decode(result.category)),
-    question: { vi: question, en: question },
-    answers: { vi: answers, en: answers },
+    question: { vi: existing?.question.en === question ? existing.question.vi : question, en: question },
+    answers: { vi: answers.map((answer) => translatedAnswers.get(answer) ?? answer), en: answers },
     correctIndex: 3,
     explanation: { vi: '', en: '' },
     source: { label: 'Open Trivia Database (CC BY-SA 4.0)', url: 'https://opentdb.com/' },
-    questionLanguage: 'en',
+    questionLanguage: 'both',
   };
 }
 
@@ -129,6 +131,11 @@ function allocateCategoryQuotas(questionCount, availableCounts) {
 
 async function main() {
   if (!Number.isInteger(targetCount) || targetCount < 1) throw new Error('Question count must be a positive integer.');
+  const existingSource = await readFile(target, 'utf8');
+  const existingMatch = existingSource.match(/export const OPEN_TRIVIA_QUESTIONS: QuizQuestion\[\] = (\[[\s\S]*\]);\s*$/);
+  if (!existingMatch) throw new Error(`Could not read the existing question pack at ${target}.`);
+  const existingQuestions = JSON.parse(existingMatch[1]);
+  const existingTranslations = new Map(existingQuestions.map((question) => [question.id, question]));
   const globalCounts = await getJson('https://opentdb.com/api_count_global.php');
   const verifiedCounts = new Map([...categoryNames.keys()].map((id) => [
     id,
@@ -151,7 +158,7 @@ async function main() {
     lastRequestAt = Date.now();
     if (payload.response_code !== 0) throw new Error(`OpenTDB question request failed (code ${payload.response_code}).`);
     for (const result of payload.results) {
-      const question = normalizeQuestion(result);
+      const question = normalizeQuestion(result, existingTranslations);
       if (question) collected.set(question.id, question);
     }
     console.log(`Downloaded ${collected.size}/${targetCount} unique questions (${categoryNames.get(categoryId)}).`);
@@ -167,7 +174,7 @@ async function main() {
     lastRequestAt = Date.now();
     if (payload.response_code !== 0) throw new Error(`OpenTDB fill request failed (code ${payload.response_code}).`);
     for (const result of payload.results) {
-      const question = normalizeQuestion(result);
+      const question = normalizeQuestion(result, existingTranslations);
       if (question) collected.set(question.id, question);
     }
     if (!payload.results.length) throw new Error('OpenTDB returned no additional unique questions.');
@@ -177,7 +184,7 @@ async function main() {
   const questions = [...collected.values()].slice(0, targetCount);
   await mkdir(dirname(target), { recursive: true });
   await writeFile(target, `import type { QuizQuestion } from './quizQuestions';\n\nexport const OPEN_TRIVIA_QUESTIONS: QuizQuestion[] = ${JSON.stringify(questions)};\n`, 'utf8');
-  console.log(`Wrote ${questions.length} English questions to ${target}`);
+  console.log(`Wrote ${questions.length} OpenTDB questions, preserving available Vietnamese translations, to ${target}`);
 }
 
 main().catch((error) => {

@@ -22,7 +22,7 @@ const copy = {
     all: 'Tất cả chủ đề',
     topics: { science: 'Khoa học', geography: 'Địa lý', history: 'Lịch sử', space: 'Vũ trụ', nature: 'Thiên nhiên', culture: 'Văn hóa', sports: 'Thể thao', general: 'Tổng hợp' } satisfies Record<QuizTopic, string>,
     questionLanguage: 'Ngôn ngữ câu hỏi',
-    vietnamesePack: 'Tiếng Việt · 24 câu',
+    vietnamesePack: 'Tiếng Việt · 1.024 câu',
     englishPack: 'English · 1.000 câu',
     loadingPack: 'Đang nạp ngân hàng câu hỏi...',
     packLoadError: 'Không nạp được ngân hàng tiếng Anh. Hãy thử lại khi kết nối ổn định.',
@@ -52,7 +52,7 @@ const copy = {
     source: 'Nguồn tham khảo',
     close: 'Đóng trò chơi',
     loadingShare: 'Đang tạo ảnh...',
-    questionBank: 'Bộ câu hỏi tiếng Việt được biên soạn kèm nguồn tham khảo.',
+    questionBank: 'Bộ câu hỏi Open Trivia Database đã dịch sang tiếng Việt và có ghi nguồn.',
   },
   en: {
     title: 'World Quiz',
@@ -62,8 +62,8 @@ const copy = {
     all: 'All topics',
     topics: { science: 'Science', geography: 'Geography', history: 'History', space: 'Space', nature: 'Nature', culture: 'Culture', sports: 'Sports', general: 'General' } satisfies Record<QuizTopic, string>,
     questionLanguage: 'Question language',
-    vietnamesePack: 'Vietnamese · 24 questions',
-    englishPack: 'English · 1,000 questions',
+    vietnamesePack: 'Vietnamese · 1,024 questions',
+    englishPack: 'English · 1,024 questions',
     loadingPack: 'Loading question bank...',
     packLoadError: 'Could not load the English question bank. Try again when your connection is stable.',
     attribution: 'English question bank from Open Trivia Database, licensed CC BY-SA 4.0. Adaptations must be shared under the same license.',
@@ -92,7 +92,7 @@ const copy = {
     source: 'Reference',
     close: 'Close game',
     loadingShare: 'Creating image...',
-    questionBank: 'Vietnamese starter pack with references.',
+    questionBank: 'Open Trivia Database question pack translated into Vietnamese with attribution.',
   },
 } as const;
 
@@ -185,7 +185,7 @@ export function QuizGame({ language, catColor, onClose }: { language: Language; 
   const text = copy[language];
   const [stage, setStage] = React.useState<QuizStage>('welcome');
   const [topic, setTopic] = React.useState<QuizTopic | 'all'>('all');
-  const [questionLanguage, setQuestionLanguage] = React.useState<Language>(language);
+  const [questionLanguage, setQuestionLanguage] = React.useState<Language>('vi');
   const [englishQuestions, setEnglishQuestions] = React.useState<QuizQuestion[] | null>(null);
   const [questionPackLoading, setQuestionPackLoading] = React.useState(false);
   const [questionPackError, setQuestionPackError] = React.useState(false);
@@ -226,7 +226,7 @@ export function QuizGame({ language, catColor, onClose }: { language: Language; 
   }, []);
 
   React.useEffect(() => {
-    if (questionLanguage === 'en' && !englishQuestions && !questionPackError) {
+    if (!englishQuestions && !questionPackError) {
       void loadEnglishQuestionPack();
     }
   }, [englishQuestions, loadEnglishQuestionPack, questionLanguage, questionPackError]);
@@ -264,10 +264,8 @@ export function QuizGame({ language, catColor, onClose }: { language: Language; 
   }, [highScore, score, stage]);
 
   const questionBank = React.useMemo(
-    () => questionLanguage === 'vi'
-      ? QUIZ_QUESTIONS.filter((question) => question.questionLanguage !== 'en')
-      : [...QUIZ_QUESTIONS, ...(englishQuestions ?? [])],
-    [englishQuestions, questionLanguage],
+    () => [...QUIZ_QUESTIONS, ...(englishQuestions ?? [])],
+    [englishQuestions],
   );
   const availableTopics = React.useMemo(
     () => QUIZ_TOPICS.filter((availableTopic) => questionBank.some((question) => question.topic === availableTopic)),
@@ -406,14 +404,14 @@ export function QuizGame({ language, catColor, onClose }: { language: Language; 
                   ))}
                 </div>
               </div>
-              {questionLanguage === 'en' && questionPackLoading && <p role="status" className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{text.loadingPack}</p>}
+              {questionPackLoading && <p role="status" className="text-sm font-semibold text-emerald-700 dark:text-emerald-300">{text.loadingPack}</p>}
               {questionPackError && (
                 <div className="flex flex-wrap items-center gap-3 text-sm text-red-600" role="alert">
                   <span>{text.packLoadError}</span>
                   <button type="button" onClick={() => void loadEnglishQuestionPack()} className="font-bold underline underline-offset-2">{language === 'vi' ? 'Thử lại' : 'Retry'}</button>
                 </div>
               )}
-              <button type="button" disabled={questionLanguage === 'en' && (!englishQuestions || questionPackLoading)} onClick={startRound} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60 sm:w-auto">
+              <button type="button" disabled={!englishQuestions || questionPackLoading} onClick={startRound} className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-6 font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 disabled:cursor-wait disabled:opacity-60 sm:w-auto">
                 <Gamepad2 className="h-5 w-5" /> {text.start}
               </button>
             </div>
