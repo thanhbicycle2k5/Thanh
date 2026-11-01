@@ -306,7 +306,7 @@ export function SchedulyChat({ open, onClose, theme, language, catColor, plans, 
     }}>
       <section role="dialog" aria-modal="true" aria-labelledby="scheduly-chat-title" className={cn(
         'flex h-[min(720px,calc(100vh-1rem))] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border shadow-2xl sm:h-[min(720px,calc(100vh-3rem))]',
-        theme === 'dark' ? 'border-white/10 bg-[#17201b] text-white' : 'border-[#107C41]/15 bg-white text-slate-900'
+        theme === 'dark' ? 'border-white/10 bg-card text-card-foreground' : 'border-[#107C41]/15 bg-white text-slate-900'
       )}>
         <header className="flex items-center justify-between border-b border-white/15 bg-[#107C41] px-4 py-3.5 text-white sm:px-6">
           <div className="flex min-w-0 items-center gap-3">

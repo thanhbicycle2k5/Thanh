@@ -345,8 +345,8 @@ export function QuizGame({ language, catColor, onClose }: { language: Language; 
   const progress = stage === 'playing' && round.length ? ((questionIndex + 1) / round.length) * 100 : 0;
 
   return (
-    <div className="fixed inset-0 z-[120] flex flex-col overflow-y-auto bg-[#f7f8f3] text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-emerald-100 bg-white/90 px-4 backdrop-blur dark:border-slate-800 dark:bg-slate-950/90 sm:px-8">
+    <div className="fixed inset-0 z-[120] flex flex-col overflow-y-auto bg-[#f7f8f3] text-slate-900 dark:bg-card dark:text-card-foreground">
+      <header className="sticky top-0 z-10 flex min-h-16 items-center justify-between border-b border-emerald-100 bg-white/90 px-4 backdrop-blur dark:border-slate-700 dark:bg-card/90 sm:px-8">
         <button type="button" onClick={stage === 'playing' ? () => setStage('welcome') : onClose} className="inline-flex h-10 items-center gap-2 rounded-xl px-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800">
           {stage === 'playing' ? <ArrowLeft className="h-5 w-5" /> : <X className="h-5 w-5" />}
           <span className="hidden sm:inline">{stage === 'playing' ? text.back : text.close}</span>
