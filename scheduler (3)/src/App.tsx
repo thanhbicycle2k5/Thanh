@@ -3385,7 +3385,7 @@ function PlannerApp() {
              </div>
 
              {/* Copyright Footer - inside the card */}
-             <div className="border-t bg-muted/20 p-3 text-center">
+             <div className="border-t p-3 text-center" style={{ backgroundColor: noteSurfaceColor }}>
                <p className="text-xs text-muted-foreground">{t('inspiredBy')}</p>
              </div>
            </motion.div>
