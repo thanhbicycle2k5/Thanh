@@ -2137,6 +2137,79 @@ function PlannerApp() {
     { value: 'account', label: t('account'), icon: <CloudIcon className="w-4 h-4" /> },
   ], [t]);
 
+  const getSettingsPanelControls = React.useCallback(() => {
+    const panel = document.getElementById('settings-panel');
+    if (!panel) return [];
+    return Array.from(panel.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+    )).filter((control) => control.getClientRects().length > 0 && control.getAttribute('aria-hidden') !== 'true');
+  }, []);
+
+  const focusSettingsPanelControl = React.useCallback((edge: 'first' | 'last') => {
+    const controls = getSettingsPanelControls();
+    const control = edge === 'first' ? controls[0] : controls[controls.length - 1];
+    control?.focus();
+    control?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [getSettingsPanelControls]);
+
+  const moveSettingsTab = React.useCallback((direction: number) => {
+    const currentIndex = settingsTabs.findIndex((tab) => tab.value === activeSettingsTab);
+    const nextIndex = (currentIndex + direction + settingsTabs.length) % settingsTabs.length;
+    setActiveSettingsTab(settingsTabs[nextIndex].value);
+  }, [activeSettingsTab, settingsTabs]);
+
+  const handleSettingsPanelKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLElement>) => {
+    if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+    const target = event.target as HTMLElement;
+    if (target.closest('input, textarea, select, [contenteditable="true"], [role="combobox"], [role="slider"], [role="listbox"]')) return;
+
+    event.preventDefault();
+    const controlSelector = 'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+    const currentControl = target.closest<HTMLElement>(controlSelector);
+    if (!currentControl) {
+      if (event.key === 'ArrowUp') {
+        document.getElementById(`settings-tab-${activeSettingsTab}`)?.focus();
+      } else {
+        focusSettingsPanelControl('first');
+      }
+      return;
+    }
+
+    const currentRect = currentControl.getBoundingClientRect();
+    const currentX = currentRect.left + currentRect.width / 2;
+    const currentY = currentRect.top + currentRect.height / 2;
+    let nearestControl: HTMLElement | undefined;
+    let nearestScore = Infinity;
+    for (const control of getSettingsPanelControls()) {
+      if (control === currentControl) continue;
+      const rect = control.getBoundingClientRect();
+      const dx = rect.left + rect.width / 2 - currentX;
+      const dy = rect.top + rect.height / 2 - currentY;
+      const primary = event.key === 'ArrowLeft' ? -dx
+        : event.key === 'ArrowRight' ? dx
+          : event.key === 'ArrowUp' ? -dy : dy;
+      if (primary <= 0) continue;
+      const perpendicular = event.key === 'ArrowLeft' || event.key === 'ArrowRight' ? Math.abs(dy) : Math.abs(dx);
+      const score = primary + perpendicular * 1.5;
+      if (score < nearestScore) {
+        nearestScore = score;
+        nearestControl = control;
+      }
+    }
+
+    if (nearestControl) {
+      nearestControl.focus();
+      nearestControl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    } else if (event.key === 'ArrowUp') {
+      document.getElementById(`settings-tab-${activeSettingsTab}`)?.focus();
+    } else if (event.key === 'ArrowDown') {
+      focusSettingsPanelControl('first');
+    } else {
+      moveSettingsTab(event.key === 'ArrowRight' ? 1 : -1);
+      window.requestAnimationFrame(() => focusSettingsPanelControl('first'));
+    }
+  }, [activeSettingsTab, focusSettingsPanelControl, getSettingsPanelControls, moveSettingsTab]);
+
   const desktopFontClass = React.useMemo(() => {
     switch (settingsState.desktopFontSize) {
       case 'small':
@@ -4110,15 +4183,17 @@ function PlannerApp() {
                         aria-selected={activeSettingsTab === tab.value}
                         title={tab.label}
                         onKeyDown={(event) => {
-                          if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
-                          event.preventDefault();
-                          const direction = event.key === 'ArrowRight' ? 1 : -1;
-                          const nextIndex = (tabIndex + direction + settingsTabs.length) % settingsTabs.length;
-                          const nextTab = settingsTabs[nextIndex];
-                          setActiveSettingsTab(nextTab.value);
-                          window.requestAnimationFrame(() => {
-                            document.getElementById(`settings-tab-${nextTab.value}`)?.focus();
-                          });
+                          if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                            event.preventDefault();
+                            moveSettingsTab(event.key === 'ArrowRight' ? 1 : -1);
+                            window.requestAnimationFrame(() => {
+                              const nextTab = settingsTabs[(tabIndex + (event.key === 'ArrowRight' ? 1 : -1) + settingsTabs.length) % settingsTabs.length];
+                              document.getElementById(`settings-tab-${nextTab.value}`)?.focus();
+                            });
+                          } else if (event.key === 'ArrowDown') {
+                            event.preventDefault();
+                            focusSettingsPanelControl('first');
+                          }
                         }}
                         onClick={() => setActiveSettingsTab(tab.value)}
                         className={cn(
@@ -4150,6 +4225,7 @@ function PlannerApp() {
                   role="tabpanel"
                   aria-labelledby={`settings-tab-${activeSettingsTab}`}
                   tabIndex={0}
+                  onKeyDown={handleSettingsPanelKeyDown}
                   className="flex min-h-0 flex-1 justify-center overflow-y-auto p-3 sm:p-4 md:p-6"
                 >
                   <div className="w-full max-w-2xl">
