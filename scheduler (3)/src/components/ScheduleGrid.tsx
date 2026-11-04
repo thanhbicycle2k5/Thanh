@@ -1535,7 +1535,7 @@ function ScheduleGridComponent({
       </div>
       {onCreateShare && <div
         className="flex justify-end border-t border-border p-1.5"
-        style={{ backgroundColor: theme === 'dark' ? '#27272a' : '#f5f5f5' }}
+        style={{ backgroundColor: theme === 'dark' ? 'var(--card)' : '#f5f5f5' }}
       >
         <Button type="button" variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:bg-primary/10 hover:text-primary" aria-label="Chia sẻ lịch" title="Chia sẻ lịch" onClick={() => { setShareEndWeek(format(currentWeekStart, 'yyyy-MM-dd')); setShareLink(''); setShareId(''); setShareDialogOpen(true); }}>
           <Share2 className="h-4 w-4" />
