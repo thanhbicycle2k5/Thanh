@@ -522,7 +522,7 @@ function PlannerApp() {
     const handleOutsidePointerDown = (event: PointerEvent) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-      if (target.closest('[data-week-popover-content]')) return;
+      if (target.closest('[data-week-popover-content], [data-week-popover-trigger]')) return;
       suppressWeekPopoverClickRef.current = true;
       event.stopPropagation();
       setOpenWeekPopoverKey(null);
@@ -3073,7 +3073,7 @@ function PlannerApp() {
     ? Math.min(1, Math.max(0, settingsState.boardOpacity))
     : 1;
   const boardSurfaceColor = `color-mix(in srgb, var(--card) ${Math.max(2, visibleBoardOpacity * 100)}%, transparent)`;
-  const noteSurfaceColor = settingsState.theme === 'dark' ? '#27272a' : '#f5f5f5';
+  const noteSurfaceColor = 'var(--muted)';
   const isCurrentWeek = isSameWeek(selectedWeekStart, new Date(), { weekStartsOn: 1 });
   const weekSummaryContent = (
     <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
@@ -3577,7 +3577,10 @@ function PlannerApp() {
                   <React.Fragment key={i}>
                     <Popover
                       open={openWeekPopoverKey === key}
-                      onOpenChange={(open) => setOpenWeekPopoverKey(open ? key : null)}
+                      onOpenChange={(open) => {
+                        setOpenWeekPopoverKey(open ? key : null);
+                        if (open) setSelectedWeekStart(ws);
+                      }}
                     >
                       <PopoverTrigger asChild>
                         <button
@@ -3590,10 +3593,6 @@ function PlannerApp() {
                               ? "shadow-lg scale-105 border-2 border-[#107C41]"
                               : "text-muted-foreground border-border hover:border-primary/30"
                           )}
-                          onClick={() => {
-                            setSelectedWeekStart(ws);
-                            setOpenWeekPopoverKey((current) => current === key ? null : key);
-                          }}
                         >
                           {t('week')} {getISOWeek(ws)}
                           {meta.note && <span className="ml-1 opacity-50">✎</span>}
@@ -3644,7 +3643,8 @@ function PlannerApp() {
                                   queueWeekMetaCloudSave(key, { note: e.target.value });
                                }}
                                placeholder={t('weekNotePlaceholder')}
-                               className="text-xs min-h-[100px] resize-none rounded-xl bg-muted border-border"
+                               className="text-xs min-h-[100px] resize-none rounded-xl border-border placeholder:text-muted-foreground"
+                               style={{ backgroundColor: noteSurfaceColor, color: 'var(--foreground)' }}
                             />
                          </div>
                          
