@@ -339,7 +339,7 @@ class SettingsErrorBoundary extends React.Component<{
 }
 
 const WEEK_COLORS = [
-  { name: 'Default', value: 'bg-muted' },
+  { name: 'Default', value: 'bg-muted dark:bg-card' },
   { name: 'Red', value: 'bg-red-500/30 border-red-500/60' },
   { name: 'Green', value: 'bg-green-500/30 border-green-500/60' },
   { name: 'Blue', value: 'bg-blue-500/30 border-blue-500/60' },
@@ -348,6 +348,8 @@ const WEEK_COLORS = [
   { name: 'Orange', value: 'bg-orange-500/30 border-orange-500/60' },
 ];
 const LEGACY_WEEK_COLOR_CLASSES: Record<string, string> = {
+  'bg-muted': 'bg-muted dark:bg-card',
+  'bg-muted dark:bg-muted': 'bg-muted dark:bg-card',
   'bg-red-500/10 border-red-500/20': 'bg-red-500/30 border-red-500/60',
   'bg-green-500/10 border-green-500/20': 'bg-green-500/30 border-green-500/60',
   'bg-blue-500/10 border-blue-500/20': 'bg-blue-500/30 border-blue-500/60',
@@ -3073,7 +3075,7 @@ function PlannerApp() {
     ? Math.min(1, Math.max(0, settingsState.boardOpacity))
     : 1;
   const boardSurfaceColor = `color-mix(in srgb, var(--card) ${Math.max(2, visibleBoardOpacity * 100)}%, transparent)`;
-  const noteSurfaceColor = 'var(--muted)';
+  const noteSurfaceColor = settingsState.theme === 'dark' ? 'var(--card)' : '#f5f5f5';
   const isCurrentWeek = isSameWeek(selectedWeekStart, new Date(), { weekStartsOn: 1 });
   const weekSummaryContent = (
     <div className="w-fit rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
@@ -3571,7 +3573,7 @@ function PlannerApp() {
                 const isActive = isSameWeek(ws, selectedWeekStart, { weekStartsOn: 1 });
                 const key = format(ws, 'yyyy-MM-dd');
                 const meta = weekMetas[key] || {};
-                const colorValue = LEGACY_WEEK_COLOR_CLASSES[meta.color] || meta.color || 'bg-muted dark:bg-muted';
+                const colorValue = LEGACY_WEEK_COLOR_CLASSES[meta.color] || meta.color || 'bg-muted dark:bg-card';
                 
                 return (
                   <React.Fragment key={i}>
