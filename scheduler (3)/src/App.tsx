@@ -3261,7 +3261,6 @@ function PlannerApp() {
              >
                <Gamepad2 className="h-4 w-4" />
              </Button>
-
              <Popover open={isMusicPopoverOpen} onOpenChange={setIsMusicPopoverOpen}>
                <PopoverTrigger asChild>
                  <Button variant="ghost" size="icon" className={cn("h-9 w-9 shrink-0", (isMusicPopoverOpen || (pomodoroRunning && isMusicPlaying)) && "text-red-500")} title={t('music')} aria-label={t('music')}>
@@ -3723,6 +3722,17 @@ function PlannerApp() {
               <Pencil className={cn("w-5 h-5 transition-transform", quickTaskEditEnabled && "scale-110 rotate-[-8deg]")} />
             </button>
           )}
+
+          <a
+            href="https://steadent.vercel.app/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-2xl transition-all hover:scale-110 hover:bg-accent active:scale-95"
+            title="Steadent"
+            aria-label={settingsState.language === 'vi' ? 'Mở Steadent trong tab mới' : 'Open Steadent in a new tab'}
+          >
+            <img src="https://steadent.vercel.app/favicon.svg" alt="" className="h-8 w-8 rounded-lg" />
+          </a>
 
           {!isMobile && (
             <button
