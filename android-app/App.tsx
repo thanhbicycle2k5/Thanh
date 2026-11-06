@@ -1,17 +1,19 @@
 import { StatusBar } from 'expo-status-bar';
-import { useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Platform, StyleSheet, View } from 'react-native';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
 import { handleNativeAIRequest } from './nativeAI';
 
 const SCHEDULY_URL = process.env.EXPO_PUBLIC_SCHEDULY_URL ?? 'https://task2goal.vercel.app';
 const SCHEDULY_ORIGIN = new URL(SCHEDULY_URL).origin;
+const STEADENT_URL = 'https://steadent.vercel.app/';
+const STEADENT_ORIGIN = new URL(STEADENT_URL).origin;
 
 if (!SCHEDULY_URL.startsWith('https://')) {
   throw new Error('The Android app must load Scheduly from a secure HTTPS URL.');
 }
 
-function isAllowedSchedulyUrl(candidate: string): boolean {
+function isAllowedTask2GoalUrl(candidate: string): boolean {
   try {
     return new URL(candidate).origin === SCHEDULY_ORIGIN;
   } catch {
@@ -19,8 +21,20 @@ function isAllowedSchedulyUrl(candidate: string): boolean {
   }
 }
 
+function isAllowedAppUrl(candidate: string): boolean {
+  try {
+    const url = new URL(candidate);
+    return url.protocol === 'https:' && (
+      url.origin === SCHEDULY_ORIGIN || url.origin === STEADENT_ORIGIN
+    );
+  } catch {
+    return false;
+  }
+}
+
 const bridgeScript = `
 (function () {
+  if (window.location.origin !== ${JSON.stringify(SCHEDULY_ORIGIN)}) return true;
   if (window.schedulyNativeAI) return true;
   var nextId = 0;
   var pending = new Map();
@@ -76,6 +90,20 @@ type BridgeRequest = {
 
 export default function App() {
   const webViewRef = useRef<WebView>(null);
+  const [webViewUrl, setWebViewUrl] = useState(SCHEDULY_URL);
+  const [canGoBack, setCanGoBack] = useState(false);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android') return;
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (!canGoBack) return false;
+      webViewRef.current?.goBack();
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [canGoBack]);
 
   const sendToWeb = (message: Record<string, unknown>) => {
     const encoded = JSON.stringify(JSON.stringify(message));
@@ -83,7 +111,7 @@ export default function App() {
   };
 
   const onMessage = async (event: WebViewMessageEvent) => {
-    if (!isAllowedSchedulyUrl(event.nativeEvent.url)) {
+    if (!isAllowedTask2GoalUrl(event.nativeEvent.url)) {
       console.warn('Ignored native AI bridge message from an untrusted origin.');
       return;
     }
@@ -122,16 +150,29 @@ export default function App() {
       <StatusBar style="auto" />
       <WebView
         ref={webViewRef}
-        source={{ uri: SCHEDULY_URL }}
+        source={{ uri: webViewUrl }}
         style={styles.webView}
         originWhitelist={['https://*']}
         javaScriptEnabled
         domStorageEnabled
         cacheEnabled
         injectedJavaScriptBeforeContentLoaded={bridgeScript}
-        onLoadEnd={() => webViewRef.current?.injectJavaScript(bridgeScript)}
+        onLoadEnd={(event) => {
+          if (isAllowedTask2GoalUrl(event.nativeEvent.url)) {
+            webViewRef.current?.injectJavaScript(bridgeScript);
+          }
+        }}
         onMessage={onMessage}
-        onShouldStartLoadWithRequest={(request) => isAllowedSchedulyUrl(request.url)}
+        onNavigationStateChange={(navigation) => setCanGoBack(navigation.canGoBack)}
+        onOpenWindow={(event) => {
+          const targetUrl = event.nativeEvent.targetUrl;
+          if (!isAllowedAppUrl(targetUrl)) {
+            console.warn('Blocked a new window for an untrusted URL.');
+            return;
+          }
+          setWebViewUrl(targetUrl);
+        }}
+        onShouldStartLoadWithRequest={(request) => isAllowedAppUrl(request.url)}
         allowsBackForwardNavigationGestures={Platform.OS === 'ios'}
       />
     </View>
