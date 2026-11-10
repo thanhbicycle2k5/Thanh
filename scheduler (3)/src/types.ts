@@ -10,6 +10,7 @@ export interface Plan {
   duration: number;
   color: PlanColor;
   notes?: string;
+  isSkipped?: boolean;
   tags?: string[];
   reminderMinutes?: number | null;
   applyMode?: TaskApplyMode;

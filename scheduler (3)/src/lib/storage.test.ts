@@ -104,3 +104,17 @@ test('same task id keeps the newest version across desktop and mobile', () => {
   assert.equal(merged[0].notes, 'weekend');
   assert.equal(merged[0].recurrenceGroupId, 'weekly-root-1');
 });
+
+test('skipped status is retained when plans are normalized and merged', () => {
+  const [mergedPlan] = mergePlans([], [{
+    id: 'skipped-task',
+    title: 'Skipped',
+    date: '2026-10-19',
+    startHour: 9,
+    duration: 1,
+    color: 'gray',
+    isSkipped: true,
+  }]);
+
+  assert.equal(mergedPlan.isSkipped, true);
+});

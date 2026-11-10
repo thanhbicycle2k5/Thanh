@@ -48,8 +48,9 @@ export const getLeaderboardScore = (
     return planDate.getFullYear() === periodStart.getFullYear();
   });
 
-  const completed = periodPlans.filter((plan) => plan.color === 'green').length;
-  const total = periodPlans.length;
+  const countablePlans = periodPlans.filter((plan) => !plan.isSkipped);
+  const completed = countablePlans.filter((plan) => plan.color === 'green').length;
+  const total = countablePlans.length;
   return {
     periodStarting,
     completed,

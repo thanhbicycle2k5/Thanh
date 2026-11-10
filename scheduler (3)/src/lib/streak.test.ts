@@ -17,6 +17,7 @@ test('completed plans count once per local calendar date', () => {
   assert.deepEqual(getCompletedDayKeys([
     makePlan('first', '2026-10-02'),
     makePlan('second', '2026-10-02'),
+    { ...makePlan('skipped', '2026-10-03'), isSkipped: true },
     makePlan('not-done', '2026-10-03', 'yellow'),
   ]), ['2026-10-02']);
 });

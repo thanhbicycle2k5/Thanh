@@ -39,6 +39,20 @@ test('weekly score counts only plans within the requested week', () => {
   });
 });
 
+test('skipped plans are excluded from leaderboard totals', () => {
+  const skippedPlan = { ...makePlan('skipped', '2026-10-20', 'gray'), isSkipped: true };
+  assert.deepEqual(getLeaderboardScore([
+    makePlan('done', '2026-10-19', 'green'),
+    skippedPlan,
+    makePlan('pending', '2026-10-21', 'yellow'),
+  ], 'week', '2026-10-19'), {
+    periodStarting: '2026-10-19',
+    completed: 1,
+    total: 2,
+    score: 5000,
+  });
+});
+
 test('monthly and yearly scores include only plans from their calendar period', () => {
   const plans = [
     makePlan('october-done', '2026-10-05', 'green'),

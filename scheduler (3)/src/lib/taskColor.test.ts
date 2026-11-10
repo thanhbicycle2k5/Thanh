@@ -25,8 +25,9 @@ test('expired gray tasks stay locked and do not change color when clicked again'
   assert.equal(getColorForClickCount('gray', 3), 'gray');
 });
 
-test('third click resets task to default color', () => {
-  assert.equal(getColorForClickCount('green', 3), 'default');
+test('completed tasks stay green after any additional clicks', () => {
+  assert.equal(getColorForClickCount('green', 2), 'green');
+  assert.equal(getColorForClickCount('green', 3), 'green');
 });
 
 test('weekly repeated tasks do not create a duplicate entry on the original date', () => {

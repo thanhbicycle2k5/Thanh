@@ -41,6 +41,7 @@ export const normalizePlanForStorage = (plan: Partial<Plan>): Plan => {
     duration: typeof plan.duration === 'number' ? plan.duration : 1,
     color: plan.color || 'yellow',
     notes: plan.notes || undefined,
+    isSkipped: plan.isSkipped === true ? true : undefined,
     reminderMinutes: typeof plan.reminderMinutes === 'number' ? plan.reminderMinutes : 0,
     applyMode: plan.applyMode || 'none',
     applyDays: plan.applyDays || undefined,

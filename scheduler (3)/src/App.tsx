@@ -2429,10 +2429,11 @@ function PlannerApp() {
     }, 0);
   }, [searchQuery, searchResults]);
 
-  const searchCompletedCount = searchResults.filter((plan) => plan.color === 'green').length;
-  const searchCompletionRate = searchResults.length === 0
+  const countableSearchResults = searchResults.filter((plan) => !plan.isSkipped);
+  const searchCompletedCount = countableSearchResults.filter((plan) => plan.color === 'green').length;
+  const searchCompletionRate = countableSearchResults.length === 0
     ? 0
-    : Math.round((searchCompletedCount / searchResults.length) * 100);
+    : Math.round((searchCompletedCount / countableSearchResults.length) * 100);
 
   React.useEffect(() => {
     const handleSearchShortcut = (event: KeyboardEvent) => {
@@ -2819,8 +2820,9 @@ function PlannerApp() {
     window.setTimeout(() => setCatMoodOverride(null), 3000);
   }, [settingsState.catEnabled, settingsState.notificationSound]);
 
-  const totalPlansCount = currentWeekPlans.length;
-  const completedPlansCount = currentWeekPlans.filter(p => p.color === 'green').length;
+  const countableWeekPlans = currentWeekPlans.filter((plan) => !plan.isSkipped);
+  const totalPlansCount = countableWeekPlans.length;
+  const completedPlansCount = countableWeekPlans.filter((plan) => plan.color === 'green').length;
   const weeklyProgressPercent = totalPlansCount > 0
     ? Math.round((completedPlansCount / totalPlansCount) * 100)
     : 0;
@@ -4102,7 +4104,7 @@ function PlannerApp() {
 
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-lg border bg-muted/40 p-3">
-              <p className="text-xl font-black">{searchResults.length}</p>
+              <p className="text-xl font-black">{countableSearchResults.length}</p>
               <p className="text-[11px] text-muted-foreground">{t('tasksFound')}</p>
             </div>
             <div className="rounded-lg border bg-muted/40 p-3">
@@ -4135,13 +4137,13 @@ function PlannerApp() {
                     }}
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-semibold">{plan.title || t('enterTask')}</p>
+                      <p className={cn("truncate text-sm font-semibold", plan.isSkipped && "line-through")}>{plan.title || t('enterTask')}</p>
                       <p className="text-[11px] text-muted-foreground">{format(new Date(plan.date), 'd MMMM yyyy')}</p>
                       {plan.tags && plan.tags.length > 0 && (
                         <p className="truncate text-[11px] text-muted-foreground">{plan.tags.join(', ')}</p>
                       )}
                     </div>
-                    {plan.color === 'green' && <CheckCircle2 className="w-4 h-4 shrink-0 text-[#107C41]" />}
+                    {plan.color === 'green' && !plan.isSkipped && <CheckCircle2 className="w-4 h-4 shrink-0 text-[#107C41]" />}
                   </button>
                 ))}
               </div>
@@ -4735,8 +4737,9 @@ function PlannerApp() {
                 <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6">
             {weeks.map((ws) => {
               const weekPlans = plans.filter(p => isSameWeek(new Date(p.date), ws, { weekStartsOn: 1 }));
-              const completed = weekPlans.filter(p => p.color === 'green').length;
-              const total = weekPlans.length;
+              const countableWeekPlans = weekPlans.filter((plan) => !plan.isSkipped);
+              const completed = countableWeekPlans.filter(p => p.color === 'green').length;
+              const total = countableWeekPlans.length;
               const ratio = total > 0 ? (completed / total) : 0;
               
               return (

@@ -32,7 +32,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { START_MINUTE_OPTIONS, doPlanTimesOverlap, formatPlanTime, getPlanEndMinutes } from '../lib/taskTime';
+import { START_MINUTE_OPTIONS, doPlanTimesOverlap, formatPlanTime, getPlanEndMinutes, getTopmostNonOverlappingPlans } from '../lib/taskTime';
 import { getColorForClickCount } from '../lib/taskColor';
 import { createAppliedOccurrencePlan, getAppliedOccurrenceDateKeys } from '../lib/taskRecurrence';
 import { getTaskClipboardText, parsePlainTask, type CopiedTask } from '../lib/taskClipboard';
@@ -198,7 +198,7 @@ interface ScheduleCellProps {
   plan?: Plan;
   isPartOfPreviousPlan: boolean;
   day: Date;
-  handleUnifiedClick: (date: Date, hour: number, existingPlan?: Plan) => void;
+  handleUnifiedClick: (date: Date, hour: number, existingPlan?: Plan | null) => void;
   handlePasteTask: (date: Date, hour: number) => void;
   showPasteAction: boolean;
   handleShowPasteAction: (cellKey: string) => void;
@@ -270,7 +270,7 @@ const ScheduleCell = React.memo(function ScheduleCell({
         backgroundImage: 'none',
         borderColor: 'var(--border)',
       }}
-      onClick={() => handleUnifiedClick(day, hour)}
+      onClick={() => handleUnifiedClick(day, hour, plan ?? null)}
       onContextMenu={(e) => {
         if (plan) return;
         if (isMobileViewport() && !quickEditEnabled) {
@@ -310,7 +310,7 @@ const ScheduleCell = React.memo(function ScheduleCell({
               {formatPlanTime(plan.startHour, plan.startMinute ?? 0)}
             </span>
           )}
-          <span className={cn(plan.title === '' && "italic opacity-30")}>
+          <span className={cn(plan.title === '' && "italic opacity-30", plan.isSkipped && "line-through")}>
             {plan.title || t('enterTask')}
           </span>
           {plan.duration > 1 && (
@@ -428,6 +428,8 @@ function ScheduleGridComponent({
 
   const [editingPlan, setEditingPlan] = React.useState<Plan | null>(null);
   const [isDialogOpen, setIsDialogOpen] = React.useState(false);
+  const [notePreviewPlan, setNotePreviewPlan] = React.useState<Plan | null>(null);
+  const [grayTaskToResolve, setGrayTaskToResolve] = React.useState<Plan | null>(null);
   const [pasteActionCell, setPasteActionCell] = React.useState<string | null>(null);
 
   React.useEffect(() => {
@@ -552,19 +554,30 @@ function ScheduleGridComponent({
     return Array.from({ length: 7 }, (_, i) => addDays(currentWeekStart, i));
   }, [currentWeekStart]);
 
+  const visiblePlans = React.useMemo(() => getTopmostNonOverlappingPlans(plans), [plans]);
+
   const occupiedHoursMap = React.useMemo(() => {
     const map = new Map<string, boolean>();
-    plans.forEach((plan) => {
+    visiblePlans.forEach((plan) => {
       const dayKey = format(new Date(plan.date), 'yyyy-MM-dd');
       for (let hour = plan.startHour + 1; hour < plan.startHour + plan.duration; hour += 1) {
         map.set(`${dayKey}#${hour}`, true);
       }
     });
     return map;
-  }, [plans]);
+  }, [visiblePlans]);
 
-  const clickCount = React.useRef(0);
-  const clickTimer = React.useRef<NodeJS.Timeout | null>(null);
+  const pendingPlanClick = React.useRef<{
+    planId: string;
+    timer: number;
+    onSingleClick: () => void;
+  } | null>(null);
+
+  React.useEffect(() => () => {
+    if (pendingPlanClick.current) {
+      window.clearTimeout(pendingPlanClick.current.timer);
+    }
+  }, []);
 
   React.useEffect(() => {
     if (!isDialogOpen) return;
@@ -975,13 +988,15 @@ function ScheduleGridComponent({
     }
   }, [onAddPlan, plans, endHour, quickEditEnabled]);
 
-  const handleUnifiedClick = React.useCallback((date: Date, hour: number, existingPlan?: Plan) => {
+  const handleUnifiedClick = React.useCallback((date: Date, hour: number, existingPlan?: Plan | null) => {
     if (dragStateSuppressClick.current) {
       dragStateSuppressClick.current = false;
       return;
     }
 
-    const existing = existingPlan ?? plans.find(p => isSameDay(new Date(p.date), date) && p.startHour === hour);
+    const existing = existingPlan === undefined
+      ? plans.find(p => isSameDay(new Date(p.date), date) && p.startHour === hour)
+      : existingPlan;
     const openExistingPlan = () => {
       if (!existing) return;
       setEditingPlan(existing);
@@ -999,30 +1014,13 @@ function ScheduleGridComponent({
     };
 
     const isLockedMobile = isMobileViewport() && !quickEditEnabled;
-    if (isLockedMobile) {
-      if (existing?.notes?.trim()) {
-        openExistingPlan();
-        return;
-      }
-      if (!existing || existing.title === '') return;
-    }
-
-    if (quickEditEnabled && existing) {
-      if (clickTimer.current) {
-        clearTimeout(clickTimer.current);
-        clickTimer.current = null;
-      }
-      clickCount.current = 0;
-
-      openExistingPlan();
-      return;
-    }
 
     if (!existing || existing.title === '') {
-      if (clickTimer.current) {
-        clearTimeout(clickTimer.current);
-        clickTimer.current = null;
-        clickCount.current = 0;
+      if (pendingPlanClick.current) {
+        const pending = pendingPlanClick.current;
+        window.clearTimeout(pending.timer);
+        pendingPlanClick.current = null;
+        pending.onSingleClick();
       }
 
       if (existing) {
@@ -1052,39 +1050,41 @@ function ScheduleGridComponent({
       return;
     }
 
-    clickCount.current += 1;
-
-    if (clickTimer.current) {
-      clearTimeout(clickTimer.current);
+    const handleSingleClick = () => {
+      if (existing.notes?.trim()) {
+        setNotePreviewPlan(existing);
+      } else if (!isLockedMobile) {
+        openExistingPlan();
+      }
+    };
+    const pending = pendingPlanClick.current;
+    if (pending && pending.planId !== existing.id) {
+      window.clearTimeout(pending.timer);
+      pendingPlanClick.current = null;
+      pending.onSingleClick();
+    } else if (pending) {
+      window.clearTimeout(pending.timer);
+      pendingPlanClick.current = null;
+      if (existing.color === 'gray') {
+        setGrayTaskToResolve(existing);
+      } else if (existing.color !== 'green') {
+        const nextColor = getColorForClickCount(existing.color, 2);
+        onUpdatePlan({ ...existing, color: nextColor, isSkipped: false }, { suppressCompletionToast: true });
+      }
+      return;
     }
 
-    clickTimer.current = setTimeout(() => {
-      if (existing.color === 'gray') {
-        clickCount.current = 0;
-        clickTimer.current = null;
-        return;
-      }
-
-      const nextColor = getColorForClickCount(existing.color, clickCount.current);
-      const updated = { ...existing, color: nextColor };
-
-      if (clickCount.current === 1) {
-        clickCount.current = 0;
-        clickTimer.current = null;
-        if (!isLockedMobile) openExistingPlan();
-        return;
-      }
-
-      if (clickCount.current === 2) {
-        if (nextColor !== existing.color) {
-          onUpdatePlan(updated, { suppressCompletionToast: true });
-        }
-      } else if (clickCount.current >= 3) {
-        onUpdatePlan(updated);
-      }
-      clickCount.current = 0;
-      clickTimer.current = null;
+    const nextPending = {
+      planId: existing.id,
+      timer: 0,
+      onSingleClick: handleSingleClick,
+    };
+    nextPending.timer = window.setTimeout(() => {
+      if (pendingPlanClick.current !== nextPending) return;
+      pendingPlanClick.current = null;
+      nextPending.onSingleClick();
     }, 300);
+    pendingPlanClick.current = nextPending;
   }, [onUpdatePlan, plans, quickEditEnabled]);
 
   const isLegacyAppliedOccurrence = (source: Plan, candidate: Plan, allowTitleMismatch = false) => {
@@ -1146,12 +1146,12 @@ function ScheduleGridComponent({
 
   const planMap = React.useMemo(() => {
     const map = new Map<string, Plan>();
-    plans.forEach((plan) => {
+    visiblePlans.forEach((plan) => {
       const dayKey = format(new Date(plan.date), 'yyyy-MM-dd');
       map.set(`${dayKey}#${plan.startHour}`, plan);
     });
     return map;
-  }, [plans]);
+  }, [visiblePlans]);
 
   const isAppliedOccurrence = (plan: Plan | null) => Boolean(getAppliedSourcePlan(plan));
 
@@ -1954,6 +1954,63 @@ function ScheduleGridComponent({
               }}
             >
               {t('save')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={notePreviewPlan !== null}
+        onOpenChange={(open) => {
+          if (!open) setNotePreviewPlan(null);
+        }}
+      >
+        <DialogContent className="max-w-lg bg-card">
+          <DialogHeader>
+            <DialogTitle>{notePreviewPlan?.title || t('notes')}</DialogTitle>
+            <DialogDescription>{t('notes')}</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap break-words text-sm text-foreground">
+            {notePreviewPlan?.notes}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={grayTaskToResolve !== null}
+        onOpenChange={(open) => {
+          if (!open) setGrayTaskToResolve(null);
+        }}
+      >
+        <DialogContent className="max-w-md bg-card">
+          <DialogHeader>
+            <DialogTitle>{t('grayTaskPrompt')}</DialogTitle>
+            <DialogDescription>{grayTaskToResolve?.title}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-wrap gap-2 sm:justify-end">
+            <Button
+              type="button"
+              onClick={() => {
+                if (!grayTaskToResolve) return;
+                void onUpdatePlan({ ...grayTaskToResolve, color: 'green', isSkipped: false });
+                setGrayTaskToResolve(null);
+              }}
+            >
+              {t('markCompleted')}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (!grayTaskToResolve) return;
+                void onUpdatePlan({ ...grayTaskToResolve, isSkipped: true }, { suppressCompletionToast: true });
+                setGrayTaskToResolve(null);
+              }}
+            >
+              {t('notPerformed')}
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => setGrayTaskToResolve(null)}>
+              {t('notCompleted')}
             </Button>
           </DialogFooter>
         </DialogContent>

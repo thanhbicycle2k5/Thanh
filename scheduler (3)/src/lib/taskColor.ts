@@ -2,13 +2,8 @@ import { format } from 'date-fns';
 import { PlanColor } from '../types';
 
 export const getColorForClickCount = (currentColor: PlanColor, clickCount: number): PlanColor => {
-  if (currentColor === 'gray') {
-    return 'gray';
-  }
-
-  if (clickCount === 1) return currentColor;
+  if (currentColor === 'gray' || currentColor === 'green') return currentColor;
   if (clickCount === 2) return 'green';
-  if (clickCount >= 3) return 'default';
   return currentColor;
 };
 

@@ -48,6 +48,7 @@ export const getCompletedDayKeys = (plans: Plan[]): string[] => {
   return [...new Set(
     plans
       .filter((plan) => plan.color === 'green')
+      .filter((plan) => !plan.isSkipped)
       .map((plan) => getPlanLocalDateKey(plan.date))
       .filter((dateKey): dateKey is string => dateKey !== null)
   )].sort();

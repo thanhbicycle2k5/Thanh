@@ -53,6 +53,28 @@ export const doPlanTimesOverlap = (
   return firstStart < getPlanEndMinutes(second) && secondStart < getPlanEndMinutes(first);
 };
 
+export const getTopmostNonOverlappingPlans = (plans: Plan[]) => {
+  const prioritizedPlans = plans
+    .map((plan, index) => ({ plan, index }))
+    .sort((left, right) => {
+      const leftUpdatedAt = new Date(left.plan.updatedAt || left.plan.createdAt || 0).getTime() || 0;
+      const rightUpdatedAt = new Date(right.plan.updatedAt || right.plan.createdAt || 0).getTime() || 0;
+      return rightUpdatedAt - leftUpdatedAt || right.index - left.index;
+    });
+  const visiblePlans: Plan[] = [];
+
+  prioritizedPlans.forEach(({ plan }) => {
+    if (!visiblePlans.some((visiblePlan) => doPlanTimesOverlap(visiblePlan, plan))) {
+      visiblePlans.push(plan);
+    }
+  });
+
+  return visiblePlans.sort((left, right) => {
+    const dateDifference = new Date(left.date).getTime() - new Date(right.date).getTime();
+    return dateDifference || left.startHour - right.startHour || (left.startMinute ?? 0) - (right.startMinute ?? 0);
+  });
+};
+
 export const getPlanEndDate = (plan: Pick<Plan, 'date' | 'startHour' | 'startMinute' | 'duration'>) => {
   const end = getPlanStartDate(plan);
   end.setHours(0, 0, 0, 0);

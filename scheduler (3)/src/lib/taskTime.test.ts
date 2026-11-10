@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-import { doPlanTimesOverlap, getPlanReminderDate, getPlanStartDate, getPlanEndDate, getPlanEndMinutes, START_MINUTE_OPTIONS, isPlanPastEndGracePeriod, isReminderStillRelevant, isWithinReminderWindow } from './taskTime';
+import { doPlanTimesOverlap, getPlanReminderDate, getPlanStartDate, getPlanEndDate, getPlanEndMinutes, getTopmostNonOverlappingPlans, START_MINUTE_OPTIONS, isPlanPastEndGracePeriod, isReminderStillRelevant, isWithinReminderWindow } from './taskTime';
 
 test('supports start minutes in 5-minute increments', () => {
   const date = getPlanStartDate({
@@ -70,6 +70,27 @@ test('detects overlapping task times when task dates are ISO timestamps', () => 
     date: new Date(2026, 9, 20, 12).toISOString(),
     startHour: 10,
   }), false);
+});
+
+test('keeps only the topmost task when scheduled tasks overlap', () => {
+  const olderPlan = {
+    id: 'older',
+    title: 'Older task',
+    date: '2026-10-19',
+    startHour: 9,
+    duration: 2,
+    color: 'yellow' as const,
+    updatedAt: '2026-10-18T10:00:00.000Z',
+  };
+  const newerPlan = {
+    ...olderPlan,
+    id: 'newer',
+    title: 'Newer task',
+    startHour: 10,
+    updatedAt: '2026-10-18T11:00:00.000Z',
+  };
+
+  assert.deepEqual(getTopmostNonOverlappingPlans([olderPlan, newerPlan]).map((plan) => plan.id), ['newer']);
 });
 
 test('grays a task only after one hour has passed since its scheduled end', () => {

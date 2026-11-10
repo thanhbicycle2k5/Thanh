@@ -52,7 +52,7 @@ function SharedWeekPage({ weekStart, plans, startHour, endHour, language }: { we
                 const occupied = plans.some((item) => isSameDay(new Date(item.date), day) && item.startHour < hour && item.startHour + item.duration > hour);
                 if (occupied) return null;
                 return <td key={`${day.toISOString()}-${hour}`} rowSpan={plan?.duration || 1} style={plan ? { backgroundColor: COLORS[plan.color] } : undefined}>
-                  {plan && <><strong>{plan.title || labels.task}</strong>{plan.duration > 1 && <small>{plan.duration}{labels.hours}</small>}</>}
+                  {plan && <><strong style={{ textDecoration: plan.isSkipped ? 'line-through' : undefined }}>{plan.title || labels.task}</strong>{plan.duration > 1 && <small>{plan.duration}{labels.hours}</small>}</>}
                 </td>;
               })}
             </tr>
