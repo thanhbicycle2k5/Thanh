@@ -2009,7 +2009,15 @@ function ScheduleGridComponent({
             >
               {t('notPerformed')}
             </Button>
-            <Button type="button" variant="ghost" onClick={() => setGrayTaskToResolve(null)}>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                if (!grayTaskToResolve) return;
+                void onUpdatePlan({ ...grayTaskToResolve, color: 'gray', isSkipped: false }, { suppressCompletionToast: true });
+                setGrayTaskToResolve(null);
+              }}
+            >
               {t('notCompleted')}
             </Button>
           </DialogFooter>
