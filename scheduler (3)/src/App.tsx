@@ -1667,11 +1667,12 @@ function PlannerApp() {
                storage.saveSettings(anonymousSettingsFromStorage!, firebaseUser.uid, false);
              }
 
-             const initialPlans = hasPendingSync
-               ? localPlansForUid
-               : cloudPlans.length > 0
-                 ? cloudPlans
-                 : (localPlansForUid.length > 0 ? localPlansForUid : currentPlansFallback);
+             const storedPlans = storage.getPlans(firebaseUser.uid);
+             const initialPlans = mergePlans(
+               storedPlans.length > 0 ? storedPlans : currentPlansFallback,
+               cloudPlans
+             );
+             plansRef.current = initialPlans;
              setPlans(initialPlans);
 
              const initialMetas = hasPendingSync
@@ -1689,10 +1690,9 @@ function PlannerApp() {
 
              if (navigator.onLine) {
                unsubPlans = subscribePlans(firebaseUser.uid, p => {
-                  const mergedPlans = storage.hasPendingSyncFor(firebaseUser.uid, 'plans')
-                    ? mergePlans(storage.getPlans(firebaseUser.uid), p)
-                    : p;
+                  const mergedPlans = mergePlans(storage.getPlans(firebaseUser.uid), p);
 
+                  plansRef.current = mergedPlans;
                   setPlans(mergedPlans);
                   storage.savePlans(mergedPlans, firebaseUser.uid, false);
                   setSyncing(false);

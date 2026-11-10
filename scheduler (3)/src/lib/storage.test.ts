@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import { defaultSettings, mergeSettingsForSync, normalizeSettings } from './storage';
 import { mergePlans } from './sync';
+import { Plan } from '../types';
 
 test('none is a valid notification sound setting', () => {
   assert.equal(normalizeSettings({ notificationSound: 'none' }).notificationSound, 'none');
@@ -105,8 +106,8 @@ test('same task id keeps the newest version across desktop and mobile', () => {
   assert.equal(merged[0].recurrenceGroupId, 'weekly-root-1');
 });
 
-test('skipped status is retained when plans are normalized and merged', () => {
-  const [mergedPlan] = mergePlans([], [{
+test('newer local completion and skipped state win over stale cloud snapshots', () => {
+  const localPlan: Plan = {
     id: 'skipped-task',
     title: 'Skipped',
     date: '2026-10-19',
@@ -114,7 +115,25 @@ test('skipped status is retained when plans are normalized and merged', () => {
     duration: 1,
     color: 'gray',
     isSkipped: true,
-  }]);
+    updatedAt: '2026-10-20T12:00:00.000Z',
+    version: 3,
+  };
+  const staleCloudPlan: Plan = {
+    ...localPlan,
+    color: 'yellow',
+    isSkipped: undefined,
+    updatedAt: '2026-10-20T11:00:00.000Z',
+    version: 2,
+  };
+  const [mergedPlan] = mergePlans([localPlan], [staleCloudPlan]);
 
   assert.equal(mergedPlan.isSkipped, true);
+  assert.equal(mergedPlan.color, 'gray');
+
+  const [completedPlan] = mergePlans([{
+    ...localPlan,
+    color: 'green',
+    isSkipped: undefined,
+  }], [staleCloudPlan]);
+  assert.equal(completedPlan.color, 'green');
 });
