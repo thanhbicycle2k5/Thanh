@@ -608,6 +608,24 @@ function PlannerApp() {
   const [onDeviceAIError, setOnDeviceAIError] = React.useState('');
 
   React.useEffect(() => {
+    const nativeBridge = (window as Window & {
+      ReactNativeWebView?: { postMessage: (message: string) => void };
+    }).ReactNativeWebView;
+    if (!nativeBridge) return;
+
+    const postWakeLockState = (active: boolean) => {
+      nativeBridge.postMessage(JSON.stringify({
+        id: `pomodoro-wake-lock-${active ? 'active' : 'inactive'}`,
+        action: 'pomodoro-wake-lock',
+        payload: { active },
+      }));
+    };
+
+    postWakeLockState(pomodoroRunning);
+    return () => postWakeLockState(false);
+  }, [pomodoroRunning]);
+
+  React.useEffect(() => {
     if (!pomodoroRunning || typeof navigator === 'undefined') return;
 
     type ScreenWakeLockSentinel = { release: () => Promise<void> };

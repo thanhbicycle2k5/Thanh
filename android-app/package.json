@@ -5,6 +5,7 @@
   "dependencies": {
     "expo": "~57.0.26",
     "expo-file-system": "~57.0.7",
+    "expo-keep-awake": "~57.0.2",
     "expo-status-bar": "~57.0.1",
     "llama.rn": "^0.13.0-rc.7",
     "react": "19.2.3",

@@ -1,4 +1,5 @@
 import { StatusBar } from 'expo-status-bar';
+import { useKeepAwake } from 'expo-keep-awake';
 import { useEffect, useRef, useState } from 'react';
 import { BackHandler, Platform, StyleSheet, View } from 'react-native';
 import WebView, { type WebViewMessageEvent } from 'react-native-webview';
@@ -84,14 +85,20 @@ true;
 
 type BridgeRequest = {
   id: string;
-  action: 'status' | 'prepare' | 'chat' | 'cancel';
+  action: 'status' | 'prepare' | 'chat' | 'cancel' | 'pomodoro-wake-lock';
   payload?: Record<string, unknown>;
 };
+
+function PomodoroKeepAwake() {
+  useKeepAwake('scheduly-pomodoro');
+  return null;
+}
 
 export default function App() {
   const webViewRef = useRef<WebView>(null);
   const [webViewUrl, setWebViewUrl] = useState(SCHEDULY_URL);
   const [canGoBack, setCanGoBack] = useState(false);
+  const [pomodoroRunning, setPomodoroRunning] = useState(false);
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
@@ -127,6 +134,15 @@ export default function App() {
       return;
     }
 
+    if (request.action === 'pomodoro-wake-lock') {
+      if (typeof request.payload?.active !== 'boolean') {
+        console.warn('Ignored invalid Pomodoro keep-awake bridge message.');
+        return;
+      }
+      setPomodoroRunning(request.payload.active);
+      return;
+    }
+
     if (request.action === 'cancel') {
       await handleNativeAIRequest('cancel', request.payload ?? {}, () => undefined);
       return;
@@ -148,6 +164,7 @@ export default function App() {
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
+      {pomodoroRunning && <PomodoroKeepAwake />}
       <WebView
         ref={webViewRef}
         source={{ uri: webViewUrl }}
@@ -163,7 +180,10 @@ export default function App() {
           }
         }}
         onMessage={onMessage}
-        onNavigationStateChange={(navigation) => setCanGoBack(navigation.canGoBack)}
+        onNavigationStateChange={(navigation) => {
+          setCanGoBack(navigation.canGoBack);
+          if (!isAllowedTask2GoalUrl(navigation.url)) setPomodoroRunning(false);
+        }}
         onOpenWindow={(event) => {
           const targetUrl = event.nativeEvent.targetUrl;
           if (!isAllowedAppUrl(targetUrl)) {
