@@ -32,6 +32,7 @@ import { healthTipsManager } from './lib/healthTips';
 import { requestUniversalNotificationPermission, registerNotificationWorker, cancelScheduledNotificationById, showImmediateNotification, buildNotificationTitle, buildNotificationBody, clearScheduledNotifications as clearAllWorkerNotifications, showNowNotification } from './lib/notification';
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
+import { SecretCalendarDialog } from './components/SecretCalendarDialog';
 import { SharedScheduleView } from './components/SharedScheduleView';
 import { Toaster, toast } from 'sonner';
 import { 
@@ -73,6 +74,8 @@ import {
   Phone,
   Pencil,
   Gamepad2,
+  CalendarDays,
+  LockKeyhole,
 } from 'lucide-react';
 import { Calendar as CalendarUI } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -460,6 +463,7 @@ function PlannerApp() {
   const [authLoading, setAuthLoading] = React.useState(true);
   const [syncing, setSyncing] = React.useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
+  const [isSecretCalendarOpen, setIsSecretCalendarOpen] = React.useState(false);
   const [isTodayPopoverOpen, setIsTodayPopoverOpen] = React.useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = React.useState(false);
   const [isQuizOpen, setIsQuizOpen] = React.useState(false);
@@ -3174,6 +3178,15 @@ function PlannerApp() {
       )}
     >
       <div ref={youtubeContainerRef} className="hidden" />
+      <SecretCalendarDialog
+        open={isSecretCalendarOpen}
+        onOpenChange={setIsSecretCalendarOpen}
+        user={user}
+        language={settingsState.language}
+        theme={settingsState.theme}
+        startHour={settingsState.startHour}
+        endHour={settingsState.endHour}
+      />
       {!isCurrentWeek && (
         <Button
           type="button"
@@ -3231,6 +3244,18 @@ function PlannerApp() {
              <h1 className="text-lg font-black">{t('appName')}</h1>
           </div>
           <div className="flex items-center gap-1.5 sm:gap-2">
+             <Button
+               type="button"
+               variant="ghost"
+               size="icon"
+               className={cn("relative h-9 w-9 shrink-0", isSecretCalendarOpen && "text-primary")}
+               onClick={() => setIsSecretCalendarOpen(true)}
+               title={t('secretCalendar')}
+               aria-label={t('secretCalendar')}
+             >
+               <CalendarDays className="h-4 w-4" />
+               <LockKeyhole className="absolute bottom-1 right-1 h-2.5 w-2.5 rounded-full bg-background" />
+             </Button>
              {!user && !authLoading && (
                <Button 
                  variant="outline" 

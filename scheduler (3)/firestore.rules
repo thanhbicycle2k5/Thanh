@@ -81,6 +81,25 @@ service cloud.firestore {
         allow delete: if isSignedIn() && request.auth.uid == userId;
       }
 
+      match /secretCalendar/{documentId} {
+        allow read: if isOwner(userId) && documentId == 'vault';
+        allow create, update: if isOwner(userId)
+          && documentId == 'vault'
+          && request.resource.data.keys().hasOnly([
+            'version', 'keySalt', 'keyIv', 'wrappedKey', 'dataIv', 'encryptedData'
+          ])
+          && request.resource.data.keys().hasAll([
+            'version', 'keySalt', 'keyIv', 'wrappedKey', 'dataIv', 'encryptedData'
+          ])
+          && request.resource.data.version == 1
+          && request.resource.data.keySalt is string
+          && request.resource.data.keyIv is string
+          && request.resource.data.wrappedKey is string
+          && request.resource.data.dataIv is string
+          && request.resource.data.encryptedData is string
+          && request.resource.data.encryptedData.size() <= 1000000;
+      }
+
       match /meta/weekMetas {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
