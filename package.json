@@ -20,6 +20,7 @@
   "homepage": "https://github.com/thanhbicycle2k5/Thanh#readme",
   "dependencies": {
     "firebase-admin": "^14.4.0",
+    "nodemailer": "^10.5.0",
     "web-push": "^3.6.7"
   }
 }

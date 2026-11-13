@@ -1,5 +1,6 @@
 const crypto = require('node:crypto');
 const { cert, getApp, getApps, initializeApp } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
 const { FieldValue, getFirestore } = require('firebase-admin/firestore');
 const webpush = require('web-push');
 
@@ -22,6 +23,10 @@ function getFirebaseApp() {
 
 function getDb() {
   return getFirestore(getFirebaseApp());
+}
+
+function getFirebaseAuth() {
+  return getAuth(getFirebaseApp());
 }
 
 function configureVapid() {
@@ -94,4 +99,4 @@ function parseJsonBody(request) {
   return request.body && typeof request.body === 'object' ? request.body : {};
 }
 
-module.exports = { admin, getDb, webpush, configureVapid, requireDevice, normalizeSubscription, normalizeReminder, parseJsonBody };
+module.exports = { admin, getDb, getFirebaseAuth, webpush, configureVapid, requireDevice, normalizeSubscription, normalizeReminder, parseJsonBody };

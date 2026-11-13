@@ -30,14 +30,15 @@ npx firebase-tools deploy --only firestore:rules,firestore:indexes --project wad
 
 ### Private calendar and email recovery
 
-The private calendar uses a separate Firestore document and encrypts its schedule in the browser. Recovery codes are sent by the Firebase Trigger Email extension; the recovery Cloud Functions need a 32-byte encryption key stored in Firebase Secret Manager.
+The private calendar uses a separate Firestore document and encrypts its schedule in the browser. Recovery is handled by the existing Vercel API, so it does not require Firebase Cloud Functions or a Firebase Blaze upgrade.
 
-1. Install the Firebase extension `firebase/firestore-send-email` and configure its Firestore collection as `mail` and its SMTP provider. Do not allow client access to the `mail` collection.
-2. From this directory, install the Functions dependencies with `npm --prefix functions install`.
-3. Generate a 32-byte key (for example, `openssl rand -base64 32`) and set it with `firebase functions:secrets:set SECRET_CALENDAR_RECOVERY_KEY --project wadebicycle`. Keep the value private and back it up securely; replacing it makes existing recovery envelopes unusable.
-4. Deploy the rules and recovery functions with `npx firebase-tools deploy --only firestore:rules,functions --project wadebicycle`.
+Configure these Vercel environment variables and redeploy:
 
-The Functions require a signed-in account with a verified email. Recovery codes expire after 10 minutes and allow up to five attempts. The secret calendar contents are encrypted before being written to Firestore; the recovery function can unwrap the separate recovery key after verifying the email code so the password can be reset without deleting the schedule.
+- `SECRET_CALENDAR_RECOVERY_KEY`: a private base64-encoded 32-byte key (generate locally with `openssl rand -base64 32`). Keep it stable and backed up; replacing it makes existing recovery envelopes unusable.
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, and `SMTP_FROM`: SMTP credentials used only by the server API. For Gmail, use `smtp.gmail.com`, port `465`, and a Google App Password (requires 2-Step Verification); never use the regular account password.
+- `FIREBASE_SERVICE_ACCOUNT_JSON`: the existing server-only service account used by the Vercel API to verify Firebase ID tokens and access recovery records.
+
+The API requires a signed-in account with a verified email. Codes expire after 10 minutes and allow up to five attempts. SMTP and Vercel have provider quotas; Gmail has daily sending limits. The secret calendar contents remain encrypted before being written to Firestore.
 
 ## Run Locally
 

@@ -24,4 +24,6 @@ npx web-push generate-vapid-keys
 
 `VAPID_PRIVATE_KEY`, the Firebase service account, and `CRON_SECRET` are server-only. The app exposes only the public VAPID key through `/api/push/config`.
 
+The private calendar's email recovery also uses these Vercel API routes. Add `SECRET_CALENDAR_RECOVERY_KEY` (base64-encoded 32-byte key) and SMTP settings (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `SMTP_FROM`) to Vercel. Gmail SMTP with an App Password is one no-cost option; use a stable recovery key and never commit these values.
+
 The repository uses the scheduled GitHub Action as the $0 reminder scheduler. It normally runs every five minutes and GitHub may delay scheduled jobs. Vercel Cron is not enabled because the current Vercel plan rejected the per-minute schedule; exact-minute delivery requires a scheduler plan that supports per-minute execution.

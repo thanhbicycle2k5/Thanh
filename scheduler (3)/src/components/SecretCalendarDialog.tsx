@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { addWeeks, startOfWeek, subWeeks } from 'date-fns';
-import { CalendarDays, ChevronLeft, ChevronRight, KeyRound, LockKeyhole } from 'lucide-react';
+import { CalendarDays, ChevronLeft, ChevronRight, Eye, EyeOff, KeyRound, LockKeyhole } from 'lucide-react';
 import { User } from 'firebase/auth';
 import { Plan, Language, Theme } from '../types';
 import { TranslationKey, translations } from '../lib/i18n';
@@ -33,11 +33,60 @@ interface SecretCalendarDialogProps {
   endHour: number;
 }
 
-const getFirebaseErrorCode = (error: unknown): string => (
+const getApiErrorCode = (error: unknown): string => (
   typeof error === 'object' && error !== null && 'code' in error
     ? String(error.code)
     : ''
 );
+
+function PasswordField({
+  id,
+  value,
+  onChange,
+  autoComplete,
+  required = false,
+  minLength,
+  showLabel,
+  hideLabel,
+}: {
+  id: string;
+  value: string;
+  onChange: React.ChangeEventHandler<HTMLInputElement>;
+  autoComplete: string;
+  required?: boolean;
+  minLength?: number;
+  showLabel: string;
+  hideLabel: string;
+}) {
+  const [visible, setVisible] = React.useState(false);
+
+  return (
+    <div className="relative">
+      <Input
+        id={id}
+        type={visible ? 'text' : 'password'}
+        autoComplete={autoComplete}
+        value={value}
+        onChange={onChange}
+        required={required}
+        minLength={minLength}
+        className="pr-10"
+      />
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2"
+        aria-label={visible ? hideLabel : showLabel}
+        aria-pressed={visible}
+        title={visible ? hideLabel : showLabel}
+        onClick={() => setVisible((current) => !current)}
+      >
+        {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+      </Button>
+    </div>
+  );
+}
 
 export function SecretCalendarDialog({
   open,
@@ -108,7 +157,7 @@ export function SecretCalendarDialog({
         }
       })
       .catch((loadError: unknown) => {
-        const code = getFirebaseErrorCode(loadError);
+        const code = getApiErrorCode(loadError);
         console.error('Unable to load secret calendar:', { code, error: loadError });
         if (active) {
           setError(
@@ -171,8 +220,18 @@ export function SecretCalendarDialog({
       setPassword('');
       setConfirmPassword('');
     } catch (createError) {
-      console.error('Unable to create secret calendar:', createError);
-      setError(t('secretCalendarSetupError'));
+      const code = getApiErrorCode(createError);
+      console.error('Unable to create secret calendar:', { code, error: createError });
+      const errorKey: TranslationKey = code === 'secret/recovery-key-not-configured'
+        ? 'secretCalendarRecoverySecretMissing'
+        : code === 'email/not-configured'
+          ? 'secretCalendarEmailNotConfigured'
+          : code === 'api/not-found'
+            ? 'secretCalendarApiMissing'
+            : code === 'auth/unauthenticated'
+              ? 'secretCalendarVerifiedEmailRequired'
+              : 'secretCalendarSetupError';
+      setError(t(errorKey));
     } finally {
       setBusy(false);
     }
@@ -206,8 +265,15 @@ export function SecretCalendarDialog({
       await requestSecretCalendarRecoveryCode();
       setCodeSent(true);
     } catch (requestError) {
-      console.error('Unable to send secret calendar recovery code:', requestError);
-      setError(t('secretCalendarCodeSendError'));
+      const code = getApiErrorCode(requestError);
+      console.error('Unable to send secret calendar recovery code:', { code, error: requestError });
+      setError(
+        code === 'email/not-configured'
+          ? t('secretCalendarEmailNotConfigured')
+          : code === 'email/send-failed'
+            ? t('secretCalendarEmailSendError')
+            : t('secretCalendarCodeSendError')
+      );
     } finally {
       setBusy(false);
     }
@@ -365,11 +431,29 @@ export function SecretCalendarDialog({
             <p className="text-sm text-muted-foreground">{t('secretCalendarEmptyNotice')}</p>
             <div className="space-y-2">
               <Label htmlFor="secret-calendar-password">{t('secretCalendarPassword')}</Label>
-              <Input id="secret-calendar-password" type="password" autoComplete="new-password" value={password} onChange={(event) => setPassword(event.target.value)} required minLength={8} />
+              <PasswordField
+                id="secret-calendar-password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                minLength={8}
+                showLabel={t('showPassword')}
+                hideLabel={t('hidePassword')}
+              />
             </div>
             <div className="space-y-2">
               <Label htmlFor="secret-calendar-confirm-password">{t('secretCalendarConfirmPassword')}</Label>
-              <Input id="secret-calendar-confirm-password" type="password" autoComplete="new-password" value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} required minLength={8} />
+              <PasswordField
+                id="secret-calendar-confirm-password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+                required
+                minLength={8}
+                showLabel={t('showPassword')}
+                hideLabel={t('hidePassword')}
+              />
             </div>
             <p className="text-xs text-muted-foreground">{t('secretCalendarRecoveryNotice')}</p>
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
@@ -396,11 +480,29 @@ export function SecretCalendarDialog({
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="secret-calendar-new-password">{t('secretCalendarNewPassword')}</Label>
-                  <Input id="secret-calendar-new-password" type="password" autoComplete="new-password" value={newPassword} onChange={(event) => setNewPassword(event.target.value)} required minLength={8} />
+                  <PasswordField
+                    id="secret-calendar-new-password"
+                    autoComplete="new-password"
+                    value={newPassword}
+                    onChange={(event) => setNewPassword(event.target.value)}
+                    required
+                    minLength={8}
+                    showLabel={t('showPassword')}
+                    hideLabel={t('hidePassword')}
+                  />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="secret-calendar-confirm-new-password">{t('secretCalendarConfirmPassword')}</Label>
-                  <Input id="secret-calendar-confirm-new-password" type="password" autoComplete="new-password" value={confirmNewPassword} onChange={(event) => setConfirmNewPassword(event.target.value)} required minLength={8} />
+                  <PasswordField
+                    id="secret-calendar-confirm-new-password"
+                    autoComplete="new-password"
+                    value={confirmNewPassword}
+                    onChange={(event) => setConfirmNewPassword(event.target.value)}
+                    required
+                    minLength={8}
+                    showLabel={t('showPassword')}
+                    hideLabel={t('hidePassword')}
+                  />
                 </div>
                 <Button className="w-full" disabled={busy} type="submit">
                   {busy ? t('secretCalendarLoading') : t('secretCalendarResetPassword')}
@@ -416,7 +518,15 @@ export function SecretCalendarDialog({
           <form onSubmit={handleUnlock} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="secret-calendar-unlock-password">{t('secretCalendarPassword')}</Label>
-              <Input id="secret-calendar-unlock-password" type="password" autoComplete="current-password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+              <PasswordField
+                id="secret-calendar-unlock-password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                required
+                showLabel={t('showPassword')}
+                hideLabel={t('hidePassword')}
+              />
             </div>
             {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
             <Button className="w-full" disabled={busy} type="submit">

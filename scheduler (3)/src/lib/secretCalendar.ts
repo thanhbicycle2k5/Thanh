@@ -1,5 +1,4 @@
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
 import { auth, db } from './firebase';
 import {
   base64ToBytes,
@@ -17,11 +16,41 @@ export {
 export type { SecretCalendarVault } from './secretCalendarCrypto';
 
 const LOCAL_VAULT_KEY = 'task2goal_secret_calendar_v1';
-const FUNCTIONS_REGION = 'us-central1';
 const toBase64 = bytesToBase64;
 const fromBase64 = base64ToBytes;
 
 const localKey = (uid: string) => `${LOCAL_VAULT_KEY}_${uid}`;
+
+interface SecretCalendarApiError {
+  code?: unknown;
+  error?: unknown;
+}
+
+const callSecretCalendarApi = async <T>(endpoint: string, body: Record<string, string>): Promise<T> => {
+  const currentUser = auth.currentUser;
+  if (!currentUser) {
+    throw Object.assign(new Error('Sign-in is required.'), { code: 'auth/unauthenticated' });
+  }
+  const idToken = await currentUser.getIdToken();
+  const response = await fetch(`/api/secret-calendar/${endpoint}`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${idToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+  const payload: unknown = await response.json().catch(() => null);
+  if (!response.ok) {
+    const apiError = payload && typeof payload === 'object' ? payload as SecretCalendarApiError : {};
+    const code = typeof apiError.code === 'string'
+      ? apiError.code
+      : response.status === 404 ? 'api/not-found' : 'api/unavailable';
+    const message = typeof apiError.error === 'string' ? apiError.error : 'The recovery API is unavailable.';
+    throw Object.assign(new Error(message), { code });
+  }
+  return payload as T;
+};
 
 export const loadSecretCalendarVault = async (uid: string): Promise<SecretCalendarVault | null> => {
   const localVault = localStorage.getItem(localKey(uid));
@@ -40,20 +69,15 @@ export const saveSecretCalendarVault = async (uid: string, vault: SecretCalendar
   await setDoc(doc(db, 'users', uid, 'secretCalendar', 'vault'), vault);
 };
 
-const functions = getFunctions(auth.app, FUNCTIONS_REGION);
-const saveRecoveryKeyCall = httpsCallable<{ vaultKey: string }, void>(functions, 'storeSecretCalendarRecoveryKey');
-const requestRecoveryCodeCall = httpsCallable<Record<string, never>, void>(functions, 'requestSecretCalendarRecoveryCode');
-const verifyRecoveryCodeCall = httpsCallable<{ code: string }, { vaultKey: string }>(functions, 'verifySecretCalendarRecoveryCode');
-
 export const storeSecretCalendarRecoveryKey = async (vaultKey: Uint8Array): Promise<void> => {
-  await saveRecoveryKeyCall({ vaultKey: toBase64(vaultKey) });
+  await callSecretCalendarApi('store-key', { vaultKey: toBase64(vaultKey) });
 };
 
 export const requestSecretCalendarRecoveryCode = async (): Promise<void> => {
-  await requestRecoveryCodeCall({});
+  await callSecretCalendarApi('request-code', {});
 };
 
 export const verifySecretCalendarRecoveryCode = async (code: string): Promise<Uint8Array> => {
-  const result = await verifyRecoveryCodeCall({ code });
-  return fromBase64(result.data.vaultKey);
+  const result = await callSecretCalendarApi<{ vaultKey: string }>('verify-code', { code });
+  return fromBase64(result.vaultKey);
 };
