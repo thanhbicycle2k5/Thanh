@@ -33,6 +33,12 @@ interface SecretCalendarDialogProps {
   endHour: number;
 }
 
+const getFirebaseErrorCode = (error: unknown): string => (
+  typeof error === 'object' && error !== null && 'code' in error
+    ? String(error.code)
+    : ''
+);
+
 export function SecretCalendarDialog({
   open,
   onOpenChange,
@@ -102,9 +108,14 @@ export function SecretCalendarDialog({
         }
       })
       .catch((loadError: unknown) => {
-        console.error('Unable to load secret calendar:', loadError);
+        const code = getFirebaseErrorCode(loadError);
+        console.error('Unable to load secret calendar:', { code, error: loadError });
         if (active) {
-          setError(t('secretCalendarLoadError'));
+          setError(
+            code === 'permission-denied'
+              ? t(user.emailVerified ? 'secretCalendarPermissionError' : 'secretCalendarVerifyEmailError')
+              : t('secretCalendarLoadError')
+          );
           setLoadFailed(true);
           setLoaded(true);
         }
