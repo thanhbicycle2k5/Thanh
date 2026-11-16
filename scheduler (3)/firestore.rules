@@ -108,6 +108,15 @@ service cloud.firestore {
         allow read, write: if isSignedIn() && request.auth.uid == userId;
       }
 
+      match /meta/quickNote {
+        allow read: if isSignedIn() && request.auth.uid == userId;
+        allow create, update: if isSignedIn()
+          && request.auth.uid == userId
+          && request.resource.data.keys().hasOnly(['content'])
+          && request.resource.data.content is string
+          && request.resource.data.content.size() <= 50000;
+      }
+
       match /sharedSchedules/{shareId} {
         allow read: if isSignedIn() && request.auth.uid == userId;
         allow create: if isSignedIn()

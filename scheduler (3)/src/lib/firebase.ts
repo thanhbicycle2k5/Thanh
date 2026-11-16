@@ -291,6 +291,16 @@ export const cloudStorage = {
       handleFirestoreError(e, OperationType.WRITE, path);
     }
   },
+
+  saveQuickNote: async (uid: string, content: string): Promise<void> => {
+    const path = `users/${uid}/meta/quickNote`;
+    try {
+      const ref = doc(db, "users", uid, "meta", "quickNote");
+      await setDoc(ref, { content });
+    } catch (e) {
+      handleFirestoreError(e, OperationType.WRITE, path);
+    }
+  },
 };
 
 export const subscribePlans = (
@@ -326,6 +336,30 @@ export const subscribeSettings = (
     },
     (error) => {
       const normalizedError = error instanceof Error ? error : new Error(String(error));
+      onError?.(normalizedError);
+    }
+  );
+};
+
+export const subscribeQuickNote = (
+  uid: string,
+  callback: (content: string | null, fromCache: boolean) => void,
+  onError?: (e: Error) => void
+): (() => void) => {
+  const path = `users/${uid}/meta/quickNote`;
+  const quickNoteRef = doc(db, "users", uid, "meta", "quickNote");
+  return onSnapshot(
+    quickNoteRef,
+    { includeMetadataChanges: true },
+    (snapshot) => {
+      const content = snapshot.exists() && typeof snapshot.data().content === "string"
+        ? snapshot.data().content as string
+        : null;
+      callback(content, snapshot.metadata.fromCache);
+    },
+    (error) => {
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      console.error(`Firestore subscription failed at ${path}:`, normalizedError);
       onError?.(normalizedError);
     }
   );

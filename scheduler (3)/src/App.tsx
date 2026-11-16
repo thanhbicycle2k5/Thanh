@@ -33,6 +33,7 @@ import { requestUniversalNotificationPermission, registerNotificationWorker, can
 import { User } from 'firebase/auth';
 import { ScheduleGrid } from './components/ScheduleGrid';
 import { SecretCalendarDialog } from './components/SecretCalendarDialog';
+import { QuickNoteEditor } from './components/QuickNoteEditor';
 import { SharedScheduleView } from './components/SharedScheduleView';
 import { Toaster, toast } from 'sonner';
 import { 
@@ -464,6 +465,7 @@ function PlannerApp() {
   const [syncing, setSyncing] = React.useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = React.useState(false);
   const [isSecretCalendarOpen, setIsSecretCalendarOpen] = React.useState(false);
+  const [isQuickNoteOpen, setIsQuickNoteOpen] = React.useState(false);
   const [isTodayPopoverOpen, setIsTodayPopoverOpen] = React.useState(false);
   const [isLeaderboardOpen, setIsLeaderboardOpen] = React.useState(false);
   const [isQuizOpen, setIsQuizOpen] = React.useState(false);
@@ -3754,6 +3756,12 @@ function PlannerApp() {
       {/* Floating UI Group */}
       <div className="fixed inset-x-0 bottom-0 z-50 pointer-events-none">
         <div className="fixed bottom-20 right-4 z-[9999] flex flex-col items-end gap-3 pointer-events-auto">
+          <QuickNoteEditor
+            uid={user?.uid ?? null}
+            isOpen={isQuickNoteOpen}
+            onOpenChange={setIsQuickNoteOpen}
+            t={t}
+          />
           {isMobile && (
             <button
               type="button"

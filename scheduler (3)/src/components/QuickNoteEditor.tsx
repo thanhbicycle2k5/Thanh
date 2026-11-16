@@ -4,118 +4,160 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { X } from 'lucide-react';
+import { cloudStorage, subscribeQuickNote } from '../lib/firebase';
+import { TranslationKey } from '../lib/i18n';
 
 const STORAGE_KEY = 'chronos_quick_note';
 
 interface QuickNoteEditorProps {
-  isMobile: boolean;
+  uid: string | null;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
+  t: (key: TranslationKey) => string;
 }
 
-function QuickNoteEditorComponent({ isMobile, isOpen, onOpenChange }: QuickNoteEditorProps) {
+function QuickNoteEditorComponent({ uid, isOpen, onOpenChange, t }: QuickNoteEditorProps) {
   const [value, setValue] = React.useState('');
+  const [syncFailed, setSyncFailed] = React.useState(false);
   const saveTimerRef = React.useRef<number | null>(null);
+  const dirtyRef = React.useRef(false);
+  const valueRef = React.useRef(value);
 
   React.useEffect(() => {
+    valueRef.current = value;
+  }, [value]);
+
+  React.useEffect(() => {
+    let active = true;
+    dirtyRef.current = false;
+    setSyncFailed(false);
     const saved = localStorage.getItem(STORAGE_KEY) ?? '';
     setValue(saved);
-  }, []);
+    valueRef.current = saved;
 
-  const scheduleSave = React.useCallback((nextValue: string) => {
-    if (saveTimerRef.current) {
-      window.clearTimeout(saveTimerRef.current);
-    }
-    saveTimerRef.current = window.setTimeout(() => {
-      localStorage.setItem(STORAGE_KEY, nextValue);
-      saveTimerRef.current = null;
-    }, 300);
-  }, []);
+    if (!uid) return () => { active = false; };
+
+    const unsubscribe = subscribeQuickNote(
+      uid,
+      (remoteNote, fromCache) => {
+        if (!active || dirtyRef.current) return;
+        if (remoteNote !== null) {
+          setValue(remoteNote);
+          valueRef.current = remoteNote;
+          localStorage.setItem(STORAGE_KEY, remoteNote);
+          return;
+        }
+
+        if (!fromCache) {
+          const localNote = localStorage.getItem(STORAGE_KEY) ?? '';
+          if (localNote) {
+            setValue(localNote);
+            valueRef.current = localNote;
+            dirtyRef.current = true;
+            void cloudStorage.saveQuickNote(uid, localNote)
+              .then(() => {
+                if (active && valueRef.current === localNote) dirtyRef.current = false;
+              })
+              .catch((error: unknown) => {
+                console.error('Unable to sync quick note:', error);
+                if (active) setSyncFailed(true);
+              });
+          } else {
+            setValue('');
+            valueRef.current = '';
+          }
+        }
+      },
+      (error) => {
+        console.error('Unable to subscribe to quick note:', error);
+        if (active) setSyncFailed(true);
+      }
+    );
+
+    return () => {
+      active = false;
+      unsubscribe();
+    };
+  }, [uid]);
 
   React.useEffect(() => {
-    if (isOpen) {
-      scheduleSave(value);
-    }
+    if (!dirtyRef.current) return;
+
+    if (saveTimerRef.current !== null) window.clearTimeout(saveTimerRef.current);
+    const noteToSave = value;
+    let active = true;
+    saveTimerRef.current = window.setTimeout(() => {
+      saveTimerRef.current = null;
+      localStorage.setItem(STORAGE_KEY, noteToSave);
+
+      if (!uid) {
+        dirtyRef.current = false;
+        return;
+      }
+
+      void cloudStorage.saveQuickNote(uid, noteToSave)
+        .then(() => {
+          if (active && valueRef.current === noteToSave) {
+            dirtyRef.current = false;
+            setSyncFailed(false);
+          }
+        })
+        .catch((error: unknown) => {
+          console.error('Unable to sync quick note:', error);
+          if (active) setSyncFailed(true);
+        });
+    }, 300);
+
     return () => {
-      if (saveTimerRef.current) {
+      active = false;
+      if (saveTimerRef.current !== null) {
         window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
       }
     };
-  }, [value, isOpen, scheduleSave]);
+  }, [value, uid]);
 
   const handleChange = React.useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    dirtyRef.current = true;
     setValue(event.target.value);
   }, []);
 
+  const trigger = (
+    <button
+      type="button"
+      onPointerDown={(event) => event.stopPropagation()}
+      onClick={() => onOpenChange(!isOpen)}
+      className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-2xl transition-all hover:scale-110 active:scale-95"
+      aria-label={t('quickNoteTitle')}
+      title={t('quickNoteTitle')}
+      aria-expanded={isOpen}
+    >
+      <span className="text-xl font-black leading-none">N</span>
+    </button>
+  );
+
+  const statusText = syncFailed
+    ? t('quickNoteSyncError')
+    : uid
+      ? t('quickNoteAccountDescription')
+      : t('quickNoteLocalDescription');
+
   return (
     <>
-      {isMobile ? (
-        isOpen ? (
-          <>
-            <div
-              className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
-              onClick={() => onOpenChange(false)}
-            />
-            <div
-              className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-xl rounded-t-3xl border border-border bg-card p-4 shadow-2xl shadow-black/10 pointer-events-auto transition-transform duration-200"
-            >
-              <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-muted-foreground/40" />
-              <div className="flex items-center justify-between gap-3 pb-3">
-                <div>
-                  <p className="text-sm font-bold">Ghi chú nhanh</p>
-                  <p className="text-[11px] opacity-70">Lưu tự động, không lo mất dữ liệu khi tải lại</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => onOpenChange(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-muted/80 text-foreground transition hover:bg-muted"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-              <Textarea
-                value={value}
-                onChange={handleChange}
-                placeholder="Ghi gì đó..."
-                rows={10}
-                className="min-h-[14rem] resize-none bg-muted/70 border-border"
-              />
-              <Button
-                className="mt-4 h-11 w-full rounded-2xl bg-[#107C41] text-white shadow-lg shadow-[#107C41]/20 hover:bg-[#0d6435]"
-                onClick={() => onOpenChange(false)}
-              >
-                Đóng
-              </Button>
-            </div>
-          </>
-        ) : null
-      ) : (
+      {uid ? (
         <Popover open={isOpen} onOpenChange={onOpenChange}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className="h-12 w-12 rounded-full bg-yellow-400 text-black shadow-2xl border border-white/10 transition hover:bg-yellow-500 hover:scale-105 active:scale-95 flex items-center justify-center"
-              aria-label="Ghi chú nhanh"
-            >
-              <span className="text-xl font-black leading-none">T</span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent
-            className="w-[22rem] max-w-[90vw] rounded-3xl border border-border bg-card p-4 shadow-2xl"
-            side="top"
-            align="end"
-            sideOffset={12}
-          >
+          <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+          <PopoverContent className="w-[22rem] max-w-[90vw] rounded-3xl border border-border bg-card p-4 shadow-2xl" side="top" align="end" sideOffset={12}>
             <div className="flex items-center justify-between gap-3 pb-2">
               <div>
-                <p className="text-sm font-bold">Ghi chú nhanh</p>
-                <p className="text-[11px] opacity-70">Lưu tự động vào localStorage</p>
+                <p className="text-sm font-bold">{t('quickNoteTitle')}</p>
+                <p className="text-[11px] opacity-70">{statusText}</p>
               </div>
               <button
                 type="button"
                 className="inline-flex h-9 w-9 items-center justify-center rounded-2xl border border-border bg-muted/70 text-foreground transition hover:bg-muted"
                 onClick={() => onOpenChange(false)}
-                aria-label="Đóng ghi chú"
+                aria-label={t('close')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -123,12 +165,50 @@ function QuickNoteEditorComponent({ isMobile, isOpen, onOpenChange }: QuickNoteE
             <Textarea
               value={value}
               onChange={handleChange}
-              placeholder="Ghi gì đó..."
+              placeholder={t('quickNotePlaceholder')}
               rows={8}
-              className="min-h-[12rem] resize-none bg-muted/70 border-border"
+              maxLength={50000}
+              className="min-h-[12rem] resize-none border-border bg-muted/70"
             />
           </PopoverContent>
         </Popover>
+      ) : (
+        <>
+          {trigger}
+          {isOpen && (
+            <>
+              <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
+              <div className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-xl rounded-t-3xl border border-border bg-card p-4 shadow-2xl shadow-black/10 pointer-events-auto">
+                <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-muted-foreground/40" />
+                <div className="flex items-center justify-between gap-3 pb-3">
+                  <div>
+                    <p className="text-sm font-bold">{t('quickNoteTitle')}</p>
+                    <p className="text-[11px] opacity-70">{statusText}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onOpenChange(false)}
+                    className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-border bg-muted/80 text-foreground transition hover:bg-muted"
+                    aria-label={t('close')}
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+                <Textarea
+                  value={value}
+                  onChange={handleChange}
+                  placeholder={t('quickNotePlaceholder')}
+                  rows={10}
+                  maxLength={50000}
+                  className="min-h-[14rem] resize-none border-border bg-muted/70"
+                />
+                <Button className="mt-4 h-11 w-full rounded-2xl" onClick={() => onOpenChange(false)}>
+                  {t('close')}
+                </Button>
+              </div>
+            </>
+          )}
+        </>
       )}
     </>
   );
