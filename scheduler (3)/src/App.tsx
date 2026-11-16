@@ -3758,6 +3758,7 @@ function PlannerApp() {
         <div className="fixed bottom-20 right-4 z-[9999] flex flex-col items-end gap-3 pointer-events-auto">
           <QuickNoteEditor
             uid={user?.uid ?? null}
+            isMobile={isMobile}
             isOpen={isQuickNoteOpen}
             onOpenChange={setIsQuickNoteOpen}
             t={t}

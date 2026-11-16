@@ -11,12 +11,13 @@ const STORAGE_KEY = 'chronos_quick_note';
 
 interface QuickNoteEditorProps {
   uid: string | null;
+  isMobile: boolean;
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   t: (key: TranslationKey) => string;
 }
 
-function QuickNoteEditorComponent({ uid, isOpen, onOpenChange, t }: QuickNoteEditorProps) {
+function QuickNoteEditorComponent({ uid, isMobile, isOpen, onOpenChange, t }: QuickNoteEditorProps) {
   const [value, setValue] = React.useState('');
   const [syncFailed, setSyncFailed] = React.useState(false);
   const saveTimerRef = React.useRef<number | null>(null);
@@ -122,11 +123,11 @@ function QuickNoteEditorComponent({ uid, isOpen, onOpenChange, t }: QuickNoteEdi
     setValue(event.target.value);
   }, []);
 
-  const trigger = (
+  const trigger = (toggleOnClick = false) => (
     <button
       type="button"
       onPointerDown={(event) => event.stopPropagation()}
-      onClick={() => onOpenChange(!isOpen)}
+      onClick={toggleOnClick ? () => onOpenChange(!isOpen) : undefined}
       className="flex h-12 w-12 items-center justify-center rounded-full border border-border bg-background text-foreground shadow-2xl transition-all hover:scale-110 active:scale-95"
       aria-label={t('quickNoteTitle')}
       title={t('quickNoteTitle')}
@@ -144,9 +145,9 @@ function QuickNoteEditorComponent({ uid, isOpen, onOpenChange, t }: QuickNoteEdi
 
   return (
     <>
-      {uid ? (
+      {uid && !isMobile ? (
         <Popover open={isOpen} onOpenChange={onOpenChange}>
-          <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+          <PopoverTrigger asChild>{trigger()}</PopoverTrigger>
           <PopoverContent className="max-h-[calc(100dvh-7rem)] w-[min(34rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-3xl border border-border bg-card p-5 shadow-2xl sm:p-6" side="top" align="end" sideOffset={12}>
             <div className="flex items-center justify-between gap-3 pb-2">
               <div>
@@ -174,11 +175,11 @@ function QuickNoteEditorComponent({ uid, isOpen, onOpenChange, t }: QuickNoteEdi
         </Popover>
       ) : (
         <>
-          {trigger}
+          {trigger(true)}
           {isOpen && (
             <>
               <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
-              <div className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-border bg-card p-5 shadow-2xl shadow-black/10 pointer-events-auto sm:p-6">
+              <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[min(72dvh,38rem)] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-border bg-card p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl shadow-black/10 pointer-events-auto sm:p-6">
                 <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-muted-foreground/40" />
                 <div className="flex items-center justify-between gap-3 pb-3">
                   <div>
@@ -198,9 +199,9 @@ function QuickNoteEditorComponent({ uid, isOpen, onOpenChange, t }: QuickNoteEdi
                   value={value}
                   onChange={handleChange}
                   placeholder={t('quickNotePlaceholder')}
-                  rows={16}
+                  rows={12}
                   maxLength={50000}
-                  className="min-h-[min(60dvh,34rem)] resize-none border-border bg-muted/70"
+                  className="h-[min(45dvh,28rem)] min-h-[12rem] resize-none border-border bg-muted/70"
                 />
                 <Button className="mt-4 h-11 w-full rounded-2xl" onClick={() => onOpenChange(false)}>
                   {t('close')}
