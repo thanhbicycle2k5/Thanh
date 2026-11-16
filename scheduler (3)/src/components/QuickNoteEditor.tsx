@@ -147,7 +147,7 @@ function QuickNoteEditorComponent({ uid, isOpen, onOpenChange, t }: QuickNoteEdi
       {uid ? (
         <Popover open={isOpen} onOpenChange={onOpenChange}>
           <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-          <PopoverContent className="w-[22rem] max-w-[90vw] rounded-3xl border border-border bg-card p-4 shadow-2xl" side="top" align="end" sideOffset={12}>
+          <PopoverContent className="max-h-[calc(100dvh-7rem)] w-[min(34rem,calc(100vw-2rem))] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-3xl border border-border bg-card p-5 shadow-2xl sm:p-6" side="top" align="end" sideOffset={12}>
             <div className="flex items-center justify-between gap-3 pb-2">
               <div>
                 <p className="text-sm font-bold">{t('quickNoteTitle')}</p>
@@ -166,9 +166,9 @@ function QuickNoteEditorComponent({ uid, isOpen, onOpenChange, t }: QuickNoteEdi
               value={value}
               onChange={handleChange}
               placeholder={t('quickNotePlaceholder')}
-              rows={8}
+              rows={14}
               maxLength={50000}
-              className="min-h-[12rem] resize-none border-border bg-muted/70"
+              className="min-h-[min(55dvh,30rem)] resize-none border-border bg-muted/70"
             />
           </PopoverContent>
         </Popover>
@@ -178,7 +178,7 @@ function QuickNoteEditorComponent({ uid, isOpen, onOpenChange, t }: QuickNoteEdi
           {isOpen && (
             <>
               <div className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" onClick={() => onOpenChange(false)} />
-              <div className="fixed bottom-0 left-0 right-0 z-50 mx-auto w-full max-w-xl rounded-t-3xl border border-border bg-card p-4 shadow-2xl shadow-black/10 pointer-events-auto">
+              <div className="fixed bottom-0 left-0 right-0 z-50 mx-auto max-h-[90dvh] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-border bg-card p-5 shadow-2xl shadow-black/10 pointer-events-auto sm:p-6">
                 <div className="mx-auto mb-3 h-1.5 w-14 rounded-full bg-muted-foreground/40" />
                 <div className="flex items-center justify-between gap-3 pb-3">
                   <div>
@@ -198,9 +198,9 @@ function QuickNoteEditorComponent({ uid, isOpen, onOpenChange, t }: QuickNoteEdi
                   value={value}
                   onChange={handleChange}
                   placeholder={t('quickNotePlaceholder')}
-                  rows={10}
+                  rows={16}
                   maxLength={50000}
-                  className="min-h-[14rem] resize-none border-border bg-muted/70"
+                  className="min-h-[min(60dvh,34rem)] resize-none border-border bg-muted/70"
                 />
                 <Button className="mt-4 h-11 w-full rounded-2xl" onClick={() => onOpenChange(false)}>
                   {t('close')}

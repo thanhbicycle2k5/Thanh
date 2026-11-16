@@ -293,10 +293,10 @@ export const cloudStorage = {
   },
 
   saveQuickNote: async (uid: string, content: string): Promise<void> => {
-    const path = `users/${uid}/meta/quickNote`;
+    const path = `users/${uid}/meta/settings`;
     try {
-      const ref = doc(db, "users", uid, "meta", "quickNote");
-      await setDoc(ref, { content });
+      const ref = doc(db, "users", uid, "meta", "settings");
+      await setDoc(ref, { quickNote: content }, { merge: true });
     } catch (e) {
       handleFirestoreError(e, OperationType.WRITE, path);
     }
@@ -346,14 +346,14 @@ export const subscribeQuickNote = (
   callback: (content: string | null, fromCache: boolean) => void,
   onError?: (e: Error) => void
 ): (() => void) => {
-  const path = `users/${uid}/meta/quickNote`;
-  const quickNoteRef = doc(db, "users", uid, "meta", "quickNote");
+  const path = `users/${uid}/meta/settings`;
+  const settingsRef = doc(db, "users", uid, "meta", "settings");
   return onSnapshot(
-    quickNoteRef,
+    settingsRef,
     { includeMetadataChanges: true },
     (snapshot) => {
-      const content = snapshot.exists() && typeof snapshot.data().content === "string"
-        ? snapshot.data().content as string
+      const content = snapshot.exists() && typeof snapshot.data().quickNote === "string"
+        ? snapshot.data().quickNote as string
         : null;
       callback(content, snapshot.metadata.fromCache);
     },
